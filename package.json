@@ -1,0 +1,26 @@
+{
+  "name": "wildcard-app",
+  "version": "6.8.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "sync:android": "cap sync android",
+    "build:android:release": "npm run sync:android && cd android && gradlew.bat :app:assembleRelease",
+    "test": "node tools/verify-v68.js",
+    "test:deep": "node tools/deep-sim-v57.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "cordova-plugin-purchase": "^13.17.2"
+  }
+}

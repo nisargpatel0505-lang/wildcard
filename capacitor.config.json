@@ -1,0 +1,9 @@
+{
+  "appId": "com.nisarg.wildcard",
+  "appName": "WILDCARD",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#080714",
+    "allowMixedContent": false
+  }
+}

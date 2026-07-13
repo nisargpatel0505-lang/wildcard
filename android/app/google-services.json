@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420107184674",
+    "project_id": "wildcard-31d50",
+    "storage_bucket": "wildcard-31d50.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420107184674:android:d1249c53cbde7160c2387b",
+        "android_client_info": {
+          "package_name": "com.nisarg.wildcard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2t5ndYtfRRxNJ131nRWB9lq28ND_rVfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,824 @@
+{
+  "source": "www/index.html",
+  "version": "6.8",
+  "generatedAt": "2026-07-13T16:34:51.016Z",
+  "durationMs": 49572,
+  "counts": {
+    "jokers": 57,
+    "freeJokers": 10,
+    "scoringCases": 10000,
+    "cheatCases": 5000,
+    "fullRuns": 550
+  },
+  "dataFailures": [],
+  "hookErrors": [],
+  "invariantFailures": [],
+  "jokerHooks": [
+    {
+      "id": "copper",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "presser",
+      "tested": 52,
+      "active": 13,
+      "activationRate": 25
+    },
+    {
+      "id": "retainer",
+      "tested": 52,
+      "active": 12,
+      "activationRate": 23.1
+    },
+    {
+      "id": "even",
+      "tested": 52,
+      "active": 24,
+      "activationRate": 46.2
+    },
+    {
+      "id": "acemag",
+      "tested": 52,
+      "active": 4,
+      "activationRate": 7.7
+    },
+    {
+      "id": "lowball",
+      "tested": 52,
+      "active": 20,
+      "activationRate": 38.5
+    },
+    {
+      "id": "polish",
+      "tested": 12,
+      "active": 10,
+      "activationRate": 83.3
+    },
+    {
+      "id": "flushfund",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "wire",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "momentum",
+      "tested": 12,
+      "active": 9,
+      "activationRate": 75
+    },
+    {
+      "id": "uniform",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "roller",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "trainer",
+      "tested": 12,
+      "active": 1,
+      "activationRate": 8.3
+    },
+    {
+      "id": "lastcall",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "inktrade",
+      "tested": 52,
+      "active": 26,
+      "activationRate": 50
+    },
+    {
+      "id": "triple3",
+      "tested": 52,
+      "active": 4,
+      "activationRate": 7.7
+    },
+    {
+      "id": "dumpster",
+      "tested": 12,
+      "active": 10,
+      "activationRate": 83.3
+    },
+    {
+      "id": "dividend",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "couple",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "sniper",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "fulltable",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "miser",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "overtime",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "butcher",
+      "tested": 12,
+      "active": 10,
+      "activationRate": 83.3
+    },
+    {
+      "id": "collector",
+      "tested": 12,
+      "active": 9,
+      "activationRate": 75
+    },
+    {
+      "id": "boostfiend",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "piggy",
+      "tested": 12,
+      "active": 10,
+      "activationRate": 83.3
+    },
+    {
+      "id": "modded",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "tailor",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "surge",
+      "tested": 12,
+      "active": 11,
+      "activationRate": 91.7
+    },
+    {
+      "id": "survivor",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "cleaner",
+      "tested": 12,
+      "active": 4,
+      "activationRate": 33.3
+    },
+    {
+      "id": "printer",
+      "tested": 12,
+      "active": 9,
+      "activationRate": 75
+    },
+    {
+      "id": "royalscam",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "lucky7",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "doubledown",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "allin",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "shortcut",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "pocketflush",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "cheat",
+      "tested": 0,
+      "active": 1,
+      "activationRate": 100
+    },
+    {
+      "id": "practice_mode",
+      "tested": 12,
+      "active": 12,
+      "activationRate": 100
+    },
+    {
+      "id": "opening_act",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "clutch_gear",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "number_station",
+      "tested": 52,
+      "active": 12,
+      "activationRate": 23.1
+    },
+    {
+      "id": "cold_adapter",
+      "tested": 12,
+      "active": 1,
+      "activationRate": 8.3
+    },
+    {
+      "id": "frequency_meter",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "panic_button",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "storm_harness",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "encore",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "guillotine",
+      "tested": 12,
+      "active": 4,
+      "activationRate": 33.3
+    },
+    {
+      "id": "redline",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "color_wash",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "master_class",
+      "tested": 12,
+      "active": 2,
+      "activationRate": 16.7
+    },
+    {
+      "id": "danger_music",
+      "tested": 12,
+      "active": 9,
+      "activationRate": 75
+    },
+    {
+      "id": "rehearsal_tape",
+      "tested": 12,
+      "active": 3,
+      "activationRate": 25
+    },
+    {
+      "id": "prism_lens",
+      "tested": 12,
+      "active": 0,
+      "activationRate": 0
+    },
+    {
+      "id": "glass_joystick",
+      "tested": 12,
+      "active": 13,
+      "activationRate": 108.3
+    }
+  ],
+  "frostbiteCheck": {
+    "cards": [
+      "A♠",
+      "K♥"
+    ],
+    "actualTotal": 14,
+    "scoringFlags": [
+      false,
+      true
+    ],
+    "actualType": "High Card",
+    "expectedScoringCard": "K♥"
+  },
+  "cheatAudit": {
+    "cases": 5000,
+    "mismatches": 0,
+    "mismatchRate": 0,
+    "examples": []
+  },
+  "cohorts": [
+    {
+      "name": "standard_all_unlocked",
+      "runs": 300,
+      "wins": 78,
+      "winRate": 26,
+      "avgCleared": 10.21,
+      "median": 11,
+      "p90": 12,
+      "avgScore": 11609.4,
+      "avgBestPlay": 1852.2,
+      "failAt": {
+        "5": 3,
+        "6": 9,
+        "7": 4,
+        "8": 11,
+        "9": 33,
+        "10": 24,
+        "11": 30,
+        "12": 108
+      },
+      "handTypes": {
+        "Straight": 1279,
+        "Flush": 1546,
+        "Two Pair": 2176,
+        "High Card": 99,
+        "Pair": 667,
+        "Full House": 1447,
+        "Three of a Kind": 279,
+        "Straight Flush": 164,
+        "Four of a Kind": 182,
+        "Royal Flush": 1
+      },
+      "topBuys": [
+        {
+          "id": "lastcall",
+          "n": 99
+        },
+        {
+          "id": "polish",
+          "n": 95
+        },
+        {
+          "id": "miser",
+          "n": 88
+        },
+        {
+          "id": "survivor",
+          "n": 86
+        },
+        {
+          "id": "allin",
+          "n": 83
+        },
+        {
+          "id": "redline",
+          "n": 83
+        },
+        {
+          "id": "lucky7",
+          "n": 79
+        },
+        {
+          "id": "fulltable",
+          "n": 69
+        },
+        {
+          "id": "pocketflush",
+          "n": 69
+        },
+        {
+          "id": "roller",
+          "n": 68
+        },
+        {
+          "id": "storm_harness",
+          "n": 68
+        },
+        {
+          "id": "danger_music",
+          "n": 67
+        },
+        {
+          "id": "royalscam",
+          "n": 62
+        },
+        {
+          "id": "butcher",
+          "n": 61
+        },
+        {
+          "id": "modded",
+          "n": 61
+        }
+      ],
+      "topFinal": [
+        {
+          "id": "lastcall",
+          "n": 99
+        },
+        {
+          "id": "survivor",
+          "n": 86
+        },
+        {
+          "id": "allin",
+          "n": 83
+        },
+        {
+          "id": "redline",
+          "n": 83
+        },
+        {
+          "id": "polish",
+          "n": 81
+        },
+        {
+          "id": "danger_music",
+          "n": 67
+        },
+        {
+          "id": "lucky7",
+          "n": 67
+        },
+        {
+          "id": "pocketflush",
+          "n": 66
+        },
+        {
+          "id": "surge",
+          "n": 58
+        },
+        {
+          "id": "butcher",
+          "n": 57
+        },
+        {
+          "id": "trainer",
+          "n": 56
+        },
+        {
+          "id": "miser",
+          "n": 55
+        },
+        {
+          "id": "cheat",
+          "n": 53
+        },
+        {
+          "id": "glass_joystick",
+          "n": 53
+        },
+        {
+          "id": "royalscam",
+          "n": 49
+        }
+      ],
+      "supplies": {
+        "boost": 684,
+        "scalpel": 851,
+        "enhance": 262,
+        "dye": 161,
+        "copier": 201
+      },
+      "rerolls": 364
+    },
+    {
+      "name": "standard_free_pool",
+      "runs": 150,
+      "wins": 4,
+      "winRate": 2.67,
+      "avgCleared": 9.81,
+      "median": 10,
+      "p90": 11,
+      "avgScore": 8438.2,
+      "avgBestPlay": 646,
+      "failAt": {
+        "6": 1,
+        "8": 6,
+        "9": 35,
+        "10": 10,
+        "11": 28,
+        "12": 66
+      },
+      "handTypes": {
+        "Full House": 763,
+        "Two Pair": 1465,
+        "Straight": 592,
+        "Pair": 335,
+        "Flush": 677,
+        "Straight Flush": 18,
+        "Three of a Kind": 175,
+        "Four of a Kind": 83,
+        "High Card": 17,
+        "Royal Flush": 1
+      },
+      "topBuys": [
+        {
+          "id": "lowball",
+          "n": 149
+        },
+        {
+          "id": "fulltable",
+          "n": 148
+        },
+        {
+          "id": "opening_act",
+          "n": 147
+        },
+        {
+          "id": "copper",
+          "n": 144
+        },
+        {
+          "id": "even",
+          "n": 108
+        },
+        {
+          "id": "retainer",
+          "n": 93
+        },
+        {
+          "id": "presser",
+          "n": 53
+        },
+        {
+          "id": "uniform",
+          "n": 26
+        },
+        {
+          "id": "triple3",
+          "n": 22
+        }
+      ],
+      "topFinal": [
+        {
+          "id": "polish",
+          "n": 150
+        },
+        {
+          "id": "opening_act",
+          "n": 147
+        },
+        {
+          "id": "fulltable",
+          "n": 145
+        },
+        {
+          "id": "copper",
+          "n": 144
+        },
+        {
+          "id": "lowball",
+          "n": 141
+        },
+        {
+          "id": "even",
+          "n": 15
+        },
+        {
+          "id": "retainer",
+          "n": 5
+        },
+        {
+          "id": "uniform",
+          "n": 2
+        },
+        {
+          "id": "triple3",
+          "n": 1
+        }
+      ],
+      "supplies": {
+        "scalpel": 503,
+        "enhance": 186,
+        "boost": 452,
+        "copier": 95,
+        "dye": 11
+      },
+      "rerolls": 2
+    },
+    {
+      "name": "gauntlet_all_unlocked",
+      "runs": 100,
+      "wins": 35,
+      "winRate": 35,
+      "avgCleared": 6.89,
+      "median": 7,
+      "p90": 8,
+      "avgScore": 5001.3,
+      "avgBestPlay": 849.6,
+      "failAt": {
+        "2": 1,
+        "3": 2,
+        "5": 1,
+        "6": 7,
+        "7": 13,
+        "8": 41
+      },
+      "handTypes": {
+        "Straight": 259,
+        "Two Pair": 482,
+        "Pair": 201,
+        "Flush": 323,
+        "Full House": 312,
+        "Three of a Kind": 89,
+        "Straight Flush": 25,
+        "High Card": 41,
+        "Four of a Kind": 24,
+        "Royal Flush": 1
+      },
+      "topBuys": [
+        {
+          "id": "polish",
+          "n": 30
+        },
+        {
+          "id": "clutch_gear",
+          "n": 25
+        },
+        {
+          "id": "fulltable",
+          "n": 24
+        },
+        {
+          "id": "lucky7",
+          "n": 24
+        },
+        {
+          "id": "surge",
+          "n": 21
+        },
+        {
+          "id": "momentum",
+          "n": 20
+        },
+        {
+          "id": "dividend",
+          "n": 19
+        },
+        {
+          "id": "miser",
+          "n": 19
+        },
+        {
+          "id": "roller",
+          "n": 18
+        },
+        {
+          "id": "modded",
+          "n": 18
+        },
+        {
+          "id": "dumpster",
+          "n": 18
+        },
+        {
+          "id": "redline",
+          "n": 17
+        },
+        {
+          "id": "panic_button",
+          "n": 16
+        },
+        {
+          "id": "lastcall",
+          "n": 15
+        },
+        {
+          "id": "flushfund",
+          "n": 15
+        }
+      ],
+      "topFinal": [
+        {
+          "id": "polish",
+          "n": 30
+        },
+        {
+          "id": "lucky7",
+          "n": 24
+        },
+        {
+          "id": "fulltable",
+          "n": 21
+        },
+        {
+          "id": "glass_joystick",
+          "n": 21
+        },
+        {
+          "id": "surge",
+          "n": 21
+        },
+        {
+          "id": "roller",
+          "n": 18
+        },
+        {
+          "id": "miser",
+          "n": 18
+        },
+        {
+          "id": "redline",
+          "n": 17
+        },
+        {
+          "id": "dividend",
+          "n": 16
+        },
+        {
+          "id": "modded",
+          "n": 16
+        },
+        {
+          "id": "lastcall",
+          "n": 15
+        },
+        {
+          "id": "pocketflush",
+          "n": 14
+        },
+        {
+          "id": "clutch_gear",
+          "n": 14
+        },
+        {
+          "id": "survivor",
+          "n": 14
+        },
+        {
+          "id": "rehearsal_tape",
+          "n": 13
+        }
+      ],
+      "supplies": {
+        "scalpel": 133,
+        "copier": 22,
+        "boost": 70,
+        "enhance": 25,
+        "dye": 16
+      },
+      "rerolls": 217
+    }
+  ]
+}
