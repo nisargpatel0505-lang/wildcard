@@ -13,6 +13,8 @@ WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Cap
 
 The v6.8 release includes Weekly Mission rewarded-ad refresh, the full Royal Vault reveal, the contained mobile Sly header, and corrected phone-width vault framing.
 
+Android MCP installation notes for Codex-assisted phone testing are in `docs/ANDROID-MCP.md`.
+
 ## Local setup
 
 1. Install Node.js 22 or newer and the Android SDK.
@@ -34,4 +36,3 @@ The Android package and release SHA-256 certificate are registered with Firebase
 ## Raspberry Pi deployment
 
 The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/` through the existing GoatCounter-aware deployer, and publishes the current APK as both `WILDCARD-v6.8.apk` and `WILDCARD-latest.apk`.
-
