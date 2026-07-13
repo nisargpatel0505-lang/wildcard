@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users/{uid}/saves
+    // Document ID: main
+    // Fields:
+    //   uid: string (required, 1..128 chars, immutable, auth UID)
+    //   schemaVersion: int (required, exactly 1)
+    //   appVersion: string (required, 1..20 chars)
+    //   accountJson: string (required, 0..150000 chars, private save)
+    //   runJson: string (required, 0..150000 chars, private mid-run save)
+    //   clientSavedAt: int (required, 0..9999999999999)
+    //   updatedAt: timestamp (required, server write time)
+    //
+    // There are no collection queries. The Android client only gets and sets
+    // the signed-in user's fixed users/{uid}/saves/main document.
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function uidUnchanged() {
+      return request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(data) {
+      return data.keys().hasAll([
+        'uid', 'schemaVersion', 'appVersion', 'accountJson', 'runJson',
+        'clientSavedAt', 'updatedAt'
+      ]);
+    }
+
+    function hasOnlyAllowedFields(data) {
+      return data.keys().hasOnly([
+        'uid', 'schemaVersion', 'appVersion', 'accountJson', 'runJson',
+        'clientSavedAt', 'updatedAt'
+      ]);
+    }
+
+    // Domain validator used for both creates and updates.
+    function isValidSave(data) {
+      return hasRequiredFields(data)
+        && hasOnlyAllowedFields(data)
+        && data.uid is string
+        && data.uid.size() >= 1
+        && data.uid.size() <= 128
+        && data.schemaVersion is int
+        && data.schemaVersion == 1
+        && data.appVersion is string
+        && data.appVersion.size() >= 1
+        && data.appVersion.size() <= 20
+        && data.accountJson is string
+        && data.accountJson.size() <= 150000
+        && data.runJson is string
+        && data.runJson.size() <= 150000
+        && data.clientSavedAt is int
+        && data.clientSavedAt >= 0
+        && data.clientSavedAt <= 9999999999999
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    match /users/{uid}/saves/{saveId} {
+      allow read: if saveId == 'main' && isOwner(uid);
+      allow create: if saveId == 'main'
+        && isOwner(uid)
+        && uidUnchanged()
+        && isValidSave(request.resource.data);
+      allow update: if saveId == 'main'
+        && isOwner(uid)
+        && uidNotModified()
+        && uidUnchanged()
+        && isValidSave(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

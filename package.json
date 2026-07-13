@@ -1,13 +1,14 @@
 {
   "name": "wildcard-app",
-  "version": "6.8.0",
+  "version": "6.9.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "sync:android": "cap sync android",
     "build:android:release": "npm run sync:android && cd android && gradlew.bat :app:assembleRelease",
     "test": "node tools/verify-v68.js",
-    "test:deep": "node tools/deep-sim-v57.js"
+    "test:deep": "node tools/deep-sim-v57.js",
+    "test:rules": "firebase emulators:exec --only firestore --project wildcard-31d50 \"node tools/test-firestore-rules.js\""
   },
   "keywords": [],
   "author": "",
@@ -22,5 +23,9 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
     "cordova-plugin-purchase": "^13.17.2"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase": "^12.16.0"
   }
 }

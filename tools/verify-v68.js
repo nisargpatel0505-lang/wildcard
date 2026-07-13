@@ -2,6 +2,8 @@ const fs = require('fs');
 const vm = require('vm');
 
 const html = fs.readFileSync('www/index.html', 'utf8');
+const rules = fs.readFileSync('firestore.rules', 'utf8');
+const cloudPlugin = fs.readFileSync('android/app/src/main/java/com/nisarg/wildcard/WildcardCloudPlugin.java', 'utf8');
 
 function assert(ok, message) { if (!ok) throw new Error(message); }
 function block(start, end) {
@@ -15,6 +17,36 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
+assert(html.includes('>v6.9</b>'),'Public version label is not v6.9');
+
+// Optional account/cloud save and official Play Games integration.
+assert(html.includes('function cloudSignIn()'),'Google sign-in control missing');
+assert(html.includes('function reconcileCloudAccount(user,announce)'),'No-reset cloud reconciliation missing');
+assert(html.includes('function scheduleCloudSave()'),'Cloud checkpoint scheduling missing');
+assert(html.includes('function openOfficialLeaderboard()'),'Official leaderboard control missing');
+assert(html.includes('Optional Google account & cloud backup'),'Cloud privacy disclosure missing');
+assert(cloudPlugin.includes('GoogleAuthProvider.getCredential'),'Firebase Google credential exchange missing');
+assert(cloudPlugin.includes('submitScoreImmediate'),'Play Games score submission missing');
+assert(rules.includes("request.auth.uid == uid"),'Firestore owner check missing');
+assert(rules.includes("allow delete: if false"),'Firestore cloud-save deletion is not denied');
+assert(rules.includes("hasOnlyAllowedFields"),'Firestore field allowlist missing');
+
+const cloudCode=block('/* ===================== v6.9 optional Google cloud save ===================== */','const account = {');
+const cloudCtx={
+  console, Date, Set, JSON, Number, String, Object, Array, Math, Promise,
+  savedStamp(raw){try{return Number(JSON.parse(raw||'')._savedAt)||0;}catch(e){return 0;}},
+  setTimeout(){return 0;},clearTimeout(){},window:{},document:{getElementById(){return null;}},localStorage:{getItem(){return null;},setItem(){},removeItem(){}}
+};
+vm.createContext(cloudCtx);
+vm.runInContext(cloudCode+';globalThis.__merge=mergeAccountSaves;',cloudCtx);
+const merged=JSON.parse(cloudCtx.__merge(
+  JSON.stringify({_savedAt:20,coins:40,bestScore:100,unlocked:['phone'],cosmeticsOwned:['felt_neon'],noAds:false,playerName:'PHONE'}),
+  JSON.stringify({_savedAt:10,coins:25,bestScore:500,unlocked:['cloud'],cosmeticsOwned:['felt_royal'],noAds:true,playerName:'CLOUD'})
+));
+assert(merged.coins===40&&merged.bestScore===500,'First-link merge lost numeric progress');
+assert(merged.unlocked.includes('phone')&&merged.unlocked.includes('cloud'),'First-link merge lost unlocks');
+assert(merged.cosmeticsOwned.includes('felt_neon')&&merged.cosmeticsOwned.includes('felt_royal'),'First-link merge lost cosmetics');
+assert(merged.noAds===true&&merged.playerName==='PHONE','First-link merge lost purchase or phone preference');
 
 // Mission refresh and persistence.
 assert(html.includes('id="mission-refresh-ad"'),'Mission refresh button missing');
@@ -65,14 +97,15 @@ assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(wi
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.8-sim-results.json','utf8'));
-assert(sim.version==='6.8','Simulation report is not v6.8');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9-sim-results.json','utf8'));
+assert(sim.version==='6.9','Simulation report is not v6.9');
 assert(sim.dataFailures.length===0&&sim.hookErrors.length===0&&sim.invariantFailures.length===0,'Simulation failures detected');
 assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
 console.log(JSON.stringify({
-  version:'6.8',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
   royalVault:{layeredChest:true,doubleTapGuard:true,unlockSavedBeforeAnimation:true,reducedMotion:true},
   simulation:sim.counts,failures:0

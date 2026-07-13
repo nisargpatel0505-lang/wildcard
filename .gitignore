@@ -11,4 +11,5 @@ build-log*.txt
 .vscode/
 *.log
 .DS_Store
-
+artifacts/
+firestore-audit-working-*.md
