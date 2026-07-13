@@ -39,7 +39,154 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [
+        {
+          "index": 0,
+          "card": {
+            "top": 476.671875,
+            "right": 74.25,
+            "bottom": 560.671875,
+            "left": 24.75
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 67.25,
+            "bottom": 557.234375,
+            "left": 31.75
+          },
+          "escapes": false
+        },
+        {
+          "index": 1,
+          "card": {
+            "top": 476.671875,
+            "right": 108.75,
+            "bottom": 560.671875,
+            "left": 59.25
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 101.75,
+            "bottom": 557.234375,
+            "left": 66.25
+          },
+          "escapes": false
+        },
+        {
+          "index": 2,
+          "card": {
+            "top": 476.671875,
+            "right": 143.25,
+            "bottom": 560.671875,
+            "left": 93.75
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 136.25,
+            "bottom": 557.234375,
+            "left": 100.75
+          },
+          "escapes": false
+        },
+        {
+          "index": 3,
+          "card": {
+            "top": 476.671875,
+            "right": 177.75,
+            "bottom": 560.671875,
+            "left": 128.25
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 170.75,
+            "bottom": 557.234375,
+            "left": 135.25
+          },
+          "escapes": false
+        },
+        {
+          "index": 4,
+          "card": {
+            "top": 476.671875,
+            "right": 212.25,
+            "bottom": 560.671875,
+            "left": 162.75
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 205.25,
+            "bottom": 557.234375,
+            "left": 169.75
+          },
+          "escapes": false
+        },
+        {
+          "index": 5,
+          "card": {
+            "top": 476.671875,
+            "right": 246.75,
+            "bottom": 560.671875,
+            "left": 197.25
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 239.75,
+            "bottom": 557.234375,
+            "left": 204.25
+          },
+          "escapes": false
+        },
+        {
+          "index": 6,
+          "card": {
+            "top": 476.671875,
+            "right": 281.25,
+            "bottom": 560.671875,
+            "left": 231.75
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 274.25,
+            "bottom": 557.234375,
+            "left": 238.75
+          },
+          "escapes": false
+        },
+        {
+          "index": 7,
+          "card": {
+            "top": 476.671875,
+            "right": 315.75,
+            "bottom": 560.671875,
+            "left": 266.25
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 308.75,
+            "bottom": 557.234375,
+            "left": 273.25
+          },
+          "escapes": false
+        },
+        {
+          "index": 8,
+          "card": {
+            "top": 476.671875,
+            "right": 350.25,
+            "bottom": 560.671875,
+            "left": 300.75
+          },
+          "bottomCorner": {
+            "top": 529.953125,
+            "right": 343.25,
+            "bottom": 557.234375,
+            "left": 307.75
+          },
+          "escapes": false
+        }
+      ],
+      "chestChoices": []
     },
     {
       "label": "menu",
@@ -72,7 +219,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "tutorial",
@@ -105,7 +254,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "startboost",
@@ -138,7 +289,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "shop",
@@ -171,7 +324,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "store",
@@ -204,7 +359,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "unlocks",
@@ -237,7 +394,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "achievements",
@@ -270,7 +429,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "howto",
@@ -303,7 +464,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "wardrobe",
@@ -336,7 +499,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "missions",
@@ -369,7 +534,9 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": []
     },
     {
       "label": "chest",
@@ -402,7 +569,76 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": [
+        {
+          "index": 0,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 123.75,
+            "bottom": 203.75
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 135.6199951171875,
+            "bottom": 191.8800048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 134,
+            "bottom": 187.75
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 1,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 259,
+            "bottom": 339
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 270.8699951171875,
+            "bottom": 327.1300048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 275.96875,
+            "bottom": 316.28125
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 2,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 394.25,
+            "bottom": 474.25
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 406.1199951171875,
+            "bottom": 462.3800048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 404.5,
+            "bottom": 458.25
+          },
+          "overlapsCopy": false
+        }
+      ]
     },
     {
       "label": "cabinet",
@@ -435,7 +671,76 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": [
+        {
+          "index": 0,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 1,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 2,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        }
+      ]
     },
     {
       "label": "settings",
@@ -468,7 +773,76 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": [
+        {
+          "index": 0,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 1,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 2,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        }
+      ]
     },
     {
       "label": "developer",
@@ -501,7 +875,76 @@
         "left": 0,
         "right": 0,
         "width": 0
-      }
+      },
+      "cards": [],
+      "chestChoices": [
+        {
+          "index": 0,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 1,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 2,
+          "art": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "chest": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "copy": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0
+          },
+          "overlapsCopy": false
+        }
+      ]
     },
     {
       "label": "vault",
@@ -539,7 +982,76 @@
         "left": 12,
         "right": 363,
         "width": 351
-      }
+      },
+      "cards": [],
+      "chestChoices": [
+        {
+          "index": 0,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 123.75,
+            "bottom": 203.75
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 135.6199951171875,
+            "bottom": 191.8800048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 134,
+            "bottom": 187.75
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 1,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 259,
+            "bottom": 339
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 270.8699951171875,
+            "bottom": 327.1300048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 275.96875,
+            "bottom": 316.28125
+          },
+          "overlapsCopy": false
+        },
+        {
+          "index": 2,
+          "art": {
+            "left": 28,
+            "right": 106,
+            "top": 394.25,
+            "bottom": 474.25
+          },
+          "chest": {
+            "left": 30.460002899169922,
+            "right": 103.53998947143555,
+            "top": 406.1199951171875,
+            "bottom": 462.3800048828125
+          },
+          "copy": {
+            "left": 115,
+            "right": 250,
+            "top": 404.5,
+            "bottom": 458.25
+          },
+          "overlapsCopy": false
+        }
+      ]
     }
   ]
 }

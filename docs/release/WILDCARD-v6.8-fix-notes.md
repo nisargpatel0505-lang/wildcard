@@ -51,3 +51,9 @@ This is an HTML-first feature release based on v6.7. It preserves the existing s
 ## Android re-wrap note
 
 Use `wildcard-poker-v6.8.html` as `www/index.html` in the existing wrapper. The native bridge already exposes `WildcardNative.showRewardedAd(callback)`, so no new Android plugin is required for mission refresh. Ad duration is controlled by the AdMob creative; the UI describes it as approximately 30 seconds.
+
+## Android build 12 phone polish
+
+- The mirrored lower rank and suit now stay fully inside every card face on Android, including the Ace.
+- Mini chest artwork is pinned to the centre of its left-hand art column and no longer overlaps chest names, descriptions, odds or purchase controls.
+- Automated 375 px phone measurements report 0 of 9 card corners escaping and 0 of 3 chest images overlapping their descriptions.

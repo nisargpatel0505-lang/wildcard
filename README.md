@@ -6,12 +6,12 @@ WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Cap
 
 - Game version: **6.8**
 - Android package: `com.nisarg.wildcard`
-- Android version code: **11**
+- Android version code: **12**
 - Firebase project: `wildcard-31d50`
-- Source HTML SHA-256: `F1A3D3FD1ADFC66128F61F42402BDF0E0F5787437C573C9C720F30141EA520BD`
-- Release APK SHA-256: `857B73FE6B29678776F2C87D57C4354477A5193BA74A2665CE24D88EBC8F96AF`
+- Source HTML SHA-256: `3CAF7342230376456410769295630B212BFD93D2EA24C6E7D43A0D713FEE5094`
+- Release APK SHA-256: `6F31636C5B93D59E4A91AD68545D7D640925B55B0F72C8EA3F40E2E6A73CF997`
 
-The v6.8 release includes Weekly Mission rewarded-ad refresh, the full Royal Vault reveal, the contained mobile Sly header, and corrected phone-width vault framing.
+The v6.8 release includes Weekly Mission rewarded-ad refresh, the full Royal Vault reveal, the contained mobile Sly header, corrected phone-width vault framing, contained lower card ranks, and centred mobile chest artwork.
 
 Android MCP installation notes for Codex-assisted phone testing are in `docs/ANDROID-MCP.md`.
 
