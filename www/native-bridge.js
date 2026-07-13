@@ -16,6 +16,29 @@
     try { cb(value); } catch (e) {}
   }
 
+  /* =============== FIREBASE ACCOUNT + PLAY GAMES =============== */
+  var Cloud = P.WildcardCloud;
+  WN.cloudAvailable = !!Cloud;
+  if (Cloud) {
+    WN.cloudAuthState = function () { return Cloud.authState(); };
+    WN.cloudSignInGoogle = function () { return Cloud.signInWithGoogle(); };
+    WN.cloudSignOut = function () { return Cloud.signOut(); };
+    WN.cloudReadSave = function () { return Cloud.readCloudSave(); };
+    WN.cloudWriteSave = function (accountJson, runJson, clientSavedAt) {
+      return Cloud.writeCloudSave({
+        accountJson: accountJson || '',
+        runJson: runJson || '',
+        clientSavedAt: Math.max(0, Number(clientSavedAt) || Date.now())
+      });
+    };
+    WN.playGamesState = function () { return Cloud.playGamesState(); };
+    WN.playGamesSignIn = function () { return Cloud.signInPlayGames(); };
+    WN.submitPlayGamesScore = function (score) {
+      return Cloud.submitScore({ score: Math.max(0, Math.floor(Number(score) || 0)) });
+    };
+    WN.showPlayGamesLeaderboard = function () { return Cloud.showLeaderboard(); };
+  }
+
   /* ======================= PHONE PERSISTENCE ======================= */
   var Preferences = P.Preferences;
   var SAVE_KEYS = ['wildcard_save_v1', 'wildcard_run_v1'];

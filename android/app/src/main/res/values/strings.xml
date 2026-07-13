@@ -4,4 +4,6 @@
     <string name="title_activity_main">WILDCARD</string>
     <string name="package_name">com.nisarg.wildcard</string>
     <string name="custom_url_scheme">com.nisarg.wildcard</string>
+    <string name="game_services_project_id" translatable="false">420107184674</string>
+    <string name="leaderboard_high_score" translatable="false">CgkIotTbgp0MEAIQAQ</string>
 </resources>
