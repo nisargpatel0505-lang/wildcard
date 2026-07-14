@@ -1,14 +1,16 @@
 {
   "name": "wildcard-app",
-  "version": "6.9.0",
+  "version": "6.9.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "sync:android": "cap sync android",
     "build:android:release": "npm run sync:android && cd android && gradlew.bat :app:assembleRelease",
+    "build:standalone": "node tools/build-standalone-html.js",
+    "audit:google": "node tools/audit-google-config.js",
     "test": "node tools/verify-v68.js",
     "test:deep": "node tools/deep-sim-v57.js",
-    "test:rules": "firebase emulators:exec --only firestore --project wildcard-31d50 \"node tools/test-firestore-rules.js\""
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project wildcard-31d50 \"node tools/test-firestore-rules.js\""
   },
   "keywords": [],
   "author": "",

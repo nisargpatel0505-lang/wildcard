@@ -5,7 +5,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const htmlPath = path.join(root, 'www', 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const detectedVersion = (html.match(/>v(\d+\.\d+)<\/b>/) || [])[1] || 'unknown';
+const detectedVersion = (html.match(/>v(\d+\.\d+(?:\.\d+)?)<\/b>/) || [])[1] || 'unknown';
 const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 if (!scripts.length) throw new Error('No inline game script found');
 
@@ -406,7 +406,10 @@ const simulator = String.raw`
 })();
 `;
 
-vm.runInContext(live + simulator, context, { filename: 'wildcard-v5.7-live-sim.js', timeout: 900000 });
+// The expanded v6.9.1 suite runs 50k scoring cases, 15k Cheat checks and
+// 2,600 complete runs. Slower Windows laptops can legitimately need more than
+// the old 15-minute ceiling, so keep the guard while allowing the full audit.
+vm.runInContext(live + simulator, context, { filename: 'wildcard-v5.7-live-sim.js', timeout: 1800000 });
 const result = context.__SIM_RESULT__;
 if (!result) throw new Error('Simulator returned no result');
 
@@ -462,6 +465,9 @@ ${JSON.stringify(result.cheatAudit.examples, null, 2)}
 \`\`\`
 `;
 fs.writeFileSync(reportPath, report);
+const releaseDir = path.join(root, 'docs', 'release');
+fs.writeFileSync(path.join(releaseDir, `wildcard-v${detectedVersion}-sim-results.json`), JSON.stringify(result, null, 2));
+fs.writeFileSync(path.join(releaseDir, `wildcard-v${detectedVersion}-sim-report.md`), report);
 
 console.log(JSON.stringify({
   jsonPath, reportPath, durationMs: result.durationMs, counts: result.counts,

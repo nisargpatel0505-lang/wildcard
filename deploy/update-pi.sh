@@ -6,6 +6,11 @@ webroot="${WILDCARD_WEBROOT:-/var/www/wildcard}"
 
 git -C "$repo_dir" pull --ff-only origin main
 
+install -d -m 0755 "$webroot/assets/art/backgrounds"
+for artwork in "$repo_dir"/www/assets/art/backgrounds/*.webp; do
+  install -m 0644 "$artwork" "$webroot/assets/art/backgrounds/$(basename "$artwork")"
+done
+
 install -m 0644 "$repo_dir/www/index.html" /tmp/game-upload.html
 "$HOME/deploy-game.sh"
 
@@ -15,9 +20,9 @@ for asset in manifest.json sw.js icon-192.png icon-512.png icon-maskable-512.png
   fi
 done
 
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.apk" "$webroot/WILDCARD-v6.9.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.apk" "$webroot/WILDCARD-v6.9-release.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.apk" "$webroot/WILDCARD-latest.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.1.apk" "$webroot/WILDCARD-v6.9.1.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.1.apk" "$webroot/WILDCARD-v6.9.1-release.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.1.apk" "$webroot/WILDCARD-latest.apk"
 
-sha256sum "$webroot/WILDCARD-v6.9.apk" "$webroot/WILDCARD-latest.apk"
+sha256sum "$webroot/WILDCARD-v6.9.1.apk" "$webroot/WILDCARD-latest.apk"
 echo "WILDCARD updated from GitHub: https://raspberrypi.tail20f574.ts.net"
