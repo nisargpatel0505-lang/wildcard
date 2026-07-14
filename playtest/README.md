@@ -1,5 +1,22 @@
 # Work-laptop playtest
 
+## Single-file version
+
+Open `WILDCARD-work-laptop-standalone.html` directly in Chrome or Edge. It is
+the complete game in one HTML file, including the five new room backgrounds.
+No folder structure or local server is required.
+
+The standalone file is generated from the canonical game with:
+
+```text
+npm run build:standalone
+```
+
+Do not edit the generated standalone file directly; change `www/index.html`
+and regenerate it so the two versions cannot silently drift.
+
+## Canonical-source launcher
+
 This launcher always opens the canonical `www/index.html`, so it cannot drift
 from the branch being reviewed.
 

@@ -1,9 +1,12 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const vm = require('vm');
 
 const html = fs.readFileSync('www/index.html', 'utf8');
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 const cloudPlugin = fs.readFileSync('android/app/src/main/java/com/nisarg/wildcard/WildcardCloudPlugin.java', 'utf8');
+const standalonePath = 'playtest/WILDCARD-work-laptop-standalone.html';
+const standalone = fs.readFileSync(standalonePath, 'utf8');
 
 function assert(ok, message) { if (!ok) throw new Error(message); }
 function block(start, end) {
@@ -116,6 +119,11 @@ assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Re
   assert(fs.statSync(path).size<300000,'Artwork asset is too large for mobile: '+name);
   assert(html.includes('assets/art/backgrounds/'+name),'Artwork is not wired into the game: '+name);
 });
+assert(standalone.includes('GENERATED STANDALONE PLAYTEST'),'Standalone provenance marker missing');
+assert(standalone.includes(crypto.createHash('sha256').update(Buffer.from(html)).digest('hex')),'Standalone does not match canonical HTML');
+assert(standalone.includes('data:image/webp;base64,'),'Standalone artwork is not embedded');
+assert(!standalone.includes('assets/art/backgrounds/'),'Standalone still depends on external artwork');
+assert(fs.statSync(standalonePath).size<7000000,'Standalone HTML is unexpectedly large');
 
 const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9-sim-results.json','utf8'));
 assert(sim.version==='6.9','Simulation report is not v6.9');
@@ -126,7 +134,7 @@ assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected'
 console.log(JSON.stringify({
   version:'6.9',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,safePlayGamesDiagnostics:true},
-  artwork:{externalWebpRooms:5,mobileAssetCapBytes:300000},
+  artwork:{externalWebpRooms:5,mobileAssetCapBytes:300000,standaloneHtml:true},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
   royalVault:{layeredChest:true,doubleTapGuard:true,unlockSavedBeforeAnimation:true,reducedMotion:true},
   simulation:sim.counts,failures:0
