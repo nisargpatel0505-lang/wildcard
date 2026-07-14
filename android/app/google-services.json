@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "420107184674-abuo7egu6p7b83ho39p4ep7sbfksrmeb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nisarg.wildcard",
+            "certificate_hash": "25ec6c50c281981e59a79f2923cae1b6da04349d"
+          }
+        },
+        {
           "client_id": "420107184674-p2v92s9s4v04ns8v8gcc3f1j8fb37ttk.apps.googleusercontent.com",
           "client_type": 3
         }

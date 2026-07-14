@@ -1,14 +1,21 @@
-/* WILDCARD service worker v2 — whitelist-only.
+/* WILDCARD service worker v3 — whitelist-only.
    v1 intercepted EVERY same-origin GET, which broke large binary downloads
    (the APK): the stream-tee into CacheStorage aborted at finalization, and
    resume (Range) retries got answered from cache with a full-body 200.
    v2 only ever touches the app shell; everything else goes straight to the
    network untouched. */
-const CACHE = 'wildcard-v2';
-const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png'];
+const CACHE = 'wildcard-v3';
+const SHELL = [
+  '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png',
+  '/assets/art/backgrounds/wildcard-main-menu-palace.webp',
+  '/assets/art/backgrounds/wildcard-the-house-boss-room.webp',
+  '/assets/art/backgrounds/wildcard-sly-shop-backroom.webp',
+  '/assets/art/backgrounds/wildcard-royal-vault-chest-room.webp',
+  '/assets/art/backgrounds/wildcard-endless-victory-cosmos.webp'
+];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {

@@ -36,6 +36,9 @@
     WN.submitPlayGamesScore = function (score) {
       return Cloud.submitScore({ score: Math.max(0, Math.floor(Number(score) || 0)) });
     };
+    WN.loadPlayGamesLeaderboard = function (span) {
+      return Cloud.loadLeaderboardScores({ span: span || 'all' });
+    };
     WN.showPlayGamesLeaderboard = function () { return Cloud.showLeaderboard(); };
   }
 
