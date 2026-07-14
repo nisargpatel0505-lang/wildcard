@@ -23,6 +23,9 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.games.GamesClientStatusCodes;
 import com.google.android.gms.games.PlayGames;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
@@ -37,6 +40,7 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -74,6 +78,95 @@ public class WildcardCloudPlugin extends Plugin {
     private void reject(PluginCall call, String message, Exception error) {
         String detail = error == null ? null : error.getLocalizedMessage();
         call.reject(detail == null || detail.isBlank() ? message : message + ": " + detail);
+    }
+
+    /**
+     * Return only documented, non-sensitive Play Games diagnostics to the web
+     * layer. The exception itself is supplied to Capacitor for device logging,
+     * but its free-form message is never returned to JavaScript because it may
+     * contain implementation or account-specific details.
+     */
+    private void rejectPlayGames(PluginCall call, String operation, Exception error) {
+        int statusCode = -1;
+        String statusName = "UNKNOWN";
+        if (error instanceof ApiException apiError) {
+            statusCode = apiError.getStatusCode();
+            statusName = playGamesStatusName(statusCode);
+        }
+        statusName = statusName == null ? "UNKNOWN" : statusName
+            .toUpperCase(Locale.ROOT)
+            .replaceAll("[^A-Z0-9]+", "_")
+            .replaceAll("^_+|_+$", "");
+        if (statusName.isBlank()) statusName = "UNKNOWN";
+
+        JSObject data = new JSObject();
+        data.put("operation", operation);
+        data.put("statusCode", statusCode);
+        data.put("statusName", statusName);
+        data.put("category", playGamesCategory(statusCode));
+        data.put("retryable", playGamesRetryable(statusCode));
+        call.reject("Play Games " + operation + " failed", "PGS_" + statusName, error, data);
+    }
+
+    private String playGamesStatusName(int statusCode) {
+        if (statusCode == CommonStatusCodes.DEVELOPER_ERROR) return "DEVELOPER_ERROR";
+        if (statusCode == CommonStatusCodes.SIGN_IN_REQUIRED) return "SIGN_IN_REQUIRED";
+        if (statusCode == CommonStatusCodes.INVALID_ACCOUNT) return "INVALID_ACCOUNT";
+        if (statusCode == CommonStatusCodes.CANCELED) return "CANCELED";
+        if (statusCode == CommonStatusCodes.NETWORK_ERROR) return "NETWORK_ERROR";
+        if (statusCode == CommonStatusCodes.TIMEOUT) return "TIMEOUT";
+        if (statusCode == CommonStatusCodes.INTERNAL_ERROR) return "INTERNAL_ERROR";
+        if (statusCode == CommonStatusCodes.SERVICE_DISABLED) return "SERVICE_DISABLED";
+        if (statusCode == CommonStatusCodes.SERVICE_VERSION_UPDATE_REQUIRED) return "SERVICE_VERSION_UPDATE_REQUIRED";
+        if (statusCode == CommonStatusCodes.API_NOT_CONNECTED) return "API_NOT_CONNECTED";
+        if (statusCode == GamesClientStatusCodes.APP_MISCONFIGURED) return "APP_MISCONFIGURED";
+        if (statusCode == GamesClientStatusCodes.GAME_NOT_FOUND) return "GAME_NOT_FOUND";
+        if (statusCode == GamesClientStatusCodes.CONSENT_REQUIRED) return "CONSENT_REQUIRED";
+        if (statusCode == GamesClientStatusCodes.LICENSE_CHECK_FAILED) return "LICENSE_CHECK_FAILED";
+        if (statusCode == GamesClientStatusCodes.NETWORK_ERROR_NO_DATA) return "NETWORK_ERROR_NO_DATA";
+        if (statusCode == GamesClientStatusCodes.NETWORK_ERROR_OPERATION_FAILED) return "NETWORK_ERROR_OPERATION_FAILED";
+        return GamesClientStatusCodes.getStatusCodeString(statusCode);
+    }
+
+    private String playGamesCategory(int statusCode) {
+        if (statusCode == CommonStatusCodes.DEVELOPER_ERROR
+            || statusCode == GamesClientStatusCodes.APP_MISCONFIGURED
+            || statusCode == GamesClientStatusCodes.GAME_NOT_FOUND) return "configuration";
+        if (statusCode == CommonStatusCodes.SIGN_IN_REQUIRED
+            || statusCode == CommonStatusCodes.INVALID_ACCOUNT
+            || statusCode == CommonStatusCodes.CANCELED
+            || statusCode == GamesClientStatusCodes.CONSENT_REQUIRED
+            || statusCode == GamesClientStatusCodes.LICENSE_CHECK_FAILED) return "access";
+        if (statusCode == CommonStatusCodes.NETWORK_ERROR
+            || statusCode == GamesClientStatusCodes.NETWORK_ERROR_NO_DATA
+            || statusCode == GamesClientStatusCodes.NETWORK_ERROR_OPERATION_FAILED) return "network";
+        if (statusCode == CommonStatusCodes.SERVICE_DISABLED
+            || statusCode == CommonStatusCodes.SERVICE_VERSION_UPDATE_REQUIRED
+            || statusCode == CommonStatusCodes.API_NOT_CONNECTED) return "service";
+        return "unknown";
+    }
+
+    private boolean playGamesRetryable(int statusCode) {
+        return statusCode == CommonStatusCodes.NETWORK_ERROR
+            || statusCode == CommonStatusCodes.INTERNAL_ERROR
+            || statusCode == CommonStatusCodes.TIMEOUT
+            || statusCode == CommonStatusCodes.CONNECTION_SUSPENDED_DURING_CALL
+            || statusCode == CommonStatusCodes.RECONNECTION_TIMED_OUT
+            || statusCode == CommonStatusCodes.RECONNECTION_TIMED_OUT_DURING_UPDATE
+            || statusCode == GamesClientStatusCodes.NETWORK_ERROR_NO_DATA
+            || statusCode == GamesClientStatusCodes.NETWORK_ERROR_OPERATION_FAILED;
+    }
+
+    private JSObject playGamesAuthResult(boolean signedIn) {
+        JSObject out = new JSObject();
+        out.put("signedIn", signedIn);
+        out.put("code", signedIn ? "PGS_OK" : "PGS_SIGN_IN_REQUIRED");
+        if (!signedIn) {
+            out.put("statusCode", CommonStatusCodes.SIGN_IN_REQUIRED);
+            out.put("category", "access");
+            out.put("retryable", false);
+        }
+        return out;
     }
 
     @PluginMethod
@@ -228,23 +321,15 @@ public class WildcardCloudPlugin extends Plugin {
     @PluginMethod
     public void playGamesState(PluginCall call) {
         PlayGames.getGamesSignInClient(getActivity()).isAuthenticated()
-            .addOnSuccessListener(result -> {
-                JSObject out = new JSObject();
-                out.put("signedIn", result.isAuthenticated());
-                call.resolve(out);
-            })
-            .addOnFailureListener(error -> reject(call, "Play Games status unavailable", error));
+            .addOnSuccessListener(result -> call.resolve(playGamesAuthResult(result.isAuthenticated())))
+            .addOnFailureListener(error -> rejectPlayGames(call, "status", error));
     }
 
     @PluginMethod
     public void signInPlayGames(PluginCall call) {
         PlayGames.getGamesSignInClient(getActivity()).signIn()
-            .addOnSuccessListener(result -> {
-                JSObject out = new JSObject();
-                out.put("signedIn", result.isAuthenticated());
-                call.resolve(out);
-            })
-            .addOnFailureListener(error -> reject(call, "Play Games sign-in failed", error));
+            .addOnSuccessListener(result -> call.resolve(playGamesAuthResult(result.isAuthenticated())))
+            .addOnFailureListener(error -> rejectPlayGames(call, "sign_in", error));
     }
 
     @PluginMethod
@@ -260,9 +345,10 @@ public class WildcardCloudPlugin extends Plugin {
             .addOnSuccessListener(result -> {
                 JSObject out = new JSObject();
                 out.put("submitted", true);
+                out.put("code", "PGS_OK");
                 call.resolve(out);
             })
-            .addOnFailureListener(error -> reject(call, "Score submission failed", error));
+            .addOnFailureListener(error -> rejectPlayGames(call, "submit_score", error));
     }
 
     @PluginMethod
@@ -271,8 +357,11 @@ public class WildcardCloudPlugin extends Plugin {
             .getLeaderboardIntent(getActivity().getString(R.string.leaderboard_high_score))
             .addOnSuccessListener(intent -> {
                 getActivity().startActivityForResult(intent, LEADERBOARD_REQUEST);
-                call.resolve();
+                JSObject out = new JSObject();
+                out.put("opened", true);
+                out.put("code", "PGS_OK");
+                call.resolve(out);
             })
-            .addOnFailureListener(error -> reject(call, "Leaderboard unavailable", error));
+            .addOnFailureListener(error -> rejectPlayGames(call, "open_leaderboard", error));
     }
 }

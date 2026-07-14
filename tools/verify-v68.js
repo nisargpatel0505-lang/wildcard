@@ -27,6 +27,11 @@ assert(html.includes('function openOfficialLeaderboard()'),'Official leaderboard
 assert(html.includes('Optional Google account & cloud backup'),'Cloud privacy disclosure missing');
 assert(cloudPlugin.includes('GoogleAuthProvider.getCredential'),'Firebase Google credential exchange missing');
 assert(cloudPlugin.includes('submitScoreImmediate'),'Play Games score submission missing');
+assert(cloudPlugin.includes('rejectPlayGames'),'Safe Play Games diagnostics missing');
+assert(cloudPlugin.includes('GamesClientStatusCodes.getStatusCodeString'),'Play Games status names are not preserved');
+assert(cloudPlugin.includes('playGamesStatusName'),'Play Games status names are not normalized');
+assert(html.includes('function capturePlayGamesCode'),'JavaScript Play Games diagnostics missing');
+assert(html.includes('playGamesUserMessage(code)'),'Play Games error guidance missing');
 assert(rules.includes("request.auth.uid == uid"),'Firestore owner check missing');
 assert(rules.includes("allow delete: if false"),'Firestore cloud-save deletion is not denied');
 assert(rules.includes("hasOnlyAllowedFields"),'Firestore field allowlist missing');
@@ -97,6 +102,21 @@ assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(wi
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
+// Presentation-only screen art. Runtime files must stay external and compact
+// so they are shared by the website, playtest launcher and Android wrapper.
+[
+  'wildcard-main-menu-palace.webp',
+  'wildcard-the-house-boss-room.webp',
+  'wildcard-sly-shop-backroom.webp',
+  'wildcard-royal-vault-chest-room.webp',
+  'wildcard-endless-victory-cosmos.webp'
+].forEach(name => {
+  const path='www/assets/art/backgrounds/'+name;
+  assert(fs.existsSync(path),'Missing artwork asset: '+name);
+  assert(fs.statSync(path).size<300000,'Artwork asset is too large for mobile: '+name);
+  assert(html.includes('assets/art/backgrounds/'+name),'Artwork is not wired into the game: '+name);
+});
+
 const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9-sim-results.json','utf8'));
 assert(sim.version==='6.9','Simulation report is not v6.9');
 assert(sim.dataFailures.length===0&&sim.hookErrors.length===0&&sim.invariantFailures.length===0,'Simulation failures detected');
@@ -105,7 +125,8 @@ assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected'
 
 console.log(JSON.stringify({
   version:'6.9',scriptsCompiled:scripts.length,htmlIds:ids.length,
-  cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true},
+  cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,safePlayGamesDiagnostics:true},
+  artwork:{externalWebpRooms:5,mobileAssetCapBytes:300000},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
   royalVault:{layeredChest:true,doubleTapGuard:true,unlockSavedBeforeAnimation:true,reducedMotion:true},
   simulation:sim.counts,failures:0
