@@ -4,7 +4,7 @@
    resume (Range) retries got answered from cache with a full-body 200.
    v2 only ever touches the app shell; everything else goes straight to the
    network untouched. */
-const CACHE = 'wildcard-v5';
+const CACHE = 'wildcard-v6';
 const SHELL = [
   '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png',
   '/assets/art/backgrounds/wildcard-main-menu-palace.webp',

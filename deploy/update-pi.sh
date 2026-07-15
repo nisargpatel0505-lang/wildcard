@@ -22,9 +22,9 @@ for asset in manifest.json sw.js icon-192.png icon-512.png icon-maskable-512.png
   fi
 done
 
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.5.apk" "$webroot/WILDCARD-v6.9.5.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.5.apk" "$webroot/WILDCARD-v6.9.5-release.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.5.apk" "$webroot/WILDCARD-latest.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.7.apk" "$webroot/WILDCARD-v6.9.7.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.7.apk" "$webroot/WILDCARD-v6.9.7-release.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.7.apk" "$webroot/WILDCARD-latest.apk"
 
-sha256sum "$webroot/WILDCARD-v6.9.5.apk" "$webroot/WILDCARD-latest.apk"
+sha256sum "$webroot/WILDCARD-v6.9.7.apk" "$webroot/WILDCARD-latest.apk"
 echo "WILDCARD updated from GitHub: https://raspberrypi.tail20f574.ts.net"

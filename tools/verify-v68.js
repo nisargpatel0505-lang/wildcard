@@ -36,7 +36,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.5</b>'),'Public version label is not v6.9.5');
+assert(html.includes('>v6.9.7</b>'),'Public version label is not v6.9.7');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -53,7 +53,7 @@ const htmlSha256=crypto.createHash('sha256').update(Buffer.from(html)).digest('h
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.5</b>'),'Standalone public version is not v6.9.5');
+assert(standalone.includes('>v6.9.7</b>'),'Standalone public version is not v6.9.7');
 for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shift-kevin-macleod-115bpm.mp3']) {
   assert(fs.existsSync(`www/${asset}`),`Missing runtime asset: ${asset}`);
   assert(html.includes(asset),`Runtime asset is not wired into HTML: ${asset}`);
@@ -61,21 +61,76 @@ for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shif
   assert(!standalone.includes(asset),`Standalone still has an external asset path: ${asset}`);
 }
 assert(standalone.includes('data:audio/mpeg;base64,'),'Standalone music is not embedded');
-assert(html.includes('function devReplayTutorial()'),'Developer tutorial replay is missing');
+assert(html.includes('function replayTutorial()'),'Safe tutorial replay is missing');
 assert(html.includes("handLabel(res.handType)+' · '+res.scoringCount+' OF '+sel.length+' SCORES'"),'Compact score label is missing');
 assert(!html.includes('Play scores these '+"'+selCount+'"),'Persistent play/discard hint remains');
 assert(html.includes("var(--ui-art-tint),var(--theme-home-art,var(--art-menu-palace))"),'Menu artwork is not theme-aware');
 assert(html.includes("playDeathScreen(run.abandoned?'terminated':'gameover',proceed)"),'Failure and termination overlays are not wired');
 assert(html.includes('Names and effects stay visible'),'Joker effects are not visibly explained in the shop');
 assert(html.includes("var(--art-house-room)!important"),'Sly Kingdom artwork is not wired');
-assert(html.includes('function triggerWinFX(skin,tier)'),'Scaled Win FX dispatcher is missing');
-assert(html.includes("if(!reducedMotion && res.total>0)"),'Win FX does not trigger on every scored hand');
-assert(html.includes("res.handType!=='High Card'"),'Win FX poker-hand tier is missing');
-assert(html.includes("else sparks(cfg.sparks,'var(--gold)'"),'Classic Sparks is not wired into real scoring');
+const playHandCode=block('async function playHand(){','function discardSelected(){');
+assert(!playHandCode.includes('triggerWinFX('),'Gameplay Win FX is still active');
+assert(!playHandCode.includes('sparks('),'Gameplay scoring still creates particle FX');
+assert(!playHandCode.includes('offsetWidth'),'Gameplay scoring still forces synchronous layout');
+assert(!html.includes("['win','Win FX']"),'Win FX remains player-facing in the Wardrobe');
 assert(html.includes("account.speed==='fast'?0.65:1.08"),'Normal scoring pace changed from the approved rhythm');
 assert(html.includes('await beat(520);\n\n  const co = calloutFor'),'Final score-settle beat changed');
-assert(html.includes('floatScore(\'\+\'+res.total);\n  await beat(500);'),'Win reveal beat changed');
+const floatAt=playHandCode.indexOf("floatScore('+'+res.total)");
+const revealBeatAt=playHandCode.indexOf('await beat(500);',floatAt);
+assert(floatAt>=0&&revealBeatAt>floatAt,'Win reveal beat changed');
 assert(html.includes('await beat(340);'),'Played-card exit beat changed');
+const scoreOverlayCode=block('function floatScore(text){','// ---------- SLY THE MASCOT ----------');
+assert(!scoreOverlayCode.includes('offsetWidth')&&scoreOverlayCode.includes("replayUiPulse(el,'show'"),'Score overlays still force synchronous layout');
+
+// v6.9.7 phone UX: decluttered home, nested shop, Daily mode and production-safe Settings.
+const menuBlock=block('<!-- ============ MENU ============ -->','<!-- ============ HOW TO ============ -->');
+const modeBlock=block('function chooseRunMode(){','function startNormalRun(){');
+const settingsBlock=block('function renderSettings(){','function openMusicCredits(){');
+const startBoostBlock=block('<!-- ============ START BOOST ============ -->','<!-- ============ AD BREAK ============ -->');
+assert(menuBlock.includes('onclick="openHomeShop()"')&&menuBlock.includes('onclick="openMoreMenu()"'),'Home Shop/More grouping is missing');
+assert(!menuBlock.includes('onclick="startDailyRun()"'),'Daily Challenge is still a top-level menu action');
+assert(!menuBlock.includes('id="dev-menu-btn"'),'Developer Code is still a top-level menu action');
+assert(modeBlock.includes('id="mode-daily"')&&modeBlock.includes('account.dailyRunDate===todayStr()'),'Daily Challenge is not in the New Run picker');
+assert(modeBlock.includes("dailyDone?' disabled':''")&&modeBlock.includes('available again tomorrow'),'Completed Daily is not disabled until tomorrow');
+assert(modeBlock.includes('startDailyRun()'),'Daily picker action is not wired');
+assert(settingsBlock.includes('onclick="replayTutorial()"'),'Tutorial replay is not available from Settings');
+assert(!html.includes('Developer Code')&&!html.includes('function applyDevCode()'),'Production developer unlock path is still shipped');
+assert(!startBoostBlock.includes('onclick="openSettings()"'),'Start Boost back control incorrectly opens Settings');
+
+const dailyLaunchBlock=block('function launchDailyRun(){','function endDailyRun(){');
+assert(dailyLaunchBlock.indexOf('account.dailyRunDate=today')<dailyLaunchBlock.indexOf('beginRun()'),'Daily attempt is not locked before play begins');
+assert(html.includes('Seeded shop rolls draw from your unlocked collection'),'Daily shop copy still overpromises identical stock');
+assert(html.includes("desc:'★ BOSS ★ The House takes a 10% bigger cut")&&!html.includes('House takes a 20% bigger cut'),'THE HOUSE copy does not match its target calculation');
+const nextStageBlock=block('function nextStage(){','function continueEndless(){');
+assert(nextStageBlock.includes('run.guidedFirstRun && run.guideStep===3')&&nextStageBlock.includes('run.guideStep=4'),'Final first-run coach stage remains unreachable');
+
+const cosmeticCode=block('const COSMETICS = [','const COSMETIC_DEFAULTS');
+const cosmeticCtx={}; vm.createContext(cosmeticCtx);
+vm.runInContext(cosmeticCode+';globalThis.__cos=COSMETICS;',cosmeticCtx);
+const cosmetics=cosmeticCtx.__cos;
+const standardThemes=['theme_sunset','theme_ice','theme_neon_elite','theme_gold','theme_vapor','theme_blood','theme_cosmic'];
+const slyThemes=['theme_neon_heist','theme_moonlit_mask','theme_ember','theme_emerald_throne','theme_haunted','theme_clockwork'];
+assert(standardThemes.every(id=>cosmetics.find(c=>c.id===id).price===1000),'A standard UI theme is not 1,000 coins');
+assert(slyThemes.every(id=>cosmetics.find(c=>c.id===id).price>=3500),'A premium Sly UI theme is not priced well above standard themes');
+const cosmeticVaultBlock=block('function cosmeticVaultOddsText(pool){','function revealCosmetic(cos, done){');
+assert(cosmeticVaultBlock.includes("UI Theme 0.8% · Other 99.2%"),'Cosmetic Vault does not disclose the theme gate');
+assert(cosmeticVaultBlock.includes("c.kind!=='win'"),'Cosmetic Vault can still award disabled Win FX');
+
+const introCode=block('function showRoundIntro(){','function playSlyStageFX');
+assert(introCode.includes('run.modifier.name')&&introCode.includes('run.modifier.desc'),'Heat intro does not show the active modifier effect');
+const reactAt=playHandCode.indexOf('slyReact(res.handType, res.total, stageTarget())');
+assert(reactAt>floatAt&&reactAt<playHandCode.indexOf('if(run.stageScore >= stageTarget())'),'Sly reaction does not cover every completed hand');
+assert(html.includes('.mascot[data-sly-mood="pair"]')&&html.includes('@keyframes slyMoodPulse'),'Premium Sly skins have no visible hand-reaction treatment');
+const slyCode=block('const SLY = {','function sparks(').toLowerCase();
+for(const phrase of ['security!','illegal.','grandma','pathetic. lol','prayed harder']) assert(!slyCode.includes(phrase),'Legacy Sly dialogue remains: '+phrase);
+assert(slyCode.includes("'high card'")&&slyCode.includes("'royal flush'"),'Hand-specific Sly reactions are incomplete');
+
+const deckCode=block('function openDeckView(){','// ---------- Win screen ----------');
+assert(deckCode.includes("classList.add('deck-view-active')")&&deckCode.includes("const VALUES=[2,3,4,5,6,7,8,9,10,11,12,13,14]"),'Compact deck matrix is not wired');
+assert(deckCode.includes('const liveCounts=new Map()')&&!deckCode.includes('new Set(run.deck)'),'Deck matrix live counts are not save/resume safe');
+assert(html.includes('repeat(13,minmax(0,1fr))'),'Deck matrix does not fit all 13 ranks at a glance');
+assert(!html.includes('.deck-row{'),'Legacy horizontally scrolling deck rows remain');
+assert(html.includes("classList.remove('active','joker-inspect-active','deck-view-active')"),'Deck overlay styling leaks into later overlays');
 
 // Optional account/cloud save and official Play Games integration.
 assert(html.includes('function cloudSignIn()'),'Google sign-in control missing');
@@ -172,7 +227,7 @@ assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
 console.log(JSON.stringify({
-  version:'6.9.5',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.7',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
