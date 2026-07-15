@@ -86,8 +86,8 @@ const report = {
 if (!report.firebaseAndroidOauth.playSigningSha1Present) {
   report.warnings.push('The committed google-services.json does not contain the Play app-signing SHA-1 Android OAuth client; add that SHA-1 to the Firebase Android app and download a fresh file before testing Firebase Auth in a Play-signed build.');
 }
-if (versionName !== '6.9.1') {
-  report.warnings.push(`GitHub main currently identifies as ${versionName || 'unknown'}, not the phone-validated v6.9.1 described in the handoff.`);
+if (versionName !== '6.9.5') {
+  report.warnings.push(`GitHub main currently identifies as ${versionName || 'unknown'}, not the current v6.9.5 release.`);
 }
 
 console.log(JSON.stringify(report, null, 2));

@@ -15,7 +15,13 @@ const backgrounds = [
   'wildcard-the-house-boss-room.webp',
   'wildcard-sly-shop-backroom.webp',
   'wildcard-royal-vault-chest-room.webp',
-  'wildcard-endless-victory-cosmos.webp'
+  'wildcard-endless-victory-cosmos.webp',
+  'wildcard-theme-neon-heist.webp',
+  'wildcard-theme-moonlit-masquerade.webp',
+  'wildcard-theme-ember-casino.webp',
+  'wildcard-theme-emerald-throne.webp',
+  'wildcard-theme-haunted-carnival.webp',
+  'wildcard-theme-clockwork-royale.webp'
 ];
 
 function assert(ok, message) { if (!ok) throw new Error(message); }
@@ -30,7 +36,8 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.1</b>'),'Public version label is not v6.9.1');
+assert(html.includes('>v6.9.5</b>'),'Public version label is not v6.9.5');
+assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
 // it into one portable file generated from this exact canonical HTML.
@@ -45,8 +52,30 @@ for (const filename of backgrounds) {
 const htmlSha256=crypto.createHash('sha256').update(Buffer.from(html)).digest('hex');
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
-assert(Buffer.byteLength(standalone)<7_000_000,'Standalone playtest exceeds 7 MB');
-assert(standalone.includes('>v6.9.1</b>'),'Standalone public version is not v6.9.1');
+assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
+assert(standalone.includes('>v6.9.5</b>'),'Standalone public version is not v6.9.5');
+for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shift-kevin-macleod-115bpm.mp3']) {
+  assert(fs.existsSync(`www/${asset}`),`Missing runtime asset: ${asset}`);
+  assert(html.includes(asset),`Runtime asset is not wired into HTML: ${asset}`);
+  assert(serviceWorker.includes('/'+asset),`Runtime asset is not available to the offline PWA: ${asset}`);
+  assert(!standalone.includes(asset),`Standalone still has an external asset path: ${asset}`);
+}
+assert(standalone.includes('data:audio/mpeg;base64,'),'Standalone music is not embedded');
+assert(html.includes('function devReplayTutorial()'),'Developer tutorial replay is missing');
+assert(html.includes("handLabel(res.handType)+' · '+res.scoringCount+' OF '+sel.length+' SCORES'"),'Compact score label is missing');
+assert(!html.includes('Play scores these '+"'+selCount+'"),'Persistent play/discard hint remains');
+assert(html.includes("var(--ui-art-tint),var(--theme-home-art,var(--art-menu-palace))"),'Menu artwork is not theme-aware');
+assert(html.includes("playDeathScreen(run.abandoned?'terminated':'gameover',proceed)"),'Failure and termination overlays are not wired');
+assert(html.includes('Names and effects stay visible'),'Joker effects are not visibly explained in the shop');
+assert(html.includes("var(--art-house-room)!important"),'Sly Kingdom artwork is not wired');
+assert(html.includes('function triggerWinFX(skin,tier)'),'Scaled Win FX dispatcher is missing');
+assert(html.includes("if(!reducedMotion && res.total>0)"),'Win FX does not trigger on every scored hand');
+assert(html.includes("res.handType!=='High Card'"),'Win FX poker-hand tier is missing');
+assert(html.includes("else sparks(cfg.sparks,'var(--gold)'"),'Classic Sparks is not wired into real scoring');
+assert(html.includes("account.speed==='fast'?0.65:1.08"),'Normal scoring pace changed from the approved rhythm');
+assert(html.includes('await beat(520);\n\n  const co = calloutFor'),'Final score-settle beat changed');
+assert(html.includes('floatScore(\'\+\'+res.total);\n  await beat(500);'),'Win reveal beat changed');
+assert(html.includes('await beat(340);'),'Played-card exit beat changed');
 
 // Optional account/cloud save and official Play Games integration.
 assert(html.includes('function cloudSignIn()'),'Google sign-in control missing');
@@ -143,7 +172,7 @@ assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
 console.log(JSON.stringify({
-  version:'6.9.1',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.5',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
