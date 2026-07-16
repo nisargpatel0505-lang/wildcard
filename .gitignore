@@ -2,6 +2,7 @@ node_modules/
 android/.gradle/
 android/build/
 android/app/build/
+android/app/src/developer/assets/public/
 android/local.properties
 *.keystore
 *.jks
@@ -13,3 +14,4 @@ build-log*.txt
 .DS_Store
 artifacts/
 firestore-audit-working-*.md
+releases/*-developer.apk
