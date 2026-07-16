@@ -7,8 +7,8 @@ android {
         applicationId "com.nisarg.wildcard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "6.9.7"
+        versionCode 22
+        versionName "6.9.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -40,12 +40,12 @@ android {
     }
 }
 
-// Keep the Play release at code 20 while reserving code 21 for the local
-// developer APK that can update an existing v6.9.7 install without data loss.
+// Keep the Play release at code 22 while reserving code 23 for the local
+// developer APK that can update an existing v6.9.8 install without data loss.
 androidComponents {
     onVariants(selector().withBuildType("developer")) { variant ->
         variant.outputs.each { output ->
-            output.versionCode.set(21)
+            output.versionCode.set(23)
         }
     }
 }
