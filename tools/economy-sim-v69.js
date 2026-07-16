@@ -6,7 +6,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const HTML_PATH = path.join(ROOT, 'www', 'index.html');
 const RELEASE_DIR = path.join(ROOT, 'docs', 'release');
-const REPORT_VERSION = '6.9.8';
+const REPORT_VERSION = '6.9.9';
 const HORIZON_DAYS = 180;
 const TRIALS_PER_COHORT = 1000;
 const VAULT_AUDIT_TRIALS = 20000;
@@ -274,6 +274,7 @@ function round(value, digits = 1) {
 
 function loadRunDistributions() {
   const candidates = [
+    path.join(RELEASE_DIR, 'wildcard-v6.9.9-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.8-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.7-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.1-sim-results.json')
@@ -312,7 +313,7 @@ function runAccountCoins(outcome, live) {
 function scenarioFromLive(live) {
   return {
     id: 'proposed',
-    label: 'v6.9.8 proposed',
+    label: 'v6.9.9 current',
     dailyLogin: clone(live.economy.dailyLogin),
     jokerVaultPrice: clone(live.economy.jokerVaultPrice),
     rewardedCoin: clone(live.economy.rewardedCoin),
@@ -564,7 +565,7 @@ The two gameplay cohorts use the same bot. They bound collection strength, not h
 
 ## Before and after
 
-| Measure | v6.9.7 baseline | v6.9.8 proposal |
+| Measure | v6.9.7 baseline | v6.9.9 current |
 | --- | ---: | ---: |
 | Direct paid-Joker catalogue | ${result.scenarios.baseline.directTotal.toLocaleString()} | ${result.scenarios.proposed.directTotal.toLocaleString()} |
 | Vault completion, mean | ${result.scenarios.baseline.vaultRoute.mean.toLocaleString()} | ${result.scenarios.proposed.vaultRoute.mean.toLocaleString()} |
