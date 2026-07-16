@@ -23,6 +23,19 @@ const backgrounds = [
   'wildcard-theme-haunted-carnival.webp',
   'wildcard-theme-clockwork-royale.webp'
 ];
+const externalizedAssets = [
+  'assets/art/backgrounds/wildcard-cosmic-base.webp',
+  'assets/art/backgrounds/wildcard-cosmic-wilds.webp',
+  'assets/art/backgrounds/wildcard-menu-keyart.png',
+  'assets/art/sly/sly-expression-grid.webp',
+  'assets/art/sly/sly-skins-grid.webp',
+  'assets/art/sly/sly-stage-actions-grid.webp',
+  'assets/art/wildcard-logo-boot.webp',
+  'fonts/bungee-regular.ttf',
+  'fonts/space-grotesk-400.ttf',
+  'fonts/space-grotesk-500.ttf',
+  'fonts/space-grotesk-700.ttf'
+];
 
 function assert(ok, message) { if (!ok) throw new Error(message); }
 function block(start, end) {
@@ -36,7 +49,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.8</b>'),'Public version label is not v6.9.8');
+assert(html.includes('>v6.9.9</b>'),'Public version label is not v6.9.9');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -53,7 +66,16 @@ const htmlSha256=crypto.createHash('sha256').update(Buffer.from(html)).digest('h
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.8</b>'),'Standalone public version is not v6.9.8');
+assert(standalone.includes('>v6.9.9</b>'),'Standalone public version is not v6.9.9');
+assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
+assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
+for (const asset of externalizedAssets) {
+  const path=`www/${asset}`;
+  assert(fs.existsSync(path),`Missing externalized runtime asset: ${asset}`);
+  assert(html.includes(asset),`Canonical HTML does not reference externalized asset: ${asset}`);
+  assert(serviceWorker.includes('/'+asset),`Externalized asset is missing from the offline shell: ${asset}`);
+  assert(!standalone.includes(asset),`Standalone still depends on externalized asset: ${asset}`);
+}
 for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shift-kevin-macleod-115bpm.mp3']) {
   assert(fs.existsSync(`www/${asset}`),`Missing runtime asset: ${asset}`);
   assert(html.includes(asset),`Runtime asset is not wired into HTML: ${asset}`);
@@ -69,16 +91,21 @@ assert(html.includes("playDeathScreen(run.abandoned?'terminated':'gameover',proc
 assert(html.includes('Names and effects stay visible'),'Joker effects are not visibly explained in the shop');
 assert(html.includes("var(--art-house-room)!important"),'Sly Kingdom artwork is not wired');
 const playHandCode=block('async function playHand(){','function discardSelected(){');
-assert(!playHandCode.includes('triggerWinFX('),'Gameplay Win FX is still active');
+assert(!html.includes('function triggerWinFX(')&&!html.includes('function previewWinFX('),'Win FX runtime or preview code remains');
+assert(!html.includes("kind:'win'")&&!html.includes('Win effects')&&!html.includes('win-fx-pulse'),'Win FX remains in the catalogue or UI');
 assert(!playHandCode.includes('sparks('),'Gameplay scoring still creates particle FX');
 assert(!playHandCode.includes('offsetWidth'),'Gameplay scoring still forces synchronous layout');
-assert(!html.includes("['win','Win FX']"),'Win FX remains player-facing in the Wardrobe');
-assert(html.includes("account.speed==='fast'?0.65:1.08"),'Normal scoring pace changed from the approved rhythm');
-assert(html.includes('await beat(520);\n\n  const co = calloutFor'),'Final score-settle beat changed');
+assert(html.includes("account.speed==='fast'?0.55:1"),'Optimized Normal/Fast scoring pace is missing');
+assert(html.includes('await beat(240);\n\n  const co = calloutFor'),'Optimized score-settle beat changed');
 const floatAt=playHandCode.indexOf("floatScore('+'+res.total)");
-const revealBeatAt=playHandCode.indexOf('await beat(500);',floatAt);
-assert(floatAt>=0&&revealBeatAt>floatAt,'Win reveal beat changed');
-assert(html.includes('await beat(340);'),'Played-card exit beat changed');
+const revealBeatAt=playHandCode.indexOf('await beat(300);',floatAt);
+assert(floatAt>=0&&revealBeatAt>floatAt,'Score reveal beat changed');
+assert(html.includes('await beat(220);'),'Played-card exit beat changed');
+assert(playHandCode.includes('lockScoringControls();')&&!playHandCode.slice(0,playHandCode.indexOf('try {')).includes('renderGame(false)'),'Scoring tap still triggers a full render');
+assert(!html.includes('function tickNumber('),'Animated Heat score counter remains');
+assert(playHandCode.includes("bumpMission('hands',1,false)")&&html.includes('function bumpMission(stat,n,persist=true)'),'Mission writes are not batched');
+assert(playHandCode.includes('await sleep(600);')&&playHandCode.includes('await sleep(400);'),'Terminal waits are still pace-scaled');
+assert(html.includes("body.perf-lite .bgfx .blob")&&html.includes('display:none!important'),'Mobile background blur layers remain active');
 const scoreOverlayCode=block('function floatScore(text){','// ---------- SLY THE MASCOT ----------');
 assert(!scoreOverlayCode.includes('offsetWidth')&&scoreOverlayCode.includes("replayUiPulse(el,'show'"),'Score overlays still force synchronous layout');
 
@@ -114,7 +141,7 @@ assert(standardThemes.every(id=>cosmetics.find(c=>c.id===id).price===1000),'A st
 assert(slyThemes.every(id=>cosmetics.find(c=>c.id===id).price>=3500),'A premium Sly UI theme is not priced well above standard themes');
 const cosmeticVaultBlock=block('function cosmeticVaultOddsText(pool){','function revealCosmetic(cos, done){');
 assert(cosmeticVaultBlock.includes("UI Theme 0.8% · Other 99.2%"),'Cosmetic Vault does not disclose the theme gate');
-assert(cosmeticVaultBlock.includes("c.kind!=='win'"),'Cosmetic Vault can still award disabled Win FX');
+assert(!cosmetics.some(c=>c.kind==='win'),'Retired Win FX cosmetics remain in the live catalogue');
 
 const introCode=block('function showRoundIntro(){','function playSlyStageFX');
 assert(introCode.includes('run.modifier.name')&&introCode.includes('run.modifier.desc'),'Heat intro does not show the active modifier effect');
@@ -231,14 +258,14 @@ assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(wi
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.8-sim-results.json','utf8'));
-assert(sim.version==='6.9.8','Simulation report is not v6.9.8');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.9-sim-results.json','utf8'));
+assert(sim.version==='6.9.9','Simulation report is not v6.9.9');
 assert(sim.dataFailures.length===0&&sim.hookErrors.length===0&&sim.invariantFailures.length===0,'Simulation failures detected');
 assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
 console.log(JSON.stringify({
-  version:'6.9.8',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.9',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

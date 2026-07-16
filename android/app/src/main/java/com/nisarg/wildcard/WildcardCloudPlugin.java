@@ -328,7 +328,7 @@ public class WildcardCloudPlugin extends Plugin {
         Map<String, Object> data = new HashMap<>();
         data.put("uid", user.getUid());
         data.put("schemaVersion", 1L);
-        data.put("appVersion", "6.9.8");
+        data.put("appVersion", "6.9.9");
         data.put("accountJson", accountJson);
         data.put("runJson", runJson);
         data.put("clientSavedAt", clientSavedAt == null ? 0L : Math.max(0L, clientSavedAt));

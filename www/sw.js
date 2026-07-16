@@ -4,7 +4,7 @@
    resume (Range) retries got answered from cache with a full-body 200.
    v2 only ever touches the app shell; everything else goes straight to the
    network untouched. */
-const CACHE = 'wildcard-v7';
+const CACHE = 'wildcard-v8';
 const SHELL = [
   '/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png',
   '/assets/art/backgrounds/wildcard-main-menu-palace.webp',
@@ -18,7 +18,18 @@ const SHELL = [
   '/assets/art/backgrounds/wildcard-theme-emerald-throne.webp',
   '/assets/art/backgrounds/wildcard-theme-haunted-carnival.webp',
   '/assets/art/backgrounds/wildcard-theme-clockwork-royale.webp',
+  '/assets/art/backgrounds/wildcard-cosmic-base.webp',
+  '/assets/art/backgrounds/wildcard-cosmic-wilds.webp',
+  '/assets/art/backgrounds/wildcard-menu-keyart.png',
+  '/assets/art/sly/sly-expression-grid.webp',
+  '/assets/art/sly/sly-skins-grid.webp',
+  '/assets/art/sly/sly-stage-actions-grid.webp',
   '/assets/art/wildcard-logo-v692.webp',
+  '/assets/art/wildcard-logo-boot.webp',
+  '/fonts/bungee-regular.ttf',
+  '/fonts/space-grotesk-400.ttf',
+  '/fonts/space-grotesk-500.ttf',
+  '/fonts/space-grotesk-700.ttf',
   '/assets/audio/bit-shift-kevin-macleod-115bpm.mp3'
 ];
 
