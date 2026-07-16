@@ -1,0 +1,157 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const bridgeSource = fs.readFileSync(
+  path.join(__dirname, '..', 'www', 'native-bridge.js'),
+  'utf8'
+);
+
+async function flushPromises() {
+  for (let i = 0; i < 6; i += 1) await Promise.resolve();
+}
+
+async function createHarness(options) {
+  options = options || {};
+  const listeners = Object.create(null);
+  const calls = {
+    prepareRewarded: 0,
+    prepareInterstitial: 0,
+    showRewarded: 0
+  };
+
+  const AdMob = {
+    addListener(name, handler) {
+      listeners[name] = handler;
+      return Promise.resolve({ remove() {} });
+    },
+    initialize() { return Promise.resolve(); },
+    requestConsentInfo() {
+      return Promise.resolve({
+        canRequestAds: true,
+        status: 'OBTAINED',
+        privacyOptionsRequirementStatus: 'NOT_REQUIRED'
+      });
+    },
+    prepareRewardVideoAd() {
+      calls.prepareRewarded += 1;
+      return Promise.resolve();
+    },
+    prepareInterstitial() {
+      calls.prepareInterstitial += 1;
+      return Promise.resolve();
+    },
+    showRewardVideoAd() {
+      calls.showRewarded += 1;
+      if (options.rejectShow) return Promise.reject(new Error('show rejected'));
+      return Promise.resolve();
+    },
+    showInterstitial() { return Promise.resolve(); },
+    showPrivacyOptionsForm() { return Promise.resolve(); },
+    setApplicationMuted() { return Promise.resolve(); }
+  };
+
+  const window = {
+    Capacitor: {
+      isNativePlatform() { return true; },
+      Plugins: { AdMob }
+    }
+  };
+  const context = {
+    window,
+    document: { addEventListener() {} },
+    console,
+    Promise,
+    setTimeout() { return 0; },
+    clearTimeout() {}
+  };
+
+  vm.runInNewContext(bridgeSource, context, { filename: 'www/native-bridge.js' });
+  await flushPromises();
+  assert.equal(calls.prepareRewarded, 1, 'consent should prepare the first rewarded ad');
+  listeners.onRewardedVideoAdLoaded();
+
+  return {
+    WN: window.WildcardNative,
+    calls,
+    emit(name) {
+      assert.equal(typeof listeners[name], 'function', `missing listener: ${name}`);
+      listeners[name]();
+    }
+  };
+}
+
+async function testRewardSettlesImmediatelyAndOnlyOnce() {
+  const h = await createHarness();
+  const results = [];
+
+  h.WN.showRewardedAd((value) => results.push(value));
+  assert.deepEqual(results, [], 'showing an ad must not resolve before an SDK event');
+
+  h.emit('onRewardedVideoAdReward');
+  assert.deepEqual(results, [true], 'reward event must settle success immediately');
+
+  const overlappingResult = [];
+  h.WN.showRewardedAd((value) => overlappingResult.push(value));
+  assert.deepEqual(overlappingResult, [false], 'reward settlement must not reopen the ad before dismissal');
+  assert.equal(h.calls.showRewarded, 1, 'only one rewarded ad may be in flight');
+
+  h.emit('onRewardedVideoAdReward');
+  h.emit('onRewardedVideoAdDismissed');
+  h.emit('onRewardedVideoAdDismissed');
+  h.emit('onRewardedVideoAdFailedToShow');
+  assert.deepEqual(results, [true], 'duplicate/late events must not settle again');
+  assert.equal(h.calls.prepareRewarded, 2, 'dismissal should prepare exactly one replacement ad');
+}
+
+async function testDismissWithoutRewardSettlesFalseOnce() {
+  const h = await createHarness();
+  const results = [];
+
+  h.WN.showRewardedAd((value) => results.push(value));
+  h.emit('onRewardedVideoAdDismissed');
+  h.emit('onRewardedVideoAdFailedToShow');
+
+  assert.deepEqual(results, [false], 'dismissal without a reward must fail once');
+  assert.equal(h.calls.prepareRewarded, 2, 'dismissal should prepare the next ad');
+}
+
+async function testFailedToShowSettlesFalseOnce() {
+  const h = await createHarness();
+  const results = [];
+
+  h.WN.showRewardedAd((value) => results.push(value));
+  h.emit('onRewardedVideoAdFailedToShow');
+  h.emit('onRewardedVideoAdDismissed');
+
+  assert.deepEqual(results, [false], 'failed-to-show must fail once');
+  assert.equal(h.calls.prepareRewarded, 2, 'failed-to-show should prepare the next ad');
+}
+
+async function testShowPromiseRejectionSettlesFalseOnce() {
+  const h = await createHarness({ rejectShow: true });
+  const results = [];
+
+  h.WN.showRewardedAd((value) => results.push(value));
+  await flushPromises();
+  h.emit('onRewardedVideoAdFailedToShow');
+
+  assert.deepEqual(results, [false], 'show promise rejection must fail once');
+  assert.equal(h.calls.prepareRewarded, 2, 'show rejection should prepare the next ad');
+}
+
+async function main() {
+  await testRewardSettlesImmediatelyAndOnlyOnce();
+  await testDismissWithoutRewardSettlesFalseOnce();
+  await testFailedToShowSettlesFalseOnce();
+  await testShowPromiseRejectionSettlesFalseOnce();
+  console.log('Native rewarded-ad callback tests passed.');
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

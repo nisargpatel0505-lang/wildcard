@@ -36,7 +36,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.7</b>'),'Public version label is not v6.9.7');
+assert(html.includes('>v6.9.8</b>'),'Public version label is not v6.9.8');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -53,7 +53,7 @@ const htmlSha256=crypto.createHash('sha256').update(Buffer.from(html)).digest('h
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.7</b>'),'Standalone public version is not v6.9.7');
+assert(standalone.includes('>v6.9.8</b>'),'Standalone public version is not v6.9.8');
 for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shift-kevin-macleod-115bpm.mp3']) {
   assert(fs.existsSync(`www/${asset}`),`Missing runtime asset: ${asset}`);
   assert(html.includes(asset),`Runtime asset is not wired into HTML: ${asset}`);
@@ -82,7 +82,7 @@ assert(html.includes('await beat(340);'),'Played-card exit beat changed');
 const scoreOverlayCode=block('function floatScore(text){','// ---------- SLY THE MASCOT ----------');
 assert(!scoreOverlayCode.includes('offsetWidth')&&scoreOverlayCode.includes("replayUiPulse(el,'show'"),'Score overlays still force synchronous layout');
 
-// v6.9.7 phone UX: decluttered home, nested shop, Daily mode and production-safe Settings.
+// v6.9.7+ phone UX: decluttered home, nested shop, Daily mode and production-safe Settings.
 const menuBlock=block('<!-- ============ MENU ============ -->','<!-- ============ HOW TO ============ -->');
 const modeBlock=block('function chooseRunMode(){','function startNormalRun(){');
 const settingsBlock=block('function renderSettings(){','function openMusicCredits(){');
@@ -158,6 +158,7 @@ const cloudCode=block('/* ===================== v6.9.1 optional Google cloud sav
 const cloudCtx={
   console, Date, Set, JSON, Number, String, Object, Array, Math, Promise,
   savedStamp(raw){try{return Number(JSON.parse(raw||'')._savedAt)||0;}catch(e){return 0;}},
+  validRewardClaims(ids){return [...new Set((Array.isArray(ids)?ids:[]).filter(id=>typeof id==='string'&&id.length<=96))].slice(-256);},
   setTimeout(){return 0;},clearTimeout(){},window:{},document:{getElementById(){return null;}},localStorage:{getItem(){return null;},setItem(){},removeItem(){}}
 };
 vm.createContext(cloudCtx);
@@ -180,6 +181,16 @@ assert(html.includes('missionSet:account.missionSet'),'Mission selection is not 
 assert(html.includes('if(visibleMissionRewardReady())'),'Ready rewards can be hidden by refresh');
 assert(html.includes('if(adViewsLeftToday()<=0)'),'Rewarded-ad cap is not enforced');
 assert(html.includes("account.missionRefreshDate=todayStr()"),'Refresh day is not recorded');
+
+// v6.9.8 economy and rewarded placements.
+assert(html.includes('dailyLogin:Object.freeze({base:30, step:18, cap:192})'),'Rebalanced daily curve is missing');
+assert(html.includes('jokerVaultPrice:Object.freeze({wood:100, gold:300})'),'Rebalanced Joker Vault prices are missing');
+assert(html.includes("return Math.round((j.unlock*multiplier)/5)*5"),'Rarity-weighted Joker pricing is missing');
+assert(html.includes("saveRunState('revive')")&&html.includes("run.handsLeft=1"),'Save-safe one-play revive is missing');
+assert(html.includes("run.leaderboardEligible=false"),'Revived scores can still reach official rankings');
+assert(html.includes("grantCoinsOnce(id,base,'run coins doubled',true)"),'Idempotent run-coin double is missing');
+assert(html.includes("btn.textContent='Simulate completed reward'"),'Reward preview still depends on a countdown');
+assert(html.includes('rewardClaims:account.rewardClaims'),'Reward-claim ledger is not persisted');
 
 // Execute the deterministic selector in isolation and prove a refresh changes all
 // three slots without mutating progress or claimed-reward state.
@@ -220,14 +231,14 @@ assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(wi
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.1-sim-results.json','utf8'));
-assert(sim.version==='6.9.1','Simulation report is not v6.9.1');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.8-sim-results.json','utf8'));
+assert(sim.version==='6.9.8','Simulation report is not v6.9.8');
 assert(sim.dataFailures.length===0&&sim.hookErrors.length===0&&sim.invariantFailures.length===0,'Simulation failures detected');
 assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
 console.log(JSON.stringify({
-  version:'6.9.7',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.8',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

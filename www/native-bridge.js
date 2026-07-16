@@ -92,6 +92,7 @@
     privacyRequired: false,
     rewardedReady: false,
     rewardedPreparing: false,
+    rewardedInFlight: false,
     rewardedEarned: false,
     rewardedCb: null,
     interstitialReady: false,
@@ -127,6 +128,23 @@
     prepareInterstitial();
   }
 
+  function settleRewarded(success) {
+    var cb = ad.rewardedCb;
+    if (!cb) return false;
+    ad.rewardedCb = null;
+    callback(cb, !!success);
+    return true;
+  }
+
+  function finishRewardedShow() {
+    var earned = ad.rewardedEarned;
+    ad.rewardedInFlight = false;
+    ad.rewardedEarned = false;
+    ad.rewardedReady = false;
+    prepareRewarded();
+    if (!earned) settleRewarded(false);
+  }
+
   function applyConsentInfo(info) {
     info = info || {};
     ad.allowed = !!info.canRequestAds;
@@ -148,22 +166,18 @@
       ad.rewardedPreparing = false;
       setTimeout(prepareRewarded, 30000);
     });
-    AdMob.addListener('onRewardedVideoAdReward', function () { ad.rewardedEarned = true; });
+    AdMob.addListener('onRewardedVideoAdReward', function () {
+      if (!ad.rewardedInFlight || ad.rewardedEarned) return;
+      ad.rewardedEarned = true;
+      settleRewarded(true);
+    });
     AdMob.addListener('onRewardedVideoAdDismissed', function () {
-      var cb = ad.rewardedCb;
-      var earned = ad.rewardedEarned;
-      ad.rewardedCb = null;
-      ad.rewardedEarned = false;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, earned);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
     AdMob.addListener('onRewardedVideoAdFailedToShow', function () {
-      var cb = ad.rewardedCb;
-      ad.rewardedCb = null;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, false);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
 
     AdMob.addListener('interstitialAdLoaded', function () {
@@ -209,19 +223,17 @@
     });
 
     WN.showRewardedAd = function (cb) {
-      if (!ad.allowed || !ad.rewardedReady || ad.rewardedCb) {
+      if (!ad.allowed || !ad.rewardedReady || ad.rewardedInFlight) {
         prepareRewarded();
         callback(cb, false);
         return;
       }
       ad.rewardedEarned = false;
+      ad.rewardedInFlight = true;
       ad.rewardedCb = cb;
       AdMob.showRewardVideoAd().catch(function () {
-        var failed = ad.rewardedCb;
-        ad.rewardedCb = null;
-        ad.rewardedReady = false;
-        prepareRewarded();
-        callback(failed, false);
+        if (!ad.rewardedInFlight) return;
+        finishRewardedShow();
       });
     };
 

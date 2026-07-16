@@ -2,8 +2,8 @@ const fs = require('fs');
 
 const expected = {
   packageName: 'com.nisarg.wildcard',
-  versionName: '6.9.7',
-  versionCode: 20,
+  versionName: '6.9.8',
+  versionCode: 22,
   projectId: 'wildcard-31d50',
   projectNumber: '420107184674',
   leaderboardId: 'CgkIotTbgp0MEAIQAQ',
