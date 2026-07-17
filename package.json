@@ -1,6 +1,6 @@
 {
   "name": "wildcard-app",
-  "version": "6.9.9",
+  "version": "6.9.10",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,11 +9,14 @@
     "build:android:developer": "node tools/build-developer-apk.js",
     "build:standalone": "node tools/build-standalone-html.js",
     "audit:google": "node tools/audit-google-config.js",
-    "test": "node tools/verify-v68.js",
+    "test": "node tools/verify-v68.js && python tools/test-pi-analytics.py",
+    "test:pi-analytics": "python tools/test-pi-analytics.py",
     "test:economy-rewards": "node tools/test-economy-rewards.js",
     "test:native-ads": "node tools/test-native-rewarded-ad.js",
     "test:deep": "node tools/deep-sim-v57.js",
+    "test:strategy": "node tools/deep-sim-v57.js --strategy",
     "test:economy": "node tools/economy-sim-v69.js",
+    "test:revenue": "node tools/revenue-model-v6910.js",
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project wildcard-31d50 \"node tools/test-firestore-rules.js\""
   },
   "keywords": [],

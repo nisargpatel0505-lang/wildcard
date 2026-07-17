@@ -745,7 +745,10 @@ body.bg-theme-ice .bgfx{filter:hue-rotate(155deg) saturate(.85) brightness(1.05)
 .stake-amount .lbl{display:block;font-size:9.5px;letter-spacing:.14em;color:var(--cream-dim);font-family:inherit;margin-top:3px}
 .stake-preview{font-size:12px;color:var(--cream);margin-top:6px;line-height:1.55}
 .stake-max-note{font-size:10.5px;color:var(--cream-dim);margin-top:6px;opacity:.85}
-.stake-locked{background:rgba(255,255,255,.04);border:2px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:12.5px;color:var(--cream-dim);line-height:1.5;max-width:580px;margin:2px auto 14px}
+.stake-locked{background:rgba(255,255,255,.04);border:2px dashed var(--line);border-radius:14px;padding:16px 14px;font-family:'Bungee',sans-serif;font-size:14px;color:var(--cream-dim);line-height:1.2;max-width:580px;margin:2px auto 14px;text-align:center;letter-spacing:.08em;text-transform:uppercase}
+.stake-steps{margin:7px 0 9px;padding-left:25px;text-align:left;font-size:12px;line-height:1.4;color:var(--cream-dim)}
+.stake-steps li+li{margin-top:5px}
+.stake-unavailable{font-size:11px;color:var(--gold);margin-top:8px}
 .stk-win{color:var(--mint)}
 .stk-loss{color:var(--coral)}
 .stake-table{display:flex;flex-direction:column;gap:3px;margin-top:8px;text-align:left}
@@ -996,7 +999,7 @@ body.perf-lite .card{box-shadow:0 3px 6px var(--shadow)}
     border:0;border-radius:0;box-shadow:none;
     background:linear-gradient(180deg,rgba(17,43,35,.98),rgba(8,21,18,.98) 58%,rgba(12,10,26,.98));
   }
-  section.screen:not(#menu):not(#game)>.panel>.top-back{top:calc(12px + var(--sat));left:12px;width:44px;height:44px}
+  section.screen:not(#menu):not(#game)>.panel>.top-back{position:fixed;top:calc(7px + var(--sat));left:calc(7px + var(--sal));width:44px;height:44px}
 
   /* Keep test hooks out of the player-facing menu. */
   .menu-btns>button[onclick="toggleDevPanel()"],#dev-panel{display:none!important}
@@ -1828,7 +1831,7 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.9</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.10</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -1899,7 +1902,6 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
     <div class="startboost-grid" id="startboost-grid"></div>
     <div class="startboost-toolbar">
       <button class="btn ghost" onclick="beginRun()">Start with no boost</button>
-      <button class="btn ghost" onclick="showScreen('menu'); updateMenuAccount()">Back</button>
     </div>
   </div>
 </section>
@@ -2917,9 +2919,9 @@ let ffwd=false;   // tap during scoring to fast-forward
 // reduced-motion softens decorative animation elsewhere, but the scoring rhythm IS information —
 // cap it rather than zero it, or scoring becomes an unreadable instant snap.
 const sleep = ms => new Promise(res=>setTimeout(res, reducedMotion?Math.min(ms,160):(ffwd?Math.min(ms,40):ms)));
-// v6.9.9 restores the original authored pace. Terminal transitions deliberately
-// use unscaled sleep() so future speed tuning cannot slow the result twice.
-const beat = ms => sleep(Math.round(ms * (account.speed==='fast'?0.55:1)));
+// v6.9.10 keeps the optimized path but gives Normal a subtle 4% breathing room.
+// Terminal transitions stay unscaled so future tuning cannot slow them twice.
+const beat = ms => sleep(Math.round(ms * (account.speed==='fast'?0.55:1.04)));
 const suspenseBeat = ms => new Promise(res=>setTimeout(res, Math.round((ffwd?Math.max(140,ms*0.72):ms) * (account.speed==='fast'?0.75:1))));
 function toggleSpeed(){
   account.speed = account.speed==='fast' ? 'normal' : 'fast';
@@ -3724,6 +3726,7 @@ function newRunState(){
   return {
     runId:createRunId(),
     gauntlet: pendingGauntlet,
+    telemetryMode: dailyMode?'daily':(pendingGauntlet?'gauntlet':'normal'),
 
     stage:1, endless:false, modifier:null,
     guidedFirstRun:false, guideStep:0, shopGuideShown:false,
@@ -4192,6 +4195,7 @@ function chooseRunMode(){
 }
 function startNormalRun(){
   if(hasSavedRun() && !confirm('You have a run in progress (Heat '+(savedRunHeat()||'?')+'). Starting a new run abandons it. Continue?')) return;
+  queueReplacedRunTelemetry();
   clearRunState();
   pendingGauntlet=false;
   showStartBoost();
@@ -4216,7 +4220,7 @@ function startGauntlet(){
   go.textContent='Enter the Gauntlet';
   go.onclick=()=>{
     if(hasSavedRun() && !confirm('You have a run in progress (Heat '+(savedRunHeat()||'?')+'). Starting the Gauntlet abandons it. Continue?')) return;
-    clearRunState(); closeOverlay(); pendingGauntlet=true; showStartBoost();
+    queueReplacedRunTelemetry(); clearRunState(); closeOverlay(); pendingGauntlet=true; showStartBoost();
   };
   body.appendChild(go);
 }
@@ -4290,20 +4294,28 @@ function showStakeTable(){
   html+='</div>';
   const d=document.createElement('div'); d.innerHTML=html; body.appendChild(d);
 }
+function stakeSteps(g){
+  return '<ol class="stake-steps">'
+    +'<li>Choose account coins to put at risk.</li>'
+    +'<li>Clear more '+(g?'Gauntlet ':'')+'Heats to improve the return.</li>'
+    +'<li>'+(g?'Net wins and losses are doubled.':'Heat 12 pays 2×; fail Heat 1 and the stake is lost.')+'</li>'
+    +'</ol>';
+}
 function renderStake(){
   const box=document.getElementById('stake-box'); if(!box) return;
   if(!stakeUnlocked()){
-    box.innerHTML='<div class="stake-locked">🔒 <b>Sly\u2019s Stake Contract</b> unlocks once you clear <b>Heat '+STAKE_UNLOCK_HEAT+'</b>. Back yourself with account coins for a guaranteed bonus scaled to your highest Heat cleared — clear Heat 12 for <b>2×</b>.</div>';
+    box.innerHTML='<div class="stake-locked" aria-label="Sly’s Stake Contract locked">🔒 Locked</div>';
     pendingStake=0; return;
   }
+  const g = typeof pendingGauntlet!=='undefined' && pendingGauntlet;
   const max=stakeMaxFor(account.coins);
   if(max<STAKE_MIN){
-    box.innerHTML='<div class="stake-locked">💠 <b>Sly\u2019s Stake Contract</b> ready — stakes cap at 25% of your wallet, so you need at least <b>'+(STAKE_MIN*4)+' coins</b> to put a contract on the line.</div>';
+    box.innerHTML='<div class="stake-card"><h3>'+(g?'🔥 Gauntlet Stake':'💠 Sly’s Stake Contract')+'</h3>'
+      +stakeSteps(g)+'<div class="stake-unavailable">Need at least '+(STAKE_MIN*4)+' coins to place a stake.</div></div>';
     pendingStake=0; return;
   }
   if(pendingStake>max) pendingStake=Math.floor(max/STAKE_STEP)*STAKE_STEP;
   const st=pendingStake;
-  const g = typeof pendingGauntlet!=='undefined' && pendingGauntlet;
   let preview;
   if(st>0 && g){
     const n4=2*(gauntletStakePayout(st,4)-st), n7=2*(gauntletStakePayout(st,7)-st), b8=2*gauntletStakePayout(st,8)-st;
@@ -4317,9 +4329,7 @@ function renderStake(){
   box.innerHTML=
     '<div class="stake-card">'
     + '<h3>'+(g?'🔥 Gauntlet Stake — double or bust':'💠 Sly\u2019s Stake Contract')+'</h3>'
-    + '<div class="stake-desc">'+(g
-        ? 'Gauntlet contracts pay <b>double nets</b> — and bust for double. Your wallet must hold 2× the stake to place it.'
-        : 'Back yourself. Stake account coins for a guaranteed payout based on your highest Heat cleared — skill, not chance.')+'</div>'
+    + stakeSteps(g)
     + '<div class="stake-stepper">'
     +   '<button class="stake-step-btn" onclick="adjustStake(-'+STAKE_STEP+')" '+(st<=0?'disabled':'')+'>−</button>'
     +   '<div class="stake-amount">'+(st>0?st:'OFF')+'<span class="lbl">'+(st>0?'coins staked':'no stake')+'</span></div>'
@@ -4453,6 +4463,7 @@ function beginRun(startJokerId=null){
   if(starter) slySay('buy', 3000);
   else slySay('greet', 3500);
   syncModifierAmbience();
+  queueTelemetry('run_start',{m:telemetryRunMode(run,dailyMode)});
 }
 
 // Split a play's final score across contributing jokers, for the run's MVP readout.
@@ -4766,6 +4777,7 @@ function clearStage(){
     bumpMission('wins',1); bumpMission('bosskill',1);
     resolveStakeContract();   // bank the Gauntlet stake NOW — the win screen must be closable
     account.stats.gWins=(account.stats.gWins||0)+1; account.stats.wins=(account.stats.wins||0)+1;
+    queueRunEndTelemetry(run,false,true);
     clearRunState();
     checkAchievements();
     saveAccount();
@@ -4792,7 +4804,7 @@ function clearStage(){
     account.stats.wins=(account.stats.wins||0)+1;
     checkAchievements();
     saveAccount();
-    saveRunState('wincomplete');
+    if(!dailyMode) saveRunState('wincomplete');
     updateMenuAccount();
     renderWin();
     const be2=document.getElementById('btn-endless'); if(be2) be2.style.display='';
@@ -5013,6 +5025,7 @@ function claimDoubleRunCoins(){
 function gameOver(won){
   nativeHaptic(won?'success':'warning');
   const _wasDaily=dailyMode;
+  queueRunEndTelemetry(run,_wasDaily,won);
   const firstLossChest=!!(run && !won && !run.abandoned && !run.endless && !run.gauntlet && !dailyMode && !account.firstLossCoached && !account.tutorialChestClaimed);
   if(firstLossChest){ account.firstLossCoached=true; run.firstLossChestPending=true; }
   if(dailyMode) endDailyRun();
@@ -7044,6 +7057,7 @@ function startDailyRun(){
 function launchDailyRun(){
   const today=todayStr();
   if(account.dailyRunDate===today){ toast('Daily already played today — come back tomorrow!','var(--gold)'); return; }
+  queueReplacedRunTelemetry();
   account.dailyRunDate=today;
   if(!account.dailyBest || account.dailyBest.date!==today) account.dailyBest={date:today,score:0};
   saveAccount();
@@ -7119,6 +7133,7 @@ function openPrivacyPolicy(){
     +'<h3>Local progress</h3><p><strong>Your runs, unlocks, coins, settings and cosmetics always save on your phone.</strong> The Android app keeps both a WebView save and a mirrored native Preferences copy, so guest and offline play continue to work.</p>'
     +'<h3>Optional Google account & cloud backup</h3><p>If you choose Sign in with Google, Google and Firebase provide your account identifier, display name, email address and profile photo. WILDCARD stores your private progress under that account in Firebase Firestore so it can be restored and synchronized. Signing in links your existing phone progress; it does not intentionally reset it. You can sign out and continue with the phone save.</p>'
     +'<h3>Daily board</h3><p>Posting is optional. If you post, WILDCARD sends the board name you choose, the date and your score to the WILDCARD leaderboard service.</p>'
+    +'<h3>Anonymous aggregate analytics</h3><p>WILDCARD sends small, fail-soft counters for app opens, runs started and runs ended to the publisher’s Raspberry Pi service. A run-end counter includes only the run mode, outcome and a broad Heat band. The analytics payload contains no player or board name, Google/Firebase identity, email, install or session identifier, device identifier, cards, Jokers, coins, save data or exact score. The analytics database stores daily totals rather than raw event records. Sending happens only while the app is idle or moving to the background and never blocks play.</p>'
     +'<h3>Official rankings</h3><p>If you use Play Games rankings, Google Play Games processes your player identity and submitted high score for daily, weekly and all-time leaderboards.</p>'
     +'<h3>Advertising</h3><p>The Android app uses Google AdMob. Google and its partners may process advertising identifiers, ad interactions, diagnostics and approximate location as described by Google. Privacy choices can be reviewed from Settings.</p>'
     +'<h3>Purchases</h3><p>Google Play processes payments. WILDCARD receives purchase status and product identifiers, not your card or bank details.</p>'
@@ -7173,7 +7188,7 @@ function tutStepGo(d){ tutStep=Math.max(0,Math.min(TUT_STEPS.length-1,tutStep+d)
 
 // ---- Mid-run save / resume ----
 const RUN_KEY='wildcard_run_v1';
-const RUN_FIELDS=['runId','stage','endless','gauntlet','prevGauntletMod','stageScore','handsLeft','discardsLeft','handsPlayedThisStage',
+const RUN_FIELDS=['runId','telemetryMode','stage','endless','gauntlet','prevGauntletMod','stageScore','handsLeft','discardsLeft','handsPlayedThisStage',
  'runCoins','jokerState','cards','deck','hand','heatDeck','handLevels','destroyedCount','copiedCount','handTypeCounts',
  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
  'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
@@ -7204,6 +7219,17 @@ function clearRunState(){ clearTimeout(saveRunState._t); try{ localStorage.remov
 function loadRunState(){ try{ const raw=localStorage.getItem(RUN_KEY); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
 function hasSavedRun(){ const d=loadRunState(); return !!(d && d.v===1 && Array.isArray(d.hand)); }
 function savedRunHeat(){ const d=loadRunState(); return d?d.stage:0; }
+function queueReplacedRunTelemetry(){
+  const saved=loadRunState();
+  if(!saved||saved.v!==1) return;
+  const active=(run&&run.runId===saved.runId)?run:{
+    runId:saved.runId,telemetryMode:saved.telemetryMode,
+    gauntlet:!!saved.gauntlet,stage:saved.stage,abandoned:true
+  };
+  const completed=saved.phase==='wincomplete';
+  active.abandoned=!completed;
+  queueRunEndTelemetry(active,saved.telemetryMode==='daily',completed);
+}
 function resumeRun(){
   const d=loadRunState();
   if(!d || d.v!==1){ clearRunState(); toast('No saved run found.','var(--coral)'); updateMenuAccount(); return; }
@@ -7239,8 +7265,80 @@ function resumeRun(){
 // ---- Global daily leaderboard (Pi API at /api/daily; fails soft offline) ----
 // On the Pi the API is same-origin; in a Capacitor/TWA wrapper (capacitor://localhost) it must be absolute.
 // localhost/file stay relative so local previews fail soft instead of posting to the live board.
-const API_BASE = (['localhost','127.0.0.1',''].includes(location.hostname) || location.hostname==='raspberrypi.tail20f574.ts.net')
-  ? '' : 'https://raspberrypi.tail20f574.ts.net';
+const DAILY_API_ORIGIN='https://raspberrypi.tail20f574.ts.net';
+const DAILY_API_NATIVE=!!(window.Capacitor && (
+  (typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform()) ||
+  (typeof window.Capacitor.getPlatform==='function' && window.Capacitor.getPlatform()!=='web')
+));
+function resolveDailyApiBase(hostname,nativeShell){
+  if(hostname==='raspberrypi.tail20f574.ts.net') return '';
+  if(nativeShell) return DAILY_API_ORIGIN;
+  return ['localhost','127.0.0.1',''].includes(hostname) ? '' : DAILY_API_ORIGIN;
+}
+const API_BASE=resolveDailyApiBase(location.hostname,DAILY_API_NATIVE);
+
+// ---- Anonymous aggregate analytics (Pi; fail-soft and never awaited) ----
+// Only coarse product counters leave the device. There is no install/session ID,
+// player name, score, card data, save data or Google/Firebase identity in this path.
+const TELEMETRY_VERSION='6.9.10';
+const TELEMETRY_ENABLED=DAILY_API_NATIVE || location.hostname==='raspberrypi.tail20f574.ts.net';
+const TELEMETRY_PLATFORM=DAILY_API_NATIVE?'android':'web';
+const TELEMETRY_ENDPOINT=API_BASE+'/api/analytics';
+const TELEMETRY_EVENTS=new Set(['app_open','run_start','run_end']);
+const telemetryQueue=[];
+let telemetryScheduled=false;
+function telemetryRunMode(activeRun,wasDaily=false){
+  if(wasDaily) return 'daily';
+  if(activeRun&&['normal','daily','gauntlet'].includes(activeRun.telemetryMode)) return activeRun.telemetryMode;
+  if(activeRun&&activeRun.gauntlet) return 'gauntlet';
+  return 'normal';
+}
+function telemetryHeatBand(stage){
+  stage=Math.max(1,Math.trunc(Number(stage)||1));
+  if(stage<=3) return '1-3';
+  if(stage<=6) return '4-6';
+  if(stage<=9) return '7-9';
+  if(stage<=12) return '10-12';
+  return '13+';
+}
+function scheduleTelemetryFlush(){
+  if(!TELEMETRY_ENABLED||telemetryScheduled||!telemetryQueue.length) return;
+  telemetryScheduled=true;
+  const runFlush=()=>{ telemetryScheduled=false; flushTelemetry(false); };
+  if(typeof requestIdleCallback==='function') requestIdleCallback(runFlush,{timeout:60000});
+  else setTimeout(runFlush,45000);
+}
+function queueTelemetry(name,fields={}){
+  if(!TELEMETRY_ENABLED||!TELEMETRY_EVENTS.has(name)) return;
+  let event;
+  if(name==='app_open') event={n:name};
+  else if(name==='run_start') event={n:name,m:fields.m};
+  else event={n:name,m:fields.m,o:fields.o,h:fields.h};
+  if(telemetryQueue.length>=12) telemetryQueue.shift();
+  telemetryQueue.push(event);
+  scheduleTelemetryFlush();
+}
+function queueRunEndTelemetry(activeRun,wasDaily,won){
+  if(!activeRun||activeRun._telemetryEnded) return;
+  activeRun._telemetryEnded=true;
+  queueTelemetry('run_end',{
+    m:telemetryRunMode(activeRun,wasDaily),
+    o:won?'won':(activeRun.abandoned?'terminated':'lost'),
+    h:telemetryHeatBand(activeRun.stage)
+  });
+}
+function flushTelemetry(force=false){
+  if(!TELEMETRY_ENABLED||!telemetryQueue.length) return;
+  if(!force&&typeof run!=='undefined'&&run&&run.animating){ scheduleTelemetryFlush(); return; }
+  const events=telemetryQueue.splice(0,12);
+  const body=JSON.stringify({v:TELEMETRY_VERSION,p:TELEMETRY_PLATFORM,events});
+  try{
+    fetch(TELEMETRY_ENDPOINT,{
+      method:'POST',body,keepalive:true,cache:'no-store',credentials:'omit',
+      referrerPolicy:'no-referrer',headers:{'Content-Type':'text/plain;charset=UTF-8'}
+    }).catch(()=>{});
+  }catch(e){}
+}
 async function fetchDailyBoard(date){
   const r=await fetch(API_BASE+'/api/daily'+(date?('?date='+date):''), {cache:'no-store'});
   if(!r.ok) throw new Error('http '+r.status);
@@ -7253,8 +7351,20 @@ function lbRows(top, youName){
 function showDailyBoard(){
   const body=openOverlay('🌍 Daily Board — '+todayStr(),'Global top 20 for today’s shared Daily Challenge.');
   const box=document.createElement('div'); box.innerHTML='<p class="sub">Loading…</p>'; body.appendChild(box);
-  fetchDailyBoard().then(d=>{ box.innerHTML=lbRows(d.top, account.playerName); })
+  fetchDailyBoard(todayStr()).then(d=>{ box.innerHTML=lbRows(d.top, account.playerName); })
     .catch(()=>{ box.innerHTML='<p class="sub" style="color:var(--coral)">Board unreachable — check your connection and try again.</p>'; });
+  const completedScore=(account.dailyRunDate===todayStr()&&account.dailyBest&&account.dailyBest.date===todayStr())
+    ? Math.max(0,Math.trunc(Number(account.dailyBest.score)||0)) : 0;
+  if(completedScore>0){
+    const retry=document.createElement('button'); retry.className='btn alt';
+    retry.style.cssText='margin-top:14px;padding:11px 20px;font-size:13px';
+    retry.textContent='Post my '+completedScore.toLocaleString()+' score';
+    retry.onclick=()=>openDailySubmit(completedScore);
+    body.appendChild(retry);
+    const note=document.createElement('p'); note.className='sub'; note.style.marginTop='8px';
+    note.textContent='Use this to retry a failed post or update today’s board entry.';
+    body.appendChild(note);
+  }
 }
 function openDailySubmit(score){
   const body=openOverlay('🎯 Post to the Daily Board','Score: '+score.toLocaleString()+' — pick your board name (1–8 letters/numbers).');
@@ -7318,10 +7428,13 @@ function resumeCurrentState(){
   try{ if(typeof syncArcadeMusic==='function') syncArcadeMusic(); syncModifierAmbience(); }catch(e){}
 }
 document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden) bankCurrentState(); else resumeCurrentState();
+  if(document.hidden){ bankCurrentState(); flushTelemetry(true); } else resumeCurrentState();
 });
 if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App && Capacitor.Plugins.App.addListener){
-  Capacitor.Plugins.App.addListener('appStateChange',state=>{ if(state&&state.isActive) resumeCurrentState(); else bankCurrentState(); });
+  Capacitor.Plugins.App.addListener('appStateChange',state=>{
+    if(state&&state.isActive) resumeCurrentState();
+    else { bankCurrentState(); flushTelemetry(true); }
+  });
 }
 // First user gesture unlocks WebAudio (required on Android WebView / mobile Safari).
 document.addEventListener('pointerdown', function _wcAudio(){ try{ ensureAudio(); }catch(e){} }, {once:true, capture:true});
@@ -7344,6 +7457,7 @@ function finishWildcardStartup(){
   }
   initCloudAccount();
   window.WildcardStartupReady=true;
+  queueTelemetry('app_open');
 }
 hydrateNativeStorage().then(finishWildcardStartup,finishWildcardStartup);
 profileMobileAnimationBudget();

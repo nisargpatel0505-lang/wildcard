@@ -6,7 +6,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const HTML_PATH = path.join(ROOT, 'www', 'index.html');
 const RELEASE_DIR = path.join(ROOT, 'docs', 'release');
-const REPORT_VERSION = '6.9.9';
+const REPORT_VERSION = '6.9.10';
 const HORIZON_DAYS = 180;
 const TRIALS_PER_COHORT = 1000;
 const VAULT_AUDIT_TRIALS = 20000;
@@ -274,6 +274,7 @@ function round(value, digits = 1) {
 
 function loadRunDistributions() {
   const candidates = [
+    path.join(RELEASE_DIR, 'wildcard-v6.9.10-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.9-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.8-sim-results.json'),
     path.join(RELEASE_DIR, 'wildcard-v6.9.7-sim-results.json'),
@@ -281,7 +282,8 @@ function loadRunDistributions() {
   ];
   const file = candidates.find(candidate => fs.existsSync(candidate));
   invariant(file, 'No gameplay simulation report found for run-depth inputs');
-  const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const reportText = fs.readFileSync(file, 'utf8');
+  const report = JSON.parse(reportText);
 
   function expand(name, finalHeat) {
     const cohort = report.cohorts.find(item => item.name === name);
@@ -297,6 +299,7 @@ function loadRunDistributions() {
 
   return {
     file: path.relative(ROOT, file).replace(/\\/g, '/'),
+    sha256: sha256(reportText),
     version: report.version,
     allUnlocked: expand('standard_all_unlocked', 12),
     freePool: expand('standard_free_pool', 12)
@@ -313,7 +316,7 @@ function runAccountCoins(outcome, live) {
 function scenarioFromLive(live) {
   return {
     id: 'proposed',
-    label: 'v6.9.9 current',
+    label: 'v6.9.10 current',
     dailyLogin: clone(live.economy.dailyLogin),
     jokerVaultPrice: clone(live.economy.jokerVaultPrice),
     rewardedCoin: clone(live.economy.rewardedCoin),
@@ -556,8 +559,9 @@ Deterministic 180-day progression model generated from the live \`www/index.html
 ## Live inputs
 
 - Source SHA-256: \`${result.source.sha256}\`
+- Model script SHA-256: \`${result.script.sha256}\`
 - Source UI version label: ${result.source.detectedVersion}
-- Gameplay depth input: \`${result.gameplayInput.file}\` (${result.gameplayInput.allUnlockedRuns} all-unlocked runs; ${result.gameplayInput.freePoolRuns} starter-pool runs)
+- Gameplay depth input: \`${result.gameplayInput.file}\` · SHA-256 \`${result.gameplayInput.sha256}\` (${result.gameplayInput.allUnlockedRuns} all-unlocked runs; ${result.gameplayInput.freePoolRuns} starter-pool runs)
 - Economy trials: ${TRIALS_PER_COHORT.toLocaleString()} per cohort, route and scenario (${(TRIALS_PER_COHORT * COHORTS.length * 2 * 2).toLocaleString()} total player timelines)
 - Free / paid Jokers: ${result.catalog.freeJokers} / ${result.catalog.paidJokers}
 
@@ -565,7 +569,7 @@ The two gameplay cohorts use the same bot. They bound collection strength, not h
 
 ## Before and after
 
-| Measure | v6.9.7 baseline | v6.9.9 current |
+| Measure | v6.9.7 baseline | v6.9.10 current |
 | --- | ---: | ---: |
 | Direct paid-Joker catalogue | ${result.scenarios.baseline.directTotal.toLocaleString()} | ${result.scenarios.proposed.directTotal.toLocaleString()} |
 | Vault completion, mean | ${result.scenarios.baseline.vaultRoute.mean.toLocaleString()} | ${result.scenarios.proposed.vaultRoute.mean.toLocaleString()} |
@@ -642,6 +646,7 @@ function main() {
   const deterministicPayload = {
     reportVersion: REPORT_VERSION,
     sourceSha256: sha256(html),
+    gameplayInputSha256: distributions.sha256,
     catalog: { freeJokers: freeJokers.length, paidJokers: paidJokers.length },
     scenarios: scenarioAudit,
     cohorts
@@ -652,8 +657,10 @@ function main() {
     durationMs: Date.now() - started,
     modelHash: sha256(JSON.stringify(deterministicPayload)),
     source: { file: 'www/index.html', detectedVersion, sha256: sha256(html) },
+    script: { file: 'tools/economy-sim-v69.js', sha256: sha256(fs.readFileSync(__filename)) },
     gameplayInput: {
       file: distributions.file,
+      sha256: distributions.sha256,
       version: distributions.version,
       allUnlockedRuns: distributions.allUnlocked.sourceRuns,
       freePoolRuns: distributions.freePool.sourceRuns
