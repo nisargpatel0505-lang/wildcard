@@ -7,6 +7,10 @@ const rules = fs.readFileSync('firestore.rules', 'utf8');
 const cloudPlugin = fs.readFileSync('android/app/src/main/java/com/nisarg/wildcard/WildcardCloudPlugin.java', 'utf8');
 const mainActivity = fs.readFileSync('android/app/src/main/java/com/nisarg/wildcard/MainActivity.java', 'utf8');
 const serviceWorker = fs.readFileSync('www/sw.js', 'utf8');
+const privacyPolicy = fs.readFileSync('www/privacy.html', 'utf8');
+const piApi = fs.readFileSync('deploy/wildcard-api.py', 'utf8');
+const piDeploy = fs.readFileSync('deploy/update-pi.sh', 'utf8');
+const androidPublic = fs.readFileSync('android/app/src/main/assets/public/index.html', 'utf8');
 const standalonePath = 'playtest/WILDCARD-work-laptop-standalone.html';
 const standalone = fs.readFileSync(standalonePath, 'utf8');
 const backgroundDir = 'www/assets/art/backgrounds';
@@ -49,7 +53,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.9</b>'),'Public version label is not v6.9.9');
+assert(html.includes('>v6.9.10</b>'),'Public version label is not v6.9.10');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -63,10 +67,11 @@ for (const filename of backgrounds) {
   assert(!standalone.includes(`assets/art/backgrounds/${filename}`),`Standalone still has an external artwork path: ${filename}`);
 }
 const htmlSha256=crypto.createHash('sha256').update(Buffer.from(html)).digest('hex');
+assert(crypto.createHash('sha256').update(Buffer.from(androidPublic)).digest('hex')===htmlSha256,'Android bundled HTML is stale relative to canonical source');
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.9</b>'),'Standalone public version is not v6.9.9');
+assert(standalone.includes('>v6.9.10</b>'),'Standalone public version is not v6.9.10');
 assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
 assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
 for (const asset of externalizedAssets) {
@@ -95,7 +100,63 @@ assert(!html.includes('function triggerWinFX(')&&!html.includes('function previe
 assert(!html.includes("kind:'win'")&&!html.includes('Win effects')&&!html.includes('win-fx-pulse'),'Win FX remains in the catalogue or UI');
 assert(!playHandCode.includes('sparks('),'Gameplay scoring still creates particle FX');
 assert(!playHandCode.includes('offsetWidth'),'Gameplay scoring still forces synchronous layout');
-assert(html.includes("account.speed==='fast'?0.55:1"),'Optimized Normal/Fast scoring pace is missing');
+assert(html.includes("account.speed==='fast'?0.55:1.04"),'Optimized Normal/Fast scoring pace is missing');
+const apiResolverMatch=html.match(/function resolveDailyApiBase\(hostname,nativeShell\)\{[\s\S]*?\n\}/);
+assert(apiResolverMatch,'Daily Board resolver is missing');
+const apiCtx={}; vm.createContext(apiCtx);
+vm.runInContext("const DAILY_API_ORIGIN='https://raspberrypi.tail20f574.ts.net';"+apiResolverMatch[0]+';globalThis.resolve=resolveDailyApiBase;',apiCtx);
+const liveBoard='https://raspberrypi.tail20f574.ts.net';
+assert(apiCtx.resolve('localhost',true)===liveBoard,'Android localhost does not resolve to the live Daily Board');
+assert(apiCtx.resolve('localhost',false)===''&&apiCtx.resolve('',false)==='','Local browser/file previews must remain relative');
+assert(apiCtx.resolve('raspberrypi.tail20f574.ts.net',false)==='','Pi-hosted game must use its same-origin Daily Board');
+assert(apiCtx.resolve('example.com',false)===liveBoard,'External web hosts do not resolve to the live Daily Board');
+assert(html.includes("retry.textContent='Post my '+completedScore.toLocaleString()+' score'"),'Completed Daily scores cannot be retried from the board');
+assert(html.includes('fetchDailyBoard(todayStr())'),'Daily Board GET can disagree with the local challenge date around midnight');
+
+// Privacy-minimised Pi analytics: bounded memory only, background/idle transport,
+// and an aggregate-only backend with no public read route.
+const telemetryCode=block('// ---- Anonymous aggregate analytics','async function fetchDailyBoard');
+assert(telemetryCode.includes("new Set(['app_open','run_start','run_end'])"),'Analytics event allowlist changed');
+assert(telemetryCode.includes('requestIdleCallback')&&telemetryCode.includes('keepalive:true'),'Analytics is not scheduled through idle/background transport');
+assert(telemetryCode.includes('keepalive:true')&&telemetryCode.includes("credentials:'omit'")&&telemetryCode.includes("referrerPolicy:'no-referrer'"),'Analytics fallback request is not privacy/performance constrained');
+assert(!telemetryCode.includes('await ')&&!telemetryCode.includes('localStorage'),'Analytics can block or persist on the device');
+const telemetryCtx={
+  DAILY_API_NATIVE:true,location:{hostname:'localhost'},API_BASE:liveBoard,window:{},
+  navigator:{},Blob:class Blob{},Set,JSON,Math,Number,
+  requestIdleCallback(){return 1;},setTimeout(){return 1;},fetch(){return Promise.resolve({});},run:null
+};
+vm.createContext(telemetryCtx);
+vm.runInContext(telemetryCode+`;globalThis.__t={queue:queueTelemetry,items:telemetryQueue,band:telemetryHeatBand};`,telemetryCtx);
+telemetryCtx.__t.queue('app_open');
+telemetryCtx.__t.queue('run_start',{m:'normal'});
+telemetryCtx.__t.queue('run_end',{m:'daily',o:'lost',h:telemetryCtx.__t.band(6)});
+telemetryCtx.__t.queue('score',{score:999});
+const telemetryPayload=JSON.stringify(telemetryCtx.__t.items);
+assert(telemetryCtx.__t.items.length===3&&telemetryPayload.includes('"h":"4-6"'),'Analytics payload builder or Heat bucketing failed');
+for(const forbidden of ['uid','email','playerName','score','coins','cards','jokers','device','session','userAgent']){
+  assert(!telemetryPayload.toLowerCase().includes(forbidden.toLowerCase()),'Analytics payload contains forbidden field: '+forbidden);
+}
+const localTelemetryCtx={
+  DAILY_API_NATIVE:false,location:{hostname:'localhost'},API_BASE:'',window:{},navigator:{},
+  Blob:class Blob{},Set,JSON,Math,Number,requestIdleCallback(){},setTimeout(){},fetch(){},run:null
+};
+vm.createContext(localTelemetryCtx);
+vm.runInContext(telemetryCode+`;queueTelemetry('app_open');globalThis.__count=telemetryQueue.length;`,localTelemetryCtx);
+assert(localTelemetryCtx.__count===0,'Downloaded/local playtest unexpectedly sends analytics');
+assert(html.includes("queueTelemetry('run_start'")&&html.includes("queueTelemetry('run_end'"),'Run lifecycle analytics hooks are incomplete');
+assert(html.includes('queueRunEndTelemetry(run,false,true)')&&html.includes('activeRun._telemetryEnded=true')&&html.includes('flushTelemetry(true)'),'Deduplicated Gauntlet win or background flush analytics hook is missing');
+assert(html.includes("const RUN_FIELDS=['runId','telemetryMode'")&&html.includes('function queueReplacedRunTelemetry()'),'Saved/replaced run analytics mode is not preserved');
+assert(html.includes("const completed=saved.phase==='wincomplete'")&&html.includes("queueRunEndTelemetry(active,saved.telemetryMode==='daily',completed)"),'Replacing a banked Heat-12 run is misreported as terminated');
+assert(html.includes("if(!dailyMode) saveRunState('wincomplete')"),'Daily win state can resume without its seeded Daily context');
+assert(html.includes('<h3>Anonymous aggregate analytics</h3>')&&privacyPolicy.includes('<h2>Anonymous aggregate analytics</h2>'),'Analytics privacy disclosures are missing');
+assert(privacyPolicy.includes('Last updated: 17 July 2026'),'Hosted privacy policy date was not updated');
+assert(piApi.includes('ANALYTICS_KEEP_DAYS = 90')&&piApi.includes('MAX_ANALYTICS_REQUESTS_PER_MINUTE = 60')&&piApi.includes('MAX_ANALYTICS_EVENTS_PER_DAY = 20_000'),'Pi analytics retention/rate guard is missing');
+assert(piApi.includes('Analytics deliberately has no public read endpoint'),'Pi analytics accidentally gained a public read surface');
+assert(piDeploy.includes('privacy.html')&&piDeploy.includes('deploy/wildcard-api.py')&&piDeploy.includes('$HOME/deploy-game.sh'),'Pi deploy no longer preserves privacy/API/GoatCounter-aware deployment');
+assert(piDeploy.includes('python3 -c')&&piDeploy.includes('before-$stamp')&&piDeploy.includes('wait_for_api')&&piDeploy.includes('New WILDCARD API failed validation'),'Pi API deploy lacks syntax validation, backup, process-identity health check or rollback');
+assert(piDeploy.includes('exec "$repo_dir/deploy/update-pi.sh" --after-pull')&&piDeploy.includes('verify_package_source'),'Pi deploy can self-update mid-execution or publish stale Android assets');
+assert(html.includes('aria-label="Sly’s Stake Contract locked">🔒 Locked</div>'),'Locked Stake Contract leaks details');
+assert(html.includes('position:fixed;top:calc(7px + var(--sat));left:calc(7px + var(--sal))'),'Mobile Back button is not pinned to the top-left safe area');
 assert(html.includes('await beat(240);\n\n  const co = calloutFor'),'Optimized score-settle beat changed');
 const floatAt=playHandCode.indexOf("floatScore('+'+res.total)");
 const revealBeatAt=playHandCode.indexOf('await beat(300);',floatAt);
@@ -258,17 +319,44 @@ assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(wi
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.9-sim-results.json','utf8'));
-assert(sim.version==='6.9.9','Simulation report is not v6.9.9');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-sim-results.json','utf8'));
+assert(sim.version==='6.9.10','Simulation report is not v6.9.10');
+assert(sim.mode==='stress','Release simulation is not a full stress result');
+assert(sim.counts.scoringCases===50000&&sim.counts.cheatCases===15000&&sim.counts.fullRuns===2600,'Release simulation counts are incomplete or quick-mode');
+assert(sim.sourceSha256===htmlSha256,'Release simulation was not generated from the current canonical HTML');
+const simScript=fs.readFileSync('tools/deep-sim-v57.js');
+const simScriptSha256=crypto.createHash('sha256').update(simScript).digest('hex');
+assert(sim.script==='tools/deep-sim-v57.js'&&sim.scriptSha256===simScriptSha256,'Release simulation harness provenance is stale');
+assert(sim.seedSpec&&sim.seedSpec.base==='0x57C0FFEE'&&sim.seedSpec.deterministic===true,'Release simulation seed provenance is missing');
 assert(sim.dataFailures.length===0&&sim.hookErrors.length===0&&sim.invariantFailures.length===0,'Simulation failures detected');
 assert(sim.cheatAudit.mismatches===0,'The Cheat regression detected');
 assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected');
 
+const strategy=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-strategy-results.json','utf8'));
+assert(strategy.version==='6.9.10'&&strategy.mode==='strategy','Strategy comparison is not a v6.9.10 strategy result');
+assert(strategy.counts.strategies===7&&strategy.counts.runsPerStrategy===400&&strategy.counts.fullRuns===2800,'Strategy comparison is incomplete');
+assert(strategy.sourceSha256===htmlSha256,'Strategy comparison was not generated from the current canonical HTML');
+assert(strategy.script==='tools/deep-sim-v57.js'&&strategy.scriptSha256===simScriptSha256,'Strategy comparison harness provenance is stale');
+assert(strategy.seedSpec&&strategy.seedSpec.base==='0x69100000'&&strategy.seedSpec.pairedRunSeeds===true,'Strategy comparison seed provenance is missing');
+assert(Array.isArray(strategy.strategies)&&strategy.strategies.length===7,'Strategy comparison does not contain seven strategies');
+assert(strategy.strategies.every(s=>s.runs===400&&Array.isArray(s.outcomes)&&s.outcomes.length===400),'Strategy comparison raw outcomes are incomplete');
+assert(strategy.dataFailures.length===0&&strategy.hookErrors.length===0&&strategy.invariantFailures.length===0,'Strategy comparison failures detected');
+
+const economy=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-economy-results.json','utf8'));
+const economyScript=fs.readFileSync('tools/economy-sim-v69.js');
+const economyScriptSha256=crypto.createHash('sha256').update(economyScript).digest('hex');
+const stressResultSha256=crypto.createHash('sha256').update(fs.readFileSync('docs/release/wildcard-v6.9.10-sim-results.json')).digest('hex');
+assert(economy.reportVersion==='6.9.10'&&economy.passed===true,'Economy model is not a passing v6.9.10 result');
+assert(economy.source&&economy.source.sha256===htmlSha256,'Economy model was not generated from the current canonical HTML');
+assert(economy.script&&economy.script.file==='tools/economy-sim-v69.js'&&economy.script.sha256===economyScriptSha256,'Economy model script provenance is stale');
+assert(economy.gameplayInput&&economy.gameplayInput.file==='docs/release/wildcard-v6.9.10-sim-results.json'&&economy.gameplayInput.sha256===stressResultSha256,'Economy model gameplay-input provenance is stale');
+assert(economy.gates.every(g=>g.pass),'Economy model contains a failed release gate');
+
 console.log(JSON.stringify({
-  version:'6.9.9',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.10',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},
   royalVault:{layeredChest:true,doubleTapGuard:true,unlockSavedBeforeAnimation:true,reducedMotion:true},
-  simulation:sim.counts,failures:0
+  simulation:sim.counts,strategyComparison:strategy.counts,economy:{gates:economy.gates.length,modelHash:economy.modelHash},failures:0
 },null,2));

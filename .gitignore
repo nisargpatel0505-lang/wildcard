@@ -11,6 +11,8 @@ build-log*.txt
 .idea/
 .vscode/
 *.log
+__pycache__/
+*.py[cod]
 .DS_Store
 artifacts/
 firestore-audit-working-*.md

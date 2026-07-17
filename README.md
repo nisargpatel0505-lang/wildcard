@@ -4,16 +4,18 @@ WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Cap
 
 ## Current release
 
-- Game version: **6.9.9**
+- Game version: **6.9.10**
 - Android package: `com.nisarg.wildcard`
-- Android version code: **26** (local developer build: **27**)
+- Android version code: **29** (local developer build: **28**)
 - Firebase project: `wildcard-31d50`
-- Source HTML SHA-256: `64bbcfe2e2141260bf8ed948af12ad5db7f1e3cfe3d5b8e62555ee3244b642c3`
-- Release APK SHA-256: `7ef00910252f6ba547651ec851c32a43b2be051da3a6fbd940d264f4b97b55a2`
-- Release AAB SHA-256: `8f5445ec05ab561ca93471e0586eb7ceccb4d3909f15738d87a97ca5a7771246`
-- Google Play internal track: v6.9.9 AAB built and signed locally; upload not performed from this branch
+- Source HTML SHA-256: `116d1878b733667b2fdb87c28e9ed38b5f8010288894e11bbebe9cf9a4c81521`
+- Release APK SHA-256: `e02eb3b5e6e360c8571e121a8376353221a4f15039a46c21656cbf77b6e40782`
+- Release AAB SHA-256: `2917dc42f60b9cdd947300f6a204151aad0dbabefb95c7be208b2d83f9d986e8`
+- Google Play internal track: v6.9.10 AAB built and signed locally; upload not performed from this branch
 
-The v6.9.9 release repairs the scoring-feel regression: Normal/Fast pacing is restored to 1.0/0.55, terminal waits are no longer slowed twice, and redundant full renders, animated Heat-score rewrites, repeated mission saves, mobile blur layers and WebAudio graph buildup are removed from the scoring path. Win FX is fully retired from production code and the cosmetic catalogue. Joker triggers now use short, transform-only, in-card labels, while Sly retains hand-specific reactions and focused table dialogue.
+The v6.9.10 release keeps the optimized scoring path and sets Normal/Fast pacing to 1.04/0.55, giving Normal a small amount of extra breathing room without restoring the old lag. Locked Stake Contracts reveal only `Locked`; unlocked contracts use three numbered steps. Secondary-screen Back buttons are pinned to the phone safe area, and Capacitor Android now routes the Daily Board to the live Pi API instead of its local WebView origin. The v6.9.9 home-screen design is otherwise unchanged.
+
+The v6.9.10 build also includes privacy-minimised Pi analytics for internal testing: app opens, run starts and run outcomes are queued only in memory and sent as a tiny non-blocking idle/background batch. The Pi keeps daily aggregate counters only; no player identity, exact score, cards, save data or persistent analytics identifier is sent. See [docs/ANALYTICS.md](docs/ANALYTICS.md).
 
 The phone-first home screen now uses a brighter palace, a clear gold primary action, compact two-column Royal Vault controls and consistent icon tiles. All themes use lighter grading without changing table opacity. Eleven Base64 assets were externalized: canonical `www/index.html` fell from 4.23 MB to 0.48 MB while the generated work-laptop HTML remains genuinely standalone.
 
@@ -39,7 +41,7 @@ The APK is written to `android/app/build/outputs/apk/release/app-release.apk`.
 
 ## Verification
 
-The release evidence is under `docs/release/`. The v6.9.9 light release gate completed 10,000 randomized scoring/Joker cases, 5,000 six-card Cheat comparisons and 550 complete runs with zero data, hook or run-invariant failures. Native rewarded callbacks, canonical source, standalone provenance and Google/Firebase configuration are checked independently. The earlier v6.9.8 full economy/depth audit remains available, and the work-machine handoff requests a new 50,000/15,000/2,600 stress pass. Firestore Rules previously passed 19 hostile allow/deny checks.
+The release evidence is under `docs/release/`. The v6.9.10 release gate completed 50,000 randomized scoring/Joker cases, 15,000 six-card Cheat comparisons and 2,600 complete runs with zero data, hook, run-invariant or Cheat failures. A separate source-bound strategy lab retains raw outcomes for 7 policies × 400 paired seeds, and an explicit low/base/high revenue model keeps planning assumptions separate from telemetry. Native rewarded callbacks, canonical source, standalone provenance, Android Daily Board routing and Google/Firebase configuration are checked independently. Firestore Rules previously passed 19 hostile allow/deny checks.
 
 ## Firebase
 
@@ -47,4 +49,4 @@ The Android package and release SHA-1/SHA-256 certificates are registered with F
 
 ## Raspberry Pi deployment
 
-The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/` and its external artwork/audio/fonts through the existing GoatCounter-aware deployer, and publishes the current APK as `WILDCARD-v6.9.9.apk`, `WILDCARD-v6.9.9-release.apk` and `WILDCARD-latest.apk`.
+The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.10.apk`, `WILDCARD-v6.9.10-release.apk` and `WILDCARD-latest.apk`.

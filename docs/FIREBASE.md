@@ -33,4 +33,4 @@ Firebase AI Logic is deliberately not enabled yet. Before adding any Gemini-powe
 5. Configure quotas, spend alerts, monitoring, and Remote Config for model selection.
 6. Review prompts, safety behavior, privacy disclosure, and failure fallbacks.
 
-Firebase AI Logic, SQL/Data Connect, Analytics, Crashlytics and Hosting remain disabled. The project is on Blaze because Firestore was provisioned; use budget alerts and console monitoring before broad distribution.
+Firebase AI Logic, SQL/Data Connect, Firebase Analytics, Crashlytics and Hosting remain disabled. WILDCARD's separate privacy-minimised Pi counters are documented in `docs/ANALYTICS.md`; they do not use a Firebase SDK. The project is on Blaze because Firestore was provisioned; use budget alerts and console monitoring before broad distribution.

@@ -1,11 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
 const htmlPath = path.join(root, 'www', 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 const detectedVersion = (html.match(/>v(\d+\.\d+(?:\.\d+)?)<\/b>/) || [])[1] || 'unknown';
+const strategyMode = process.argv.includes('--strategy');
+const runsArg = process.argv.find(arg => /^--runs=\d+$/.test(arg));
+const strategyRuns = runsArg ? Number(runsArg.split('=')[1]) : 400;
+if (strategyMode && (!Number.isInteger(strategyRuns) || strategyRuns < 50 || strategyRuns > 5000)) {
+  throw new Error('Strategy runs must be an integer from 50 to 5000');
+}
+const sourceSha256 = crypto.createHash('sha256').update(Buffer.from(html)).digest('hex');
+const scriptSha256 = crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex');
 const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 if (!scripts.length) throw new Error('No inline game script found');
 
@@ -63,9 +72,10 @@ function mulberry(seed) {
   };
 }
 
-const hostRandom = mulberry(0x57C0FFEE);
+let hostRandom = mulberry(0x57C0FFEE);
 const mathStub = Object.create(Math);
-mathStub.random = hostRandom;
+mathStub.random = () => hostRandom();
+const resetSimRandom = seed => { hostRandom = mulberry(seed >>> 0); };
 const context = {
   console, Math: mathStub, JSON, Date, Set, Map, WeakMap, Promise, Object, Array, Number, String,
   Boolean, RegExp, Error, TypeError, parseInt, parseFloat, isNaN, Infinity, NaN,
@@ -77,6 +87,9 @@ const context = {
   requestAnimationFrame: fn => { fn(0); return 0; }, cancelAnimationFrame() {},
   performance: { now: () => Date.now() }, structuredClone: global.structuredClone,
   SIM_QUICK: process.env.SIM_QUICK === '1', SIM_VERSION: detectedVersion,
+  SIM_MODE: strategyMode ? 'strategy' : 'stress', SIM_STRATEGY_RUNS: strategyRuns,
+  SIM_SOURCE_SHA256: sourceSha256, SIM_SCRIPT_SHA256: scriptSha256,
+  SIM_RESET_RANDOM: resetSimRandom,
   btoa: value => Buffer.from(value, 'binary').toString('base64'),
   atob: value => Buffer.from(value, 'base64').toString('binary')
 };
@@ -89,12 +102,32 @@ const simulator = String.raw`
 ;globalThis.__SIM_RESULT__ = (function () {
   const startedAt = Date.now();
   const quick = !!globalThis.SIM_QUICK;
+  const strategyMode = globalThis.SIM_MODE === 'strategy';
+  const strategyRuns = Number(globalThis.SIM_STRATEGY_RUNS) || 400;
   const failures = [];
   const hookErrors = [];
   const invariantFailures = [];
   const handTypes = Object.keys(HAND_BASE);
   const utilityIds = new Set(['royalscam','lucky7','shortcut','pocketflush','cheat']);
   const raritySet = new Set(['common','uncommon','rare','wild']);
+  const strategySeedBase = 0x69100000;
+  const STRATEGIES = [
+    {id:'adaptive_greedy',name:'Adaptive greedy',description:'Ranks every offer by broad immediate and scaling value without forcing an archetype.'},
+    {id:'cheat_synergy',name:'Cheat + hand synergy',description:'Prioritises The Cheat, hand-specific multipliers, hand Boost scaling and flexible hand enablers.',prefer:['cheat','polish','flushfund','wire','boostfiend','master_class','shortcut','pocketflush','practice_mode']},
+    {id:'pair_rank',name:'Pair and rank boosting',description:'Prioritises rank modifiers and Pair-or-better support.',prefer:['polish','trainer','copper','presser','retainer','even','acemag','lowball','inktrade','triple3','number_station','frequency_meter']},
+    {id:'utility_niche',name:'Utility and niche',description:'Prioritises unusual deck, hand-size and conditional utility effects.',prefer:['royalscam','lucky7','sniper','shortcut','pocketflush','cheat','tailor','collector','printer','cleaner','guillotine']},
+    {id:'flush_engine',name:'Flush engine',description:'Prioritises suit, colour and Flush enablers and payoffs.',prefer:['flushfund','uniform','pocketflush','color_wash','prism_lens','presser','inktrade','tailor']},
+    {id:'economy_hoarding',name:'Economy hoarding',description:'Prioritises coin engines and keeps a 25-coin reserve instead of spending for tempo.',prefer:['dividend','piggy','miser','dumpster'],reserve:25},
+    {id:'xmult_stacking',name:'xMult stacking',description:'Prioritises Jokers with multiplicative scoring hooks, even when the flat base is weak.',prefer:['roller','lastcall','couple','sniper','boostfiend','modded','survivor','doubledown','allin','frequency_meter','panic_button','storm_harness','guillotine','redline','master_class','danger_music','rehearsal_tape','prism_lens','glass_joystick'],preferXMult:true}
+  ];
+
+  function mixSeed(seed, stage, stream) {
+    let x=(seed ^ Math.imul((stage+1)>>>0,0x9E3779B1) ^ Math.imul((stream+1)>>>0,0x85EBCA77))>>>0;
+    x=Math.imul(x^(x>>>16),0x7FEB352D)>>>0;
+    x=Math.imul(x^(x>>>15),0x846CA68B)>>>0;
+    return (x^(x>>>16))>>>0;
+  }
+  function resetPhase(seed, stage, stream) { globalThis.SIM_RESET_RANDOM(mixSeed(seed,stage,stream)); }
 
   function record(list, item, cap) { if (list.length < (cap || 100)) list.push(item); }
   function sample(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -131,12 +164,17 @@ const simulator = String.raw`
     const counts = {}; for (const c of cards) counts[c.suit] = (counts[c.suit] || 0) + 1;
     return Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0];
   }
-  function discardForDraw() {
+  function discardForDraw(strategy) {
     const ranks = {}, suit = dominantSuit(run.hand);
     for (const c of run.hand) ranks[c.rank] = (ranks[c.rank] || 0) + 1;
+    const pairPlan=strategy&&strategy.id==='pair_rank';
+    const flushPlan=strategy&&strategy.id==='flush_engine';
+    const duplicateWeight=pairPlan?30:(flushPlan?7:18);
+    const suitWeight=flushPlan?25:(pairPlan?2:7);
+    const sequenceWeight=(pairPlan||flushPlan)?1.5:3;
     const valued = run.hand.map(c => {
       let near = 0; for (const o of run.hand) if (o !== c && Math.abs(o.value - c.value) <= 2) near++;
-      return { c, v: (ranks[c.rank] - 1) * 18 + (c.suit === suit ? 7 : 0) + near * 3 + c.value * 0.35 + (c.enh ? 8 : 0) };
+      return { c, v: (ranks[c.rank] - 1) * duplicateWeight + (c.suit === suit ? suitWeight : 0) + near * sequenceWeight + c.value * 0.35 + (c.enh ? 8 : 0) };
     }).sort((a,b) => b.v - a.v);
     const keepN = Math.min(4, Math.max(2, run.hand.length - 5));
     const keep = new Set(valued.slice(0, keepN).map(x => x.c));
@@ -197,23 +235,48 @@ const simulator = String.raw`
     if (j.rarity === 'wild') value += 12;
     return value;
   }
-  function buyAtShop(metrics) {
+  function strategyValue(j, strategy) {
+    const base=jokerValue(j);
+    if(!strategy||strategy.id==='adaptive_greedy') return base;
+    let bonus=0;
+    if(strategy.prefer&&strategy.prefer.includes(j.id)) bonus+=240;
+    if(strategy.id==='cheat_synergy'){
+      if(j.id==='cheat') bonus+=180;
+      if(j.onScored) bonus+=24;
+    } else if(strategy.id==='pair_rank'){
+      if(j.rankMod) bonus+=110;
+      if(['trainer','polish','fulltable'].includes(j.id)) bonus+=80;
+    } else if(strategy.id==='utility_niche'){
+      if(utilityIds.has(j.id)) bonus+=100;
+      if(j.onHeatClear) bonus+=35;
+    } else if(strategy.id==='flush_engine'){
+      if(['flushfund','pocketflush','prism_lens'].includes(j.id)) bonus+=130;
+    } else if(strategy.id==='economy_hoarding'){
+      if(j.onHeatClear) bonus+=45;
+    } else if(strategy.id==='xmult_stacking'&&j.xMult){
+      bonus+=175;
+    }
+    return base+bonus;
+  }
+  function buyAtShop(metrics, strategy) {
     run.boughtThisShop=false; run.shopBuysUsed=0; run.suppliesBought=0; run.pendingShopJoker=null;
+    if(run.__simSeed!==undefined) resetPhase(run.__simSeed,run.stage,20);
     rollJokerOffers(true); rollSupplyOffers();
     let limit = shopBuyLimit();
     for (let purchase = 0; purchase < limit; purchase++) {
-      const ranked = shopOffers.filter(j => !run.jokers.some(x => x.id === j.id)).map(j => ({j, value:jokerValue(j)})).sort((a,b) => b.value - a.value);
+      const ranked = shopOffers.filter(j => !run.jokers.some(x => x.id === j.id)).map(j => ({j, value:strategyValue(j,strategy)})).sort((a,b) => b.value - a.value);
       if (!ranked.length) break;
       const cand = ranked[0], price = shopPrice(cand.j.price);
       let replace = -1, refund = 0;
       if (run.jokers.length >= MAX_JOKERS) {
-        const current = run.jokers.map((j,i) => ({i,j,value:jokerValue(j)})).sort((a,b) => a.value - b.value)[0];
+        const current = run.jokers.map((j,i) => ({i,j,value:strategyValue(j,strategy)})).sort((a,b) => a.value - b.value)[0];
         refund = Math.max(1, Math.floor(current.j.price/2));
         if (cand.value <= current.value * 1.08) break;
         replace = current.i;
       }
-      if (run.runCoins + refund < price) {
-        if (purchase === 0 && run.runCoins >= REROLL_COST) {
+      const reserve=strategy&&strategy.reserve?strategy.reserve:0;
+      if (run.runCoins + refund - price < reserve) {
+        if (!reserve && purchase === 0 && run.runCoins >= REROLL_COST) {
           run.runCoins -= REROLL_COST; metrics.rerolls++; rollJokerOffers(false); purchase--; continue;
         }
         break;
@@ -224,9 +287,10 @@ const simulator = String.raw`
       shopOffers = shopOffers.filter(j => j.id !== cand.j.id);
       metrics.jokerBuys[cand.j.id] = (metrics.jokerBuys[cand.j.id] || 0) + 1;
     }
-    buySupplies(metrics);
+    buySupplies(metrics,strategy);
   }
-  function buySupplies(metrics) {
+  function buySupplies(metrics,strategy) {
+    if(strategy&&strategy.reserve&&run.runCoins<=strategy.reserve+8) return;
     let bought = 0;
     for (const s of supplyOffers) {
       if (bought >= 2) break;
@@ -279,17 +343,21 @@ const simulator = String.raw`
   }
   function setupHeat(stage) {
     run.stage=stage; run.stageScore=0; run.handsLeft=HANDS_PER_STAGE; run.handsPlayedThisStage=0; run.prevHandType=null;
-    assignModifier(); run.discardsLeft=effDiscards(); run.deck=buildDeck(); run.heatDeck=run.deck.slice(); dealFreshHand();
+    if(run.__simSeed!==undefined) resetPhase(run.__simSeed,stage,1);
+    assignModifier(); run.discardsLeft=effDiscards();
+    if(run.__simSeed!==undefined) resetPhase(run.__simSeed,stage,2);
+    run.deck=buildDeck(); run.heatDeck=run.deck.slice(); dealFreshHand();
   }
   function simulateOne(config, metrics) {
     pendingGauntlet=!!config.gauntlet;
     run=newRunState(); pendingGauntlet=false;
     run.gauntlet=!!config.gauntlet; run.cards=baseCardSet(); run.jokers=[]; run.jokerState={};
+    run.__simSeed=config.seed;
     account.unlocked=new Set(config.unlocked);
     setupHeat(1);
     if(config.starter){
       const candidates=JOKERS.filter(j=>account.unlocked.has(j.id));
-      if(candidates.length) run.jokers.push(candidates.map(j=>({j,v:jokerValue(j)})).sort((a,b)=>b.v-a.v)[0].j);
+      if(candidates.length) run.jokers.push(candidates.map(j=>({j,v:strategyValue(j,config.strategy)})).sort((a,b)=>b.v-a.v)[0].j);
     }
     const finalHeat=config.gauntlet?GAUNTLET_HEATS:12;
     let won=false, failAt=0;
@@ -300,18 +368,21 @@ const simulator = String.raw`
         const best=bestChoice(); if(!best) break;
         const need=(stageTarget()-run.stageScore)/Math.max(1,run.handsLeft);
         const weak=(best.res.handType==='High Card'||best.res.handType==='Pair') && best.res.total<need;
-        if(run.discardsLeft>0 && run.deck.length>0 && (best.res.total<need*.78 || weak)) { if(discardForDraw()){ assertRun('discard heat '+stage); continue; } }
+        if(run.discardsLeft>0 && run.deck.length>0 && (best.res.total<need*.78 || weak)) { if(discardForDraw(config.strategy)){ assertRun('discard heat '+stage); continue; } }
         playChoice(best,metrics); assertRun('play heat '+stage);
       }
       if(run.stageScore<stageTarget()){ failAt=stage; break; }
       clearHeat(metrics);
       if(stage===finalHeat){won=true;break;}
-      buyAtShop(metrics); assertRun('shop heat '+stage);
+      buyAtShop(metrics,config.strategy); assertRun('shop heat '+stage);
       run.inflation=false;
     }
     metrics.runs++; if(won) metrics.wins++; else metrics.failAt[failAt]=(metrics.failAt[failAt]||0)+1;
     metrics.cleared.push(run.stagesCleared); metrics.scores.push(run.totalScore); metrics.bestPlays.push(run.bestPlay);
     for(const j of run.jokers) metrics.finalJokers[j.id]=(metrics.finalJokers[j.id]||0)+1;
+    const outcome={seed:config.seed,won,failAt,cleared:run.stagesCleared,totalScore:run.totalScore,bestPlay:run.bestPlay,finalJokers:run.jokers.map(j=>j.id)};
+    if(metrics.outcomes) metrics.outcomes.push(outcome);
+    return outcome;
   }
   function blankMetrics(name){ return {name,runs:0,wins:0,cleared:[],scores:[],bestPlays:[],failAt:{},handTypes:{},jokerBuys:{},finalJokers:{},supplies:{},rerolls:0}; }
   function summarize(m){
@@ -319,6 +390,61 @@ const simulator = String.raw`
     const pct=p=>sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))]||0;
     const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([id,n])=>({id,n}));
     return {name:m.name,runs:m.runs,wins:m.wins,winRate:+(100*m.wins/Math.max(1,m.runs)).toFixed(2),avgCleared:+avg(m.cleared).toFixed(2),median:pct(.5),p90:pct(.9),avgScore:+avg(m.scores).toFixed(1),avgBestPlay:+avg(m.bestPlays).toFixed(1),failAt:m.failAt,handTypes:m.handTypes,topBuys:top(m.jokerBuys),topFinal:top(m.finalJokers),supplies:m.supplies,rerolls:m.rerolls};
+  }
+
+  function wilson(successes,total){
+    if(!total) return {low:0,high:0};
+    const z=1.959963984540054,p=successes/total,z2=z*z,den=1+z2/total;
+    const center=(p+z2/(2*total))/den;
+    const margin=z*Math.sqrt((p*(1-p)+z2/(4*total))/total)/den;
+    return {low:+(100*Math.max(0,center-margin)).toFixed(2),high:+(100*Math.min(1,center+margin)).toFixed(2)};
+  }
+
+  if(strategyMode){
+    const allIds=JOKERS.map(j=>j.id), summaries=[];
+    for(const strategy of STRATEGIES){
+      const metrics=blankMetrics(strategy.id); metrics.outcomes=[];
+      for(let i=0;i<strategyRuns;i++){
+        const seed=(strategySeedBase+i)>>>0;
+        globalThis.SIM_RESET_RANDOM(seed);
+        simulateOne({unlocked:allIds,starter:true,gauntlet:false,strategy,seed},metrics);
+      }
+      const base=summarize(metrics);
+      const reached9=metrics.outcomes.filter(x=>x.cleared>=8).length;
+      const reached11=metrics.outcomes.filter(x=>x.cleared>=10).length;
+      const cleared12=metrics.outcomes.filter(x=>x.won).length;
+      const reachByHeat={};
+      for(let heat=1;heat<=12;heat++) reachByHeat[heat]=+(100*metrics.outcomes.filter(x=>x.cleared>=heat-1).length/strategyRuns).toFixed(2);
+      summaries.push({
+        id:strategy.id,name:strategy.name,description:strategy.description,
+        preferenceIds:(strategy.prefer||[]).slice(),reserve:strategy.reserve||0,
+        runs:strategyRuns,wins:cleared12,winRate:+(100*cleared12/strategyRuns).toFixed(2),
+        winRate95:wilson(cleared12,strategyRuns),
+        reachH9:+(100*reached9/strategyRuns).toFixed(2),reachH9_95:wilson(reached9,strategyRuns),
+        reachH11:+(100*reached11/strategyRuns).toFixed(2),reachH11_95:wilson(reached11,strategyRuns),
+        avgCleared:base.avgCleared,median:base.median,p90:base.p90,avgScore:base.avgScore,avgBestPlay:base.avgBestPlay,
+        failAt:base.failAt,handTypes:base.handTypes,topBuys:base.topBuys,topFinal:base.topFinal,
+        outcomes:metrics.outcomes
+      });
+      console.log('Strategy complete:',strategy.id,cleared12+'/'+strategyRuns,'wins');
+    }
+    const best=summaries.slice().sort((a,b)=>b.winRate-a.winRate)[0];
+    const pairedAgainstBest=summaries.map(strategy=>{
+      let bestOnly=0,strategyOnly=0,bothWin=0,bothLose=0;
+      for(let i=0;i<strategyRuns;i++){
+        const bw=!!best.outcomes[i].won,sw=!!strategy.outcomes[i].won;
+        if(bw&&sw) bothWin++; else if(bw) bestOnly++; else if(sw) strategyOnly++; else bothLose++;
+      }
+      return {id:strategy.id,bestId:best.id,deltaWinRatePp:+(strategy.winRate-best.winRate).toFixed(2),bestOnly,strategyOnly,bothWin,bothLose};
+    });
+    return {
+      mode:'strategy',source:'www/index.html',version:globalThis.SIM_VERSION,
+      sourceSha256:globalThis.SIM_SOURCE_SHA256,script:'tools/deep-sim-v57.js',scriptSha256:globalThis.SIM_SCRIPT_SHA256,
+      generatedAt:new Date().toISOString(),durationMs:Date.now()-startedAt,
+      seedSpec:{base:'0x69100000',runsPerStrategy:strategyRuns,pairedRunSeeds:true,phaseStreams:['modifier','deck-and-draw','shop'],note:'Each strategy reuses the same per-run seed. Heat setup and shop phases reset deterministic substreams; paths can still diverge after different decisions.'},
+      counts:{jokers:JOKERS.length,strategies:STRATEGIES.length,runsPerStrategy:strategyRuns,fullRuns:STRATEGIES.length*strategyRuns},
+      dataFailures:failures,hookErrors,invariantFailures,strategies:summaries,pairedAgainstBest
+    };
   }
 
   // Static data and hook validation.
@@ -395,7 +521,10 @@ const simulator = String.raw`
   console.log('Gauntlet cohort complete:', gauntlet.runs);
 
   return {
-    source:'www/index.html',version:globalThis.SIM_VERSION,generatedAt:new Date().toISOString(),durationMs:Date.now()-startedAt,
+    mode:'stress',source:'www/index.html',version:globalThis.SIM_VERSION,
+    sourceSha256:globalThis.SIM_SOURCE_SHA256,script:'tools/deep-sim-v57.js',scriptSha256:globalThis.SIM_SCRIPT_SHA256,
+    seedSpec:{base:'0x57C0FFEE',generator:'mulberry32',deterministic:true},
+    generatedAt:new Date().toISOString(),durationMs:Date.now()-startedAt,
     counts:{jokers:JOKERS.length,freeJokers:freeIds.length,scoringCases,cheatCases,fullRuns:standardRuns+starterRuns+gauntletRuns},
     dataFailures:failures,hookErrors,invariantFailures,
     jokerHooks:hookStats,
@@ -414,6 +543,56 @@ const result = context.__SIM_RESULT__;
 if (!result) throw new Error('Simulator returned no result');
 
 const downloads = path.join(process.env.USERPROFILE || path.dirname(root), 'Downloads');
+if (result.mode === 'strategy') {
+  const jsonName=`wildcard-v${detectedVersion}-strategy-results.json`;
+  const reportName=`wildcard-v${detectedVersion}-strategy-report.md`;
+  const jsonPath=path.join(downloads,jsonName), reportPath=path.join(downloads,reportName);
+  const rows=result.strategies.map(s=>`| ${s.name} | ${s.runs} | ${s.winRate}% | ${s.winRate95.low}%–${s.winRate95.high}% | ${s.reachH9}% | ${s.reachH11}% | ${s.avgCleared} |`).join('\n');
+  const best=result.strategies.slice().sort((a,b)=>b.winRate-a.winRate)[0];
+  const report=`# WILDCARD v${detectedVersion} Strategy Lab
+
+Generated from the canonical game source with paired deterministic run seeds.
+
+## Provenance
+
+- Source: \`www/index.html\`
+- Source SHA-256: \`${result.sourceSha256}\`
+- Simulator: \`${result.script}\`
+- Simulator SHA-256: \`${result.scriptSha256}\`
+- Runs: ${result.counts.strategies} strategies × ${result.counts.runsPerStrategy} paired seeds = ${result.counts.fullRuns.toLocaleString()} complete runs
+- Seed base: ${result.seedSpec.base}; phase streams: ${result.seedSpec.phaseStreams.join(', ')}
+
+## Results
+
+| Strategy | Runs | Clear Heat 12 | Wilson 95% CI | Reach Heat 9 | Reach Heat 11 | Avg Heats Cleared |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+${rows}
+
+The observed leader is **${best.name}** at **${best.winRate}%**, but rankings should not be treated as conclusive when confidence intervals overlap. These are deterministic bot policies, not player telemetry.
+
+## Strategy Definitions
+
+${result.strategies.map(s=>`- **${s.name}:** ${s.description}${s.reserve?` It keeps a ${s.reserve}-coin reserve.`:''}`).join('\n')}
+
+## Validation
+
+- Data/scoring failures: ${result.dataFailures.length}
+- Hook errors: ${result.hookErrors.length}
+- Run invariant failures: ${result.invariantFailures.length}
+- Raw seed-level outcomes are retained in the JSON for paired comparisons and independent review.
+
+## Method Caveat
+
+Each strategy receives the same run seed, with deterministic substreams reset for modifier, deck/draw and shop phases. Different decisions can still consume different amounts of randomness after a phase begins, so this is a paired, reproducible comparison rather than a claim that every downstream draw is identical.
+`;
+  fs.writeFileSync(jsonPath,JSON.stringify(result,null,2));
+  fs.writeFileSync(reportPath,report);
+  const releaseDir=path.join(root,'docs','release');
+  fs.writeFileSync(path.join(releaseDir,jsonName),JSON.stringify(result,null,2));
+  fs.writeFileSync(path.join(releaseDir,reportName),report);
+  console.log(JSON.stringify({jsonPath,reportPath,durationMs:result.durationMs,counts:result.counts,best:{id:best.id,winRate:best.winRate,ci:best.winRate95},failures:{data:result.dataFailures.length,hooks:result.hookErrors.length,invariants:result.invariantFailures.length}},null,2));
+  process.exit(0);
+}
 const jsonPath = path.join(downloads, `wildcard-v${detectedVersion}-sim-results.json`);
 const reportPath = path.join(downloads, `wildcard-v${detectedVersion}-sim-report.md`);
 fs.writeFileSync(jsonPath, JSON.stringify(result, null, 2));
@@ -425,6 +604,10 @@ const alwaysHooks = result.jokerHooks.filter(x => x.tested >= 10 && x.activation
 const report = `# WILDCARD v${detectedVersion} Simulation Audit
 
 Generated from the live \`www/index.html\` game script.
+
+- Source SHA-256: \`${result.sourceSha256}\`
+- Simulator SHA-256: \`${result.scriptSha256}\`
+- Deterministic seed: \`${result.seedSpec.base}\` (${result.seedSpec.generator})
 
 ## Scope
 
