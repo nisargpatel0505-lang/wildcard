@@ -9,7 +9,7 @@ const assetPath = path.join(androidDir, 'app', 'src', 'main', 'assets', 'public'
 const developerRoot = path.join(androidDir, 'app', 'src', 'developer');
 const developerAssetPath = path.join(developerRoot, 'assets', 'public', 'index.html');
 const builtApk = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'developer', 'app-developer.apk');
-const releaseApk = path.join(root, 'releases', 'WILDCARD-v6.9.11-developer.apk');
+const releaseApk = path.join(root, 'releases', 'WILDCARD-v6.9.12-developer.apk');
 
 function runWindows(command, cwd) {
   const shell = process.env.ComSpec || 'cmd.exe';

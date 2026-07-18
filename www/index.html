@@ -1846,21 +1846,45 @@ body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabi
 .cab-stat{min-width:0;overflow-wrap:anywhere}
 .cab-stat b{font-size:clamp(16px,5.3vw,24px);overflow-wrap:anywhere}
 
+#joker-row .joker{isolation:isolate}
 #joker-row .joker.proc{
-  outline:3px solid var(--cream)!important;outline-offset:-2px;
-  animation:jokerProcReadable .9s ease-out!important;
+  transform:none!important;outline:0!important;border-color:var(--jr)!important;
+  animation:none!important;box-shadow:inset 0 0 8px rgba(0,0,0,.28)!important;
 }
-#joker-row .proc-chip{pointer-events:none}
-#joker-row .proc-chip.show{animation:procChipReadable 1s ease-out forwards!important}
-@keyframes jokerProcReadable{
-  0%{transform:translateY(0) scale(1);border-color:var(--jr)}
-  28%{transform:translateY(-5px) scale(1.035);border-color:#fff}
-  100%{transform:translateY(0) scale(1);border-color:var(--jr)}
+#joker-row .joker.proc::after{
+  content:'';position:absolute;inset:0;z-index:6;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--jr) 22%,transparent),transparent 68%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--jr) 72%,transparent);
+  opacity:0;animation:jokerSoftTrigger .46s ease-out;
 }
-@keyframes procChipReadable{
-  0%{opacity:0;transform:translateY(5px)}
-  18%,78%{opacity:1;transform:translateY(0)}
-  100%{opacity:0;transform:translateY(-3px)}
+#joker-row .joker.proc .jname{color:var(--jr)!important}
+#joker-row .proc-chip{
+  pointer-events:none;border:0!important;background:rgba(3,5,14,.88)!important;
+  box-shadow:none!important;
+}
+#joker-row .proc-chip.show{animation:jokerSoftText .65s ease-out forwards!important}
+@keyframes jokerSoftTrigger{
+  0%{opacity:0}
+  24%,62%{opacity:.78}
+  100%{opacity:0}
+}
+@keyframes jokerSoftText{
+  0%,100%{opacity:0}
+  16%,78%{opacity:1}
+}
+#sly-tear-cinematic{
+  position:fixed;inset:0;z-index:4800;display:none;overflow:hidden;
+  width:100%;height:100%;height:100dvh;background:#02030b;
+  pointer-events:auto;touch-action:none;overscroll-behavior:none;
+}
+#sly-tear-cinematic.show{display:block}
+#sly-tear-cinematic video{
+  display:block;width:100%;height:100%;object-fit:cover;background:#02030b;
+}
+@media(prefers-reduced-motion:reduce){
+  #joker-row .joker.proc::after,#joker-row .proc-chip.show{animation:none!important}
+  #joker-row .joker.proc::after{opacity:.32}
+  #joker-row .proc-chip.show{opacity:1}
 }
 body:has(#game.active) #wc-toast{
   width:max-content;max-width:min(calc(100vw - 36px),360px);
@@ -1964,7 +1988,7 @@ body:has(#game.active) #wc-toast{
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.11</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.12</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -2215,11 +2239,11 @@ body:has(#game.active) #wc-toast{
   <div class="panel">
     <h2 style="color:var(--mint)" id="win-title">Run Complete!</h2>
     <p class="sub" id="win-sub">You cleared all 12 Heats. Bonus +10 account coins banked.</p>
-    <div class="stat-list" id="win-stats"></div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <div id="win-choice" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
       <button class="btn alt" id="btn-endless" onclick="continueEndless()">Continue → Endless</button>
-      <button class="btn ghost" onclick="endRunToStats()">Bank Run &amp; Finish</button>
+      <button class="btn ghost" onclick="endRunToStats()">End Run · Bank Score</button>
     </div>
+    <div class="stat-list" id="win-stats"></div>
   </div>
 </section>
 
@@ -2294,6 +2318,11 @@ body:has(#game.active) #wc-toast{
 
 <div id="round-intro"><div class="round-intro-card"><div class="round-kicker" id="round-kicker">NEW DEAL</div><div class="round-title" id="round-title">HEAT 1</div><div class="round-sub" id="round-sub">Target 180</div></div></div>
 <div id="sly-stage-fx" aria-hidden="true"><div class="sly-stage-sprite"></div></div>
+<div id="sly-tear-cinematic" aria-hidden="true">
+  <video id="sly-tear-video" preload="auto" muted playsinline disablepictureinpicture>
+    <source src="assets/video/sly-single-tear.mp4" type="video/mp4">
+  </video>
+</div>
 <div class="float-score" id="float-score"></div>
 <div class="callout" id="callout"></div>
 
@@ -3912,6 +3941,7 @@ function newRunState(){
     bestPlay:0, totalScore:0, stagesCleared:0,
     accountEarned:0, accountRewardIds:[],
     reviveUsed:false, terminalPending:false, failureReason:'', leaderboardEligible:true,
+    heat12SequenceStarted:false, heat12InterstitialAttempted:false, victoryChoiceMade:false,
     doubleBaseCoins:0, coinDoubleClaimed:false,
     pendingShopJoker:null,
     wildMissShops:0, lastWildPityForced:false,
@@ -4200,7 +4230,6 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='game') syncModifierAmbience();
-  if(id==='wincomplete') setTimeout(()=>playSlyStageFX('victory'),80);
   window.scrollTo(0,0);
 }
 function showRoundIntro(){
@@ -4226,6 +4255,64 @@ function playSlyStageFX(kind,holdMs){
   sprite.className='sly-stage-sprite '+kind+(staticFrame?'-b':'-a');
   if(!staticFrame) fx._a=setTimeout(()=>{ sprite.className='sly-stage-sprite '+kind+'-b'; },kind==='deal'?620:520);
   fx._b=setTimeout(()=>{ fx.className=''; },Math.max(900,duration-110));
+}
+function playSlyTearCinematic(done){
+  const fx=document.getElementById('sly-tear-cinematic');
+  const video=document.getElementById('sly-tear-video');
+  if(!fx || !video){ setTimeout(()=>done&&done(),180); return; }
+  let finished=false;
+  const finish=()=>{
+    if(finished) return;
+    finished=true;
+    clearTimeout(fx._watchdog);
+    video.onended=null; video.onerror=null;
+    try{ video.pause(); }catch(e){}
+    fx.classList.remove('show');
+    fx.setAttribute('aria-hidden','true');
+    if(done) done();
+  };
+  stopModifierAmbience();
+  fx.classList.add('show');
+  fx.setAttribute('aria-hidden','false');
+  video.muted=true;
+  video.onended=finish;
+  video.onerror=finish;
+  try{ video.currentTime=0; }catch(e){}
+  if(reducedMotion){
+    const settle=()=>{ try{ video.currentTime=1.05; video.pause(); }catch(e){} };
+    if(video.readyState>=1) settle();
+    else video.addEventListener('loadedmetadata',settle,{once:true});
+    fx._watchdog=setTimeout(finish,900);
+    return;
+  }
+  try{
+    const playing=video.play();
+    if(playing && typeof playing.catch==='function') playing.catch(()=>{ fx._watchdog=setTimeout(finish,900); });
+  }catch(e){ fx._watchdog=setTimeout(finish,900); }
+  fx._watchdog=setTimeout(finish,3000);
+}
+function showHeat12Choice(){
+  if(!run) return;
+  run.victoryChoiceMade=false;
+  renderWin();
+  const be=document.getElementById('btn-endless'); if(be) be.style.display='';
+  const wt=document.getElementById('win-title'); if(wt) wt.textContent='Run Complete!';
+  const ws=document.getElementById('win-sub'); if(ws) ws.textContent='You cleared all 12 Heats. Continue into Endless or bank the run.';
+  showScreen('wincomplete');
+}
+function startHeat12VictorySequence(){
+  if(!run) return;
+  const dailyVictory=dailyMode;
+  run.heat12SequenceStarted=true;
+  if(!dailyVictory) saveRunState('wincomplete');
+  playSlyTearCinematic(()=>{
+    if(!run) return;
+    // Persist before the request. A relaunch goes straight to the choice instead
+    // of replaying either the cinematic or the interstitial.
+    run.heat12InterstitialAttempted=true;
+    if(!dailyVictory) saveRunState('wincomplete');
+    showAdBreak(()=>dailyVictory?gameOver(true):showHeat12Choice());
+  });
 }
 
 function profileMobileAnimationBudget(){
@@ -4345,7 +4432,7 @@ function chooseRunMode(){
     '<button class="mode-card" id="mode-normal">'
       +'<div class="mode-emoji">🃏</div>'
       +'<div class="mode-name">Normal Run</div>'
-      +'<div class="mode-desc">The main event. Clear all 12 Heats, then break into <b>Endless</b> (Heat 13+). Counts toward your Best Heat, high scores and stake unlocks.</div>'
+      +'<div class="mode-desc">The main event. Clear all 12 Heats, then break into <b>Endless</b> (Heat 13+; modifier every third Heat). Counts toward your Best Heat, high scores and stake unlocks.</div>'
     +'</button>'
     +'<button class="mode-card'+(gUnlocked?'':' locked')+'" id="mode-gauntlet">'
       +'<div class="mode-emoji">🔥</div>'
@@ -4588,7 +4675,7 @@ function assignModifier(){
     return;
   }
   if(run.stage===12 && !run.endless){ run.modifier=BOSS_MOD; return; }   // named boss Heat
-  const qualifies = run.stage>=13 || (run.stage>0 && run.stage%3===0);
+  const qualifies = run.stage>0 && run.stage%3===0;
   run.modifier = qualifies ? MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)] : null;
 }
 function beginRun(startJokerId=null){
@@ -4735,7 +4822,7 @@ async function playHand(){
   };
   const jokerStatus=document.getElementById('joker-live-status');
   let jokerProcCount=0, lastJokerProc='';
-  if(jokerStatus){ jokerStatus.textContent=run.jokers.length?'Watching for triggers':'No Jokers equipped'; jokerStatus.classList.remove('active'); }
+  if(jokerStatus){ jokerStatus.textContent=run.jokers.length?'Watching Joker effects':'No Jokers equipped'; jokerStatus.classList.remove('active'); }
   const chipOn = (el, text, color) => {
     if(!el) return;
     let chip=[...el.children].find(n=>n.classList&&n.classList.contains('score-chip'));
@@ -4745,16 +4832,17 @@ async function playHand(){
   };
   const procJoker = (jel, label) => {
     if(!jel) return;
-    const visible=account.speed==='fast'?700:1050;
-    replayUiPulse(jel,'proc',visible);
+    const highlightMs=account.speed==='fast'?220:460;
+    const textMs=account.speed==='fast'?400:650;
+    replayUiPulse(jel,'proc',highlightMs);
     let chip=jel.querySelector('.proc-chip');
     if(!chip){ chip=document.createElement('div'); chip.className='proc-chip'; jel.appendChild(chip); }
-    chip.textContent='TRIGGER · '+label;
-    replayUiPulse(chip,'show',visible);
+    chip.textContent=label;
+    replayUiPulse(chip,'show',textMs);
     const jname=(jel.querySelector('.jname')||{}).textContent||'Joker';
-    jokerProcCount++; lastJokerProc=jname+' → '+label;
+    jokerProcCount++; lastJokerProc=jname+': '+label;
     if(jokerProcCount===1) nativeHaptic('light');
-    if(jokerStatus){ jokerStatus.textContent=lastJokerProc; replayUiPulse(jokerStatus,'active',visible); }
+    if(jokerStatus){ jokerStatus.textContent=lastJokerProc; replayUiPulse(jokerStatus,'active',textMs); }
   };
 
   for(const ev of res.events){
@@ -4839,7 +4927,7 @@ async function playHand(){
   // played cards fly off the table
   for(const i of selIdx){ if(cardEls[i]) cardEls[i].classList.add('played-out'); }
   await beat(220);
-  if(jokerStatus) jokerStatus.textContent=jokerProcCount ? (jokerProcCount+' trigger'+(jokerProcCount===1?'':'s')+' · '+lastJokerProc) : (run.jokers.length?'No Joker triggered':'No Jokers equipped');
+  if(jokerStatus) jokerStatus.textContent=jokerProcCount ? (jokerProcCount+' Joker effect'+(jokerProcCount===1?'':'s')+' · '+lastJokerProc) : (run.jokers.length?'No Joker effect':'No Jokers equipped');
   } catch(err){
     console.error('Scoring animation failed — recovering', err);
     // score still applies below; never leave the table locked
@@ -4964,6 +5052,7 @@ function clearStage(){
     const be=document.getElementById('btn-endless'); if(be) be.style.display='none';
     const ws=document.getElementById('win-sub'); if(ws) ws.textContent='Eight modified Heats at +20%. The house is genuinely worried about you.';
     showScreen('wincomplete');
+    setTimeout(()=>playSlyStageFX('victory'),80);
     return;
   }
   if(run.stage===12 && !run.endless && !run.gauntlet){
@@ -4985,10 +5074,7 @@ function clearStage(){
     if(!dailyMode) saveRunState('wincomplete');
     updateMenuAccount();
     renderWin();
-    const be2=document.getElementById('btn-endless'); if(be2) be2.style.display='';
-    const wt2=document.getElementById('win-title'); if(wt2) wt2.textContent='Run Complete!';
-    const ws2=document.getElementById('win-sub'); if(ws2) ws2.textContent='You cleared all 12 Heats. Bonus +10 account coins banked.';
-    showScreen('wincomplete');
+    startHeat12VictorySequence();
     return;
   }
   openShop();
@@ -5019,11 +5105,16 @@ function nextStage(){
 }
 
 function continueEndless(){
-  if(run && run.gauntlet) return;   // the Gauntlet ends at Heat 8 — no endless
+  if(!run || run.gauntlet || run.victoryChoiceMade) return;   // the Gauntlet ends at Heat 8 — no endless
+  run.victoryChoiceMade=true;
   run.endless=true;
   nextStage();
 }
-function endRunToStats(){ gameOver(true); }
+function endRunToStats(){
+  if(!run || run.victoryChoiceMade) return;
+  run.victoryChoiceMade=true;
+  gameOver(true);
+}
 
 function abandonRun(){
   if(!run) return;
@@ -5261,7 +5352,8 @@ function gameOver(won){
     const dailyDate=/^\d{4}-\d{2}-\d{2}$/.test(run.dailyDate||'')?run.dailyDate:(account.dailyRunDate||todayStr());
     gs.innerHTML = `<div class="stat-row" style="border:2px solid var(--rare)"><span>🎯 Daily Challenge run</span><b><button class="btn" style="padding:7px 14px;font-size:12px" onclick="openDailySubmit(${run.totalScore},'${dailyDate}')">Post to ${dailyDate} board</button></b></div>` + gs.innerHTML;
   }
-  const proceed=()=>showAdBreak(()=>showScreen('gameover'));
+  const heat12AdHandled=!!(won && run && !run.gauntlet && !run.endless && run.heat12InterstitialAttempted);
+  const proceed=()=>heat12AdHandled ? showScreen('gameover') : showAdBreak(()=>showScreen('gameover'));
   if(!won) playDeathScreen(run.abandoned?'terminated':'gameover',proceed); else proceed();
 }
 
@@ -5782,7 +5874,7 @@ function renderWin(){
     <div class="stat-row"><span>Winning engine</span><b>${profile.name} - ${profile.tip}</b></div>
     <div class="stat-row"><span>Account coins banked</span><b>+${run.accountEarned}</b></div>
     ${runCoachRows()}
-    <div class="stat-row"><span>Endless mode</span><b>Heat 13+ · every Heat modified · target +${ENDLESS_STEP} per Heat</b></div>`;
+    <div class="stat-row"><span>Endless mode</span><b>Heat 13+ · modifiers at 15, 18, 21… · target +${ENDLESS_STEP} per Heat</b></div>`;
 }
 
 // ---------- Unlock store ----------
@@ -7471,7 +7563,7 @@ const RUN_KEY='wildcard_run_v1';
 const RUN_FIELDS=['runId','telemetryMode','stage','endless','gauntlet','prevGauntletMod','stageScore','handsLeft','discardsLeft','handsPlayedThisStage',
  'runCoins','jokerState','cards','deck','hand','heatDeck','handLevels','destroyedCount','copiedCount','handTypeCounts',
  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
- 'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
+ 'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','heat12SequenceStarted','heat12InterstitialAttempted','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
  'stakeNet','enhancedCount','shatteredCount','glassDouble','inflation','sortMode','lastRunReward','lastAcctReward',
  'lastInterest','suppliesBought','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
 function currentRunPhase(){
@@ -7524,11 +7616,12 @@ function resumeRun(){
       showScreen('game'); renderGame(false); syncModifierAmbience();
       setTimeout(openRunReviveOffer,80);
     } else if(d.phase==='wincomplete'){
-      renderWin();
-      const be=document.getElementById('btn-endless'); if(be) be.style.display='';
-      const wt=document.getElementById('win-title'); if(wt) wt.textContent='Run Complete!';
-      const ws=document.getElementById('win-sub'); if(ws) ws.textContent='You cleared all 12 Heats. Choose Endless or bank the run.';
-      showScreen('wincomplete');
+      // Rewards are already banked. Never loop a cinematic or interstitial after
+      // a process restart; return directly to the saved choice.
+      run.heat12SequenceStarted=true;
+      run.heat12InterstitialAttempted=true;
+      saveRunState('wincomplete');
+      showHeat12Choice();
     } else if(d.phase==='shop'){
       shopOffers=(d.shopOfferIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
       supplyOffers=(d.supplyOfferIds||[]).map(id=>SUPPLIES.find(x=>x.id===id)).filter(Boolean);
@@ -7560,7 +7653,7 @@ const API_BASE=resolveDailyApiBase(location.hostname,DAILY_API_NATIVE);
 // ---- Anonymous aggregate analytics (Pi; fail-soft and never awaited) ----
 // Only coarse product counters leave the device. There is no install/session ID,
 // player name, score, card data, save data or Google/Firebase identity in this path.
-const TELEMETRY_VERSION='6.9.11';
+const TELEMETRY_VERSION='6.9.12';
 const TELEMETRY_ENABLED=DAILY_API_NATIVE || location.hostname==='raspberrypi.tail20f574.ts.net';
 const TELEMETRY_PLATFORM=DAILY_API_NATIVE?'android':'web';
 const TELEMETRY_ENDPOINT=API_BASE+'/api/analytics';

@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory() as directory:
     api.ANALYTICS_DB = os.path.join(directory, "analytics.json")
     now = datetime(2026, 7, 17, 12, 0, tzinfo=timezone.utc)
     accepted = api.record_analytics({
-        "v": "6.9.11",
+        "v": "6.9.12",
         "p": "android",
         "events": [
             {"n": "app_open"},
@@ -42,7 +42,7 @@ with tempfile.TemporaryDirectory() as directory:
         saved = json.load(handle)
     day = saved["days"]["2026-07-17"]
     assert day["events"] == {"app_open": 1, "run_end": 1, "run_start": 1}
-    assert day["versions"]["6.9.11"] == {"app_open": 1, "run_end": 1, "run_start": 1}
+    assert day["versions"]["6.9.12"] == {"app_open": 1, "run_end": 1, "run_start": 1}
     assert day["modes"]["daily"] == {"run_end": 1, "run_start": 1}
     assert day["outcomes"] == {"lost": 1}
     assert day["heat_bands"] == {"4-6": 1}

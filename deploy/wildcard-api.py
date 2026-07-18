@@ -37,7 +37,7 @@ MAX_ANALYTICS_FILE_BYTES = 262_144
 MAX_COUNTER = 1_000_000_000
 
 ANALYTICS_EVENTS = frozenset(("app_open", "run_start", "run_end"))
-ANALYTICS_VERSIONS = frozenset(("6.9.10", "6.9.11"))
+ANALYTICS_VERSIONS = frozenset(("6.9.10", "6.9.11", "6.9.12"))
 ANALYTICS_PLATFORMS = frozenset(("android", "web"))
 ANALYTICS_MODES = frozenset(("normal", "daily", "gauntlet"))
 ANALYTICS_OUTCOMES = frozenset(("won", "lost", "terminated"))

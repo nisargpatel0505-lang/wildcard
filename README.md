@@ -4,16 +4,16 @@ WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Cap
 
 ## Current release
 
-- Game version: **6.9.11**
+- Game version: **6.9.12**
 - Android package: `com.nisarg.wildcard`
-- Android version code: **29** (local developer build: **28**)
+- Android version code: **32** (local developer build: **31**)
 - Firebase project: `wildcard-31d50`
-- Source HTML SHA-256: `116d1878b733667b2fdb87c28e9ed38b5f8010288894e11bbebe9cf9a4c81521`
-- Release APK SHA-256: `e02eb3b5e6e360c8571e121a8376353221a4f15039a46c21656cbf77b6e40782`
-- Release AAB SHA-256: `2917dc42f60b9cdd947300f6a204151aad0dbabefb95c7be208b2d83f9d986e8`
-- Google Play internal track: v6.9.11 AAB is built and signed locally after the release checks; Play Console upload remains a separate explicit step
+- Source HTML SHA-256: `6585cb1976fe44bfbaf49a4aca310d512fbca008392dfc83ff89077f7256f75c`
+- Release APK SHA-256: `7eb6c488441e005c4121d356c76944654f72ad85edb69d2d96ad63c40bcdd5d2`
+- Release AAB SHA-256: `0bd24f97628514680726942acd7c5f1370b303a1ecbe1aa2bd3f016e578bc581`
+- Google Play internal track: v6.9.12 AAB is built and signed locally after the release checks; Play Console upload remains a separate explicit step
 
-The v6.9.11 release makes scoring readable without restoring expensive Win FX: the previous Normal timing is now Fast, while Normal uses a 1.85 pacing multiplier and longer labelled Joker holds. Five Jokers fit in a centred 3+2 phone grid, card hit-testing uses untransformed centres so adjacent selections are reliable, and the hidden tap-to-fast-forward shortcut is removed. Vault/Wardrobe rewarded-coin shortcuts, claim-button containment, notification badges, Daily full-catalogue shops, a protected-first-Heat 25% Glass Joystick, themed marquee lights and a still premium collection/settings room complete the mobile pass.
+The v6.9.12 release replaces the hard Joker flash/lift and moving `TRIGGER` chip with a short, stationary rarity glow and effect-only text. Standard modifiers remain at Heats 3, 6 and 9 with THE HOUSE at 12; Endless now deals a modifier only every third Heat. Clearing Heat 12 plays a 2.4-second full-screen Sly single-tear cinematic, attempts one fail-safe interstitial, then presents `Continue → Endless` or `End Run · Bank Score`. The victory checkpoint is saved before media or ads, resume never repeats the cinematic/ad, and Daily/Gauntlet settlement remains isolated.
 
 The build also includes privacy-minimised Pi analytics for internal testing: app opens, run starts and run outcomes are queued only in memory and sent as a tiny non-blocking idle/background batch. The Pi keeps daily aggregate counters only; no player identity, exact score, cards, save data or persistent analytics identifier is sent. See [docs/ANALYTICS.md](docs/ANALYTICS.md).
 
@@ -41,7 +41,7 @@ The APK is written to `android/app/build/outputs/apk/release/app-release.apk`.
 
 ## Verification
 
-The release evidence is under `docs/release/`. v6.9.11 uses a focused 10,000 scoring / 5,000 Cheat / 550-run regression because its primary changes are UI, timing and bridge safety; the larger v6.9.10 balance, strategy and economy evidence remains the latest full balance baseline. Native rewarded and Billing callbacks, canonical source, standalone provenance, Android Daily Board routing and Google/Firebase configuration are checked independently. Firestore Rules previously passed 19 hostile allow/deny checks.
+The release evidence is under `docs/release/`. v6.9.12 uses a focused 10,000 scoring / 5,000 Cheat / 550-run regression because its primary changes are presentation and orchestration; the larger v6.9.10 balance, strategy and economy evidence remains the latest full balance baseline. Executable tests cover Heat-12 video/ad/choice failure paths, one-interstitial enforcement, Daily and resume routing, native rewarded/interstitial and Billing callbacks, offline MP4 Range responses, economy idempotency, Pi analytics privacy, canonical source, standalone provenance, Android packaging, and Google/Firebase configuration. Firestore Rules previously passed 19 hostile allow/deny checks.
 
 ## Firebase
 
@@ -49,4 +49,4 @@ The Android package and release SHA-1/SHA-256 certificates are registered with F
 
 ## Raspberry Pi deployment
 
-The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.11.apk`, `WILDCARD-v6.9.11-release.apk` and `WILDCARD-latest.apk`.
+The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts/video through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.12.apk`, `WILDCARD-v6.9.12-release.apk` and `WILDCARD-latest.apk`.

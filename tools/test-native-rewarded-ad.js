@@ -20,7 +20,8 @@ async function createHarness(options) {
   const calls = {
     prepareRewarded: 0,
     prepareInterstitial: 0,
-    showRewarded: 0
+    showRewarded: 0,
+    showInterstitial: 0
   };
 
   const AdMob = {
@@ -49,7 +50,13 @@ async function createHarness(options) {
       if (options.rejectShow) return Promise.reject(new Error('show rejected'));
       return Promise.resolve();
     },
-    showInterstitial() { return Promise.resolve(); },
+    showInterstitial() {
+      calls.showInterstitial += 1;
+      if (options.rejectInterstitialShow) {
+        return Promise.reject(new Error('interstitial show rejected'));
+      }
+      return Promise.resolve();
+    },
     showPrivacyOptionsForm() { return Promise.resolve(); },
     setApplicationMuted() { return Promise.resolve(); }
   };
@@ -240,6 +247,90 @@ async function testShowPromiseRejectionSettlesFalseOnce() {
   assert.equal(h.calls.prepareRewarded, 2, 'show rejection should prepare the next ad');
 }
 
+async function testInterstitialDismissSettlesTrueOnce() {
+  const h = await createHarness();
+  const results = [];
+
+  assert.equal(h.calls.prepareInterstitial, 1, 'consent should prepare the first interstitial');
+  h.emit('interstitialAdLoaded');
+  h.WN.showInterstitial((value) => results.push(value));
+
+  assert.equal(h.calls.showInterstitial, 1, 'a loaded interstitial should be shown once');
+  assert.deepEqual(results, [], 'showing an interstitial must wait for an SDK event');
+
+  h.emit('interstitialAdDismissed');
+  h.emit('interstitialAdDismissed');
+  h.emit('interstitialAdFailedToShow');
+
+  assert.deepEqual(results, [true], 'dismissal must settle success exactly once');
+  assert.equal(h.calls.prepareInterstitial, 2, 'dismissal should prepare exactly one replacement');
+}
+
+async function testUnavailableInterstitialSettlesFalseWithoutShowing() {
+  const h = await createHarness();
+  const results = [];
+
+  h.WN.showInterstitial((value) => results.push(value));
+
+  assert.deepEqual(results, [false], 'an unavailable interstitial must fail immediately');
+  assert.equal(h.calls.showInterstitial, 0, 'an unavailable interstitial must not call show');
+  assert.equal(
+    h.calls.prepareInterstitial,
+    1,
+    'an unavailable request must not duplicate an in-progress prepare'
+  );
+}
+
+async function testInterstitialFailedToShowSettlesFalseOnce() {
+  const h = await createHarness();
+  const results = [];
+
+  h.emit('interstitialAdLoaded');
+  h.WN.showInterstitial((value) => results.push(value));
+  h.emit('interstitialAdFailedToShow');
+  h.emit('interstitialAdFailedToShow');
+  h.emit('interstitialAdDismissed');
+
+  assert.deepEqual(results, [false], 'interstitial failed-to-show must fail exactly once');
+  assert.equal(h.calls.showInterstitial, 1, 'failed-to-show must have only one show request');
+  assert.equal(h.calls.prepareInterstitial, 2, 'failed-to-show should prepare one replacement');
+}
+
+async function testInterstitialShowRejectionSettlesFalseOnce() {
+  const h = await createHarness({ rejectInterstitialShow: true });
+  const results = [];
+
+  h.emit('interstitialAdLoaded');
+  h.WN.showInterstitial((value) => results.push(value));
+  await flushPromises();
+  h.emit('interstitialAdFailedToShow');
+  h.emit('interstitialAdDismissed');
+
+  assert.deepEqual(results, [false], 'interstitial show rejection must fail exactly once');
+  assert.equal(h.calls.showInterstitial, 1, 'a rejected show promise must not retry show');
+  assert.equal(h.calls.prepareInterstitial, 2, 'show rejection should prepare one replacement');
+}
+
+async function testOverlappingInterstitialRequestsDoNotShowTwice() {
+  const h = await createHarness();
+  const first = [];
+  const second = [];
+
+  h.emit('interstitialAdLoaded');
+  h.WN.showInterstitial((value) => first.push(value));
+  h.WN.showInterstitial((value) => second.push(value));
+
+  assert.deepEqual(first, [], 'the first interstitial request should remain in flight');
+  assert.deepEqual(second, [false], 'an overlapping interstitial request must fail closed');
+  assert.equal(h.calls.showInterstitial, 1, 'overlapping requests must not trigger a second show');
+
+  h.emit('interstitialAdDismissed');
+  h.emit('interstitialAdDismissed');
+
+  assert.deepEqual(first, [true], 'the original request should settle once when dismissed');
+  assert.equal(h.calls.prepareInterstitial, 2, 'completion should prepare one replacement');
+}
+
 async function testVerifiedCollectionDeliversBeforeFinishOnce() {
   const h = await createBillingHarness();
   const events = [];
@@ -336,11 +427,16 @@ async function main() {
   await testDismissWithoutRewardSettlesFalseOnce();
   await testFailedToShowSettlesFalseOnce();
   await testShowPromiseRejectionSettlesFalseOnce();
+  await testInterstitialDismissSettlesTrueOnce();
+  await testUnavailableInterstitialSettlesFalseWithoutShowing();
+  await testInterstitialFailedToShowSettlesFalseOnce();
+  await testInterstitialShowRejectionSettlesFalseOnce();
+  await testOverlappingInterstitialRequestsDoNotShowTwice();
   await testVerifiedCollectionDeliversBeforeFinishOnce();
   await testVerifiedSourceTransactionsFallback();
   await testVerifiedUnrelatedReceiptDoesNotGrantOrFinish();
   await testBillingSerializesOrdersAndFailsClosedWhenUnavailable();
-  console.log('Native rewarded-ad and billing callback tests passed.');
+  console.log('Native rewarded/interstitial-ad and billing callback tests passed.');
 }
 
 main().catch((error) => {

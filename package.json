@@ -1,6 +1,6 @@
 {
   "name": "wildcard-app",
-  "version": "6.9.11",
+  "version": "6.9.12",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,11 +8,14 @@
     "build:android:release": "npm run sync:android && cd android && gradlew.bat :app:assembleRelease",
     "build:android:developer": "node tools/build-developer-apk.js",
     "build:standalone": "node tools/build-standalone-html.js",
+    "build:cinematic": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-sly-tear-cinematic.ps1",
     "audit:google": "node tools/audit-google-config.js",
-    "test": "node tools/verify-v68.js && python tools/test-pi-analytics.py",
+    "test": "node tools/verify-v68.js && node tools/test-heat12-victory.js && node tools/test-service-worker-range.js && node tools/test-native-rewarded-ad.js && node tools/test-economy-rewards.js && python tools/test-pi-analytics.py",
     "test:pi-analytics": "python tools/test-pi-analytics.py",
     "test:economy-rewards": "node tools/test-economy-rewards.js",
+    "test:heat12": "node tools/test-heat12-victory.js",
     "test:native-ads": "node tools/test-native-rewarded-ad.js",
+    "test:service-worker": "node tools/test-service-worker-range.js",
     "test:deep": "node tools/deep-sim-v57.js",
     "test:strategy": "node tools/deep-sim-v57.js --strategy",
     "test:economy": "node tools/economy-sim-v69.js",

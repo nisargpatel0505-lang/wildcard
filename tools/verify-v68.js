@@ -11,6 +11,7 @@ const privacyPolicy = fs.readFileSync('www/privacy.html', 'utf8');
 const piApi = fs.readFileSync('deploy/wildcard-api.py', 'utf8');
 const piDeploy = fs.readFileSync('deploy/update-pi.sh', 'utf8');
 const androidPublic = fs.readFileSync('android/app/src/main/assets/public/index.html', 'utf8');
+const androidGradle = fs.readFileSync('android/app/build.gradle', 'utf8');
 const standalonePath = 'playtest/WILDCARD-work-laptop-standalone.html';
 const standalone = fs.readFileSync(standalonePath, 'utf8');
 const backgroundDir = 'www/assets/art/backgrounds';
@@ -34,6 +35,7 @@ const externalizedAssets = [
   'assets/art/sly/sly-expression-grid.webp',
   'assets/art/sly/sly-skins-grid.webp',
   'assets/art/sly/sly-stage-actions-grid.webp',
+  'assets/video/sly-single-tear.mp4',
   'assets/art/wildcard-logo-boot.webp',
   'fonts/bungee-regular.ttf',
   'fonts/space-grotesk-400.ttf',
@@ -53,7 +55,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.11</b>'),'Public version label is not v6.9.11');
+assert(html.includes('>v6.9.12</b>'),'Public version label is not v6.9.12');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -71,7 +73,7 @@ assert(crypto.createHash('sha256').update(Buffer.from(androidPublic)).digest('he
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.11</b>'),'Standalone public version is not v6.9.11');
+assert(standalone.includes('>v6.9.12</b>'),'Standalone public version is not v6.9.12');
 assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
 assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
 for (const asset of externalizedAssets) {
@@ -88,6 +90,30 @@ for (const asset of ['assets/art/wildcard-logo-v692.webp','assets/audio/bit-shif
   assert(!standalone.includes(asset),`Standalone still has an external asset path: ${asset}`);
 }
 assert(standalone.includes('data:audio/mpeg;base64,'),'Standalone music is not embedded');
+assert(standalone.includes('data:video/mp4;base64,'),'Standalone Sly tear cinematic is not embedded');
+const cinematicPath='www/assets/video/sly-single-tear.mp4';
+const cinematic=fs.readFileSync(cinematicPath);
+assert(cinematic.length<300_000,'Sly tear cinematic exceeds the mobile asset budget');
+assert(standalone.includes(`data:video/mp4;base64,${cinematic.toString('base64')}`),'Standalone cinematic is stale or not embedded byte-for-byte');
+const avc1At=cinematic.indexOf(Buffer.from('avc1'));
+const avcCAt=cinematic.indexOf(Buffer.from('avcC'));
+const hvc1At=cinematic.indexOf(Buffer.from('hvc1'));
+const hev1At=cinematic.indexOf(Buffer.from('hev1'));
+const moovAt=cinematic.indexOf(Buffer.from('moov'));
+const mdatAt=cinematic.indexOf(Buffer.from('mdat'));
+assert(avc1At>=0&&avcCAt>=0,'Sly tear cinematic is not H.264/AVC');
+assert(hvc1At<0&&hev1At<0,'Sly tear cinematic unexpectedly uses HEVC');
+assert(moovAt>=0&&mdatAt>=0&&moovAt<mdatAt,'Sly tear cinematic is not fast-start optimized');
+const avcProfile=cinematic[avcCAt+5];
+const avcLevel=cinematic[avcCAt+7];
+assert(avcProfile===66||avcProfile===77,`Sly tear cinematic uses unsupported AVC profile ${avcProfile}`);
+assert(avcLevel<=40,`Sly tear cinematic exceeds AVC level 4.0 (${avcLevel})`);
+const videoRangeAt=serviceWorker.indexOf("range && u.pathname === '/assets/video/sly-single-tear.mp4'");
+const generalRangeAt=serviceWorker.indexOf('if (range) return;');
+assert(videoRangeAt>=0&&videoRangeAt<generalRangeAt&&serviceWorker.includes("status: 206")&&serviceWorker.includes("'Content-Range'"),'Offline PWA cannot serve the cinematic through media Range requests');
+const releaseCode=Number((androidGradle.match(/defaultConfig\s*\{[\s\S]*?versionCode\s+(\d+)/)||[])[1]);
+const developerCode=Number((androidGradle.match(/withBuildType\("developer"\)[\s\S]*?versionCode\.set\((\d+)\)/)||[])[1]);
+assert(Number.isInteger(releaseCode)&&Number.isInteger(developerCode)&&developerCode<releaseCode,'Developer APK versionCode must remain below the Play release versionCode');
 assert(html.includes('function replayTutorial()'),'Safe tutorial replay is missing');
 assert(html.includes("handLabel(res.handType)+' · '+res.scoringCount+' OF '+sel.length+' SCORES'"),'Compact score label is missing');
 assert(!html.includes('Play scores these '+"'+selCount+'"),'Persistent play/discard hint remains');
@@ -117,7 +143,7 @@ assert(html.includes("retry.textContent='Post my '+completedScore.toLocaleString
 assert(html.includes('fetchDailyBoard(todayStr())'),'Daily Board GET can disagree with the local challenge date around midnight');
 assert(html.includes('if(run) run.dailyDate=today')&&html.includes('date=(run&&run.dailyDate)||dailyChallengeDate'),'Daily run date is not fixed from launch through settlement');
 assert(html.includes("Board: '+boardDate")&&html.includes('date:boardDate'),'Daily score submission can drift to a different date');
-assert(piApi.includes('"6.9.10", "6.9.11"'),'Pi analytics does not accept the v6.9.11 client');
+assert(piApi.includes('"6.9.10", "6.9.11", "6.9.12"'),'Pi analytics does not accept the v6.9.12 client');
 
 // Privacy-minimised Pi analytics: bounded memory only, background/idle transport,
 // and an aggregate-only backend with no public read route.
@@ -159,6 +185,7 @@ assert(privacyPolicy.includes('Last updated: 17 July 2026'),'Hosted privacy poli
 assert(piApi.includes('ANALYTICS_KEEP_DAYS = 90')&&piApi.includes('MAX_ANALYTICS_REQUESTS_PER_MINUTE = 60')&&piApi.includes('MAX_ANALYTICS_EVENTS_PER_DAY = 20_000'),'Pi analytics retention/rate guard is missing');
 assert(piApi.includes('Analytics deliberately has no public read endpoint'),'Pi analytics accidentally gained a public read surface');
 assert(piDeploy.includes('privacy.html')&&piDeploy.includes('deploy/wildcard-api.py')&&piDeploy.includes('$HOME/deploy-game.sh'),'Pi deploy no longer preserves privacy/API/GoatCounter-aware deployment');
+assert(piDeploy.includes('assets/video/sly-single-tear.mp4'),'Pi deploy does not publish the Sly tear cinematic');
 assert(piDeploy.includes('python3 -c')&&piDeploy.includes('before-$stamp')&&piDeploy.includes('wait_for_api')&&piDeploy.includes('New WILDCARD API failed validation'),'Pi API deploy lacks syntax validation, backup, process-identity health check or rollback');
 assert(piDeploy.includes('exec "$repo_dir/deploy/update-pi.sh" --after-pull')&&piDeploy.includes('verify_package_source'),'Pi deploy can self-update mid-execution or publish stale Android assets');
 assert(html.includes('aria-label="Sly’s Stake Contract locked">🔒 Locked</div>'),'Locked Stake Contract leaks details');
@@ -198,6 +225,24 @@ assert(html.includes('Daily shops may offer Jokers you have not permanently unlo
 assert(html.includes("desc:'★ BOSS ★ The House takes a 10% bigger cut")&&!html.includes('House takes a 20% bigger cut'),'THE HOUSE copy does not match its target calculation');
 const nextStageBlock=block('function nextStage(){','function continueEndless(){');
 assert(nextStageBlock.includes('run.guidedFirstRun && run.guideStep===3')&&nextStageBlock.includes('run.guideStep=4'),'Final first-run coach stage remains unreachable');
+const assignModifierCode=block('function assignModifier(){','function beginRun(');
+const modifierCtx={run:null};
+vm.createContext(modifierCtx);
+vm.runInContext(
+  "const GAUNTLET_HEATS=8;const BOSS_MOD={id:'boss',name:'Boss'};const MODIFIERS=[{id:'regular',name:'Regular'}];function rnd(){return 0;}"+
+  assignModifierCode+";globalThis.__assign=assignModifier;",
+  modifierCtx
+);
+const modifierAt=(stage,endless=false,gauntlet=false)=>{
+  modifierCtx.run={stage,endless,gauntlet,prevGauntletMod:null,modifier:null};
+  modifierCtx.__assign();
+  return modifierCtx.run.modifier&&modifierCtx.run.modifier.id;
+};
+assert([1,2,4,5,7,8,10,11].every(h=>modifierAt(h)===null),'A standard safe Heat unexpectedly has a modifier');
+assert([3,6,9].every(h=>modifierAt(h)==='regular')&&modifierAt(12)==='boss','Standard modifier cadence or THE HOUSE changed');
+assert([13,14,16,17,19,20].every(h=>modifierAt(h,true)===null),'Endless safe Heats unexpectedly have modifiers');
+assert([15,18,21].every(h=>modifierAt(h,true)==='regular'),'Endless modifiers are not every third Heat');
+assert([1,2,3,4,5,6,7].every(h=>modifierAt(h,false,true)==='regular')&&modifierAt(8,false,true)==='boss','Gauntlet modifier cadence changed');
 
 const cosmeticCode=block('const COSMETICS = [','const COSMETIC_DEFAULTS');
 const cosmeticCtx={}; vm.createContext(cosmeticCtx);
@@ -214,6 +259,26 @@ assert(!cosmetics.some(c=>c.kind==='win'),'Retired Win FX cosmetics remain in th
 
 const introCode=block('function showRoundIntro(){','function playSlyStageFX');
 assert(introCode.includes('run.modifier.name')&&introCode.includes('run.modifier.desc'),'Heat intro does not show the active modifier effect');
+const winMarkup=block('<!-- ============ RUN COMPLETE ============ -->','<!-- ============ GAME OVER ============ -->');
+assert(winMarkup.indexOf('id="win-choice"')<winMarkup.indexOf('id="win-stats"'),'Heat 12 choices can fall below the phone fold');
+assert(winMarkup.includes('Continue → Endless')&&winMarkup.includes('End Run · Bank Score'),'Heat 12 choices are unclear');
+assert(html.includes('assets/video/sly-single-tear.mp4')&&html.includes('id="sly-tear-cinematic"'),'Full-screen Sly tear cinematic is not wired');
+const tearSequence=block('function playSlyTearCinematic(done){','function profileMobileAnimationBudget(){');
+assert(tearSequence.includes("video.play()")&&tearSequence.includes("video.onended=finish")&&tearSequence.includes("fx._watchdog=setTimeout(finish,3000)"),'Sly tear cinematic cannot finish safely');
+const sequenceStart=tearSequence.indexOf('run.heat12SequenceStarted=true');
+const sequenceSave=tearSequence.indexOf("saveRunState('wincomplete')",sequenceStart);
+const sequencePlay=tearSequence.indexOf('playSlyTearCinematic(',sequenceSave);
+const adFlag=tearSequence.indexOf('run.heat12InterstitialAttempted=true',sequencePlay);
+const adSave=tearSequence.indexOf("saveRunState('wincomplete')",adFlag);
+const adShow=tearSequence.indexOf('showAdBreak(()=>dailyVictory?gameOver(true):showHeat12Choice())',adSave);
+assert(sequenceStart>=0&&sequenceStart<sequenceSave&&sequenceSave<sequencePlay&&sequencePlay<adFlag&&adFlag<adSave&&adSave<adShow,'Heat 12 save/cinematic/ad/choice order is unsafe');
+assert(tearSequence.includes("if(!dailyVictory) saveRunState('wincomplete')")&&tearSequence.includes('dailyVictory?gameOver(true):showHeat12Choice()'),'Daily victory can be resumed as a standard run or enter Endless');
+const showScreenCode=block('function showScreen(id){','function showRoundIntro(){');
+assert(!showScreenCode.includes("id==='wincomplete'")&&!showScreenCode.includes("playSlyStageFX('victory')"),'Legacy Sly victory animation still fires on the standard win choice');
+const gameOverCode=block('function gameOver(won){','// ---------- Ad placeholder ----------');
+assert(gameOverCode.includes('heat12AdHandled')&&gameOverCode.includes("heat12AdHandled ? showScreen('gameover') : showAdBreak"),'Ending a Heat 12 win can show a duplicate interstitial');
+const resumeCode=block('function resumeRun(){','// ---- Global daily leaderboard');
+assert(resumeCode.includes('run.heat12InterstitialAttempted=true')&&resumeCode.includes('showHeat12Choice()'),'Resuming a banked Heat 12 win can replay the cinematic or ad');
 const reactAt=playHandCode.indexOf('slyReact(res.handType, res.total, stageTarget())');
 assert(reactAt>floatAt&&reactAt<playHandCode.indexOf('if(run.stageScore >= stageTarget())'),'Sly reaction does not cover every completed hand');
 assert(html.includes('.mascot[data-sly-mood="pair"]')&&html.includes('@keyframes slyMoodPulse'),'Premium Sly skins have no visible hand-reaction treatment');
@@ -297,7 +362,10 @@ assert(html.includes('function refreshMenuNotices()')&&html.includes("setMenuNot
 assert(html.includes("white-space:pre-line!important")&&html.includes("Claim +'+a.reward+' in Achievements"),'Achievement toast is not phone-contained');
 assert(html.includes('function ensureDelegatedHandSelection(handEl)')&&html.includes('el.offsetLeft+el.offsetWidth/2'),'Adjacent-card hit testing is not based on stable card centres');
 assert(html.includes('grid-template-columns:repeat(6,minmax(0,1fr))')&&html.includes('#joker-row .joker:nth-child(5){grid-column:4/span 2}'),'Five-Joker 3+2 phone grid is missing');
-assert(html.includes("role=\"status\" aria-live=\"polite\"")&&html.includes("chip.textContent='TRIGGER · '+label"),'Joker trigger feedback is not explicit or accessible');
+assert(html.includes("role=\"status\" aria-live=\"polite\"")&&html.includes('chip.textContent=label'),'Soft Joker effect feedback is not explicit or accessible');
+assert(html.includes('@keyframes jokerSoftTrigger')&&html.includes('@keyframes jokerSoftText')&&!html.includes('animation:jokerProcReadable'),'Loud Joker movement/outline animation remains');
+assert(html.includes("const highlightMs=account.speed==='fast'?220:460")&&html.includes("const textMs=account.speed==='fast'?400:650"),'Soft Joker cue timing is missing');
+assert(html.includes('#joker-row .proc-chip.show{opacity:1}'),'Reduced-motion Joker effect text is invisible');
 assert(html.includes("background-attachment:scroll,scroll,scroll!important")&&html.includes("data-screen='cabinet'"),'Still premium secondary-screen wallpaper is missing');
 /* v6.9.11 replaced the provisional active-prize assertion below with an
    explicit, non-active reward plan until authenticated settlement exists.
@@ -349,10 +417,10 @@ assert(html.includes("Survives its first Heat, then has a 25% chance")&&html.inc
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.11-sim-results.json','utf8'));
-assert(sim.version==='6.9.11','Focused simulation report is not v6.9.11');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.12-sim-results.json','utf8'));
+assert(sim.version==='6.9.12','Focused simulation report is not v6.9.12');
 assert(sim.mode==='stress','Release simulation is not a full stress result');
-assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.11 regression counts are incomplete');
+assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.12 regression counts are incomplete');
 assert(sim.sourceSha256===htmlSha256,'Release simulation was not generated from the current canonical HTML');
 const simScript=fs.readFileSync('tools/deep-sim-v57.js');
 const simScriptSha256=crypto.createHash('sha256').update(simScript).digest('hex');
@@ -381,7 +449,7 @@ assert(economy.gameplayInput&&economy.gameplayInput.file==='docs/release/wildcar
 assert(economy.gates.every(g=>g.pass),'Economy model contains a failed release gate');
 
 console.log(JSON.stringify({
-  version:'6.9.11',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.12',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

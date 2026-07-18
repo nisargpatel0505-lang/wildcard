@@ -28,9 +28,9 @@ if embedded != source:
 PY
 }
 
-verify_package_source "$repo_dir/releases/WILDCARD-v6.9.11.apk" 'assets/public/index.html'
-if [[ -f "$repo_dir/releases/WILDCARD-v6.9.11.aab" ]]; then
-  verify_package_source "$repo_dir/releases/WILDCARD-v6.9.11.aab" 'base/assets/public/index.html'
+verify_package_source "$repo_dir/releases/WILDCARD-v6.9.12.apk" 'assets/public/index.html'
+if [[ -f "$repo_dir/releases/WILDCARD-v6.9.12.aab" ]]; then
+  verify_package_source "$repo_dir/releases/WILDCARD-v6.9.12.aab" 'base/assets/public/index.html'
 fi
 
 find_api_pid() {
@@ -129,10 +129,12 @@ for asset in manifest.json sw.js privacy.html icon-192.png icon-512.png icon-mas
     install -m 0644 "$repo_dir/www/$asset" "$webroot/$asset"
   fi
 done
+install -d -m 0755 "$webroot/assets/video"
+install -m 0644 "$repo_dir/www/assets/video/sly-single-tear.mp4" "$webroot/assets/video/sly-single-tear.mp4"
 
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.11.apk" "$webroot/WILDCARD-v6.9.11.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.11.apk" "$webroot/WILDCARD-v6.9.11-release.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.11.apk" "$webroot/WILDCARD-latest.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.12.apk" "$webroot/WILDCARD-v6.9.12.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.12.apk" "$webroot/WILDCARD-v6.9.12-release.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.12.apk" "$webroot/WILDCARD-latest.apk"
 
-sha256sum "$webroot/WILDCARD-v6.9.11.apk" "$webroot/WILDCARD-latest.apk"
+sha256sum "$webroot/WILDCARD-v6.9.12.apk" "$webroot/WILDCARD-latest.apk"
 echo "WILDCARD updated from GitHub: https://raspberrypi.tail20f574.ts.net"

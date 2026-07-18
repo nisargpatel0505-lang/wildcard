@@ -28,6 +28,7 @@ const runtimeAssets = [
   { relative: 'assets/art/sly/sly-expression-grid.webp', path: path.join(root, 'www', 'assets', 'art', 'sly', 'sly-expression-grid.webp'), mime: 'image/webp' },
   { relative: 'assets/art/sly/sly-skins-grid.webp', path: path.join(root, 'www', 'assets', 'art', 'sly', 'sly-skins-grid.webp'), mime: 'image/webp' },
   { relative: 'assets/art/sly/sly-stage-actions-grid.webp', path: path.join(root, 'www', 'assets', 'art', 'sly', 'sly-stage-actions-grid.webp'), mime: 'image/webp' },
+  { relative: 'assets/video/sly-single-tear.mp4', path: path.join(root, 'www', 'assets', 'video', 'sly-single-tear.mp4'), mime: 'video/mp4' },
   { relative: 'fonts/bungee-regular.ttf', path: path.join(root, 'www', 'fonts', 'bungee-regular.ttf'), mime: 'font/ttf' },
   { relative: 'fonts/space-grotesk-400.ttf', path: path.join(root, 'www', 'fonts', 'space-grotesk-400.ttf'), mime: 'font/ttf' },
   { relative: 'fonts/space-grotesk-500.ttf', path: path.join(root, 'www', 'fonts', 'space-grotesk-500.ttf'), mime: 'font/ttf' },
