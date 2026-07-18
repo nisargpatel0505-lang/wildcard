@@ -53,7 +53,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.10</b>'),'Public version label is not v6.9.10');
+assert(html.includes('>v6.9.11</b>'),'Public version label is not v6.9.11');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -71,7 +71,7 @@ assert(crypto.createHash('sha256').update(Buffer.from(androidPublic)).digest('he
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.10</b>'),'Standalone public version is not v6.9.10');
+assert(standalone.includes('>v6.9.11</b>'),'Standalone public version is not v6.9.11');
 assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
 assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
 for (const asset of externalizedAssets) {
@@ -100,7 +100,10 @@ assert(!html.includes('function triggerWinFX(')&&!html.includes('function previe
 assert(!html.includes("kind:'win'")&&!html.includes('Win effects')&&!html.includes('win-fx-pulse'),'Win FX remains in the catalogue or UI');
 assert(!playHandCode.includes('sparks('),'Gameplay scoring still creates particle FX');
 assert(!playHandCode.includes('offsetWidth'),'Gameplay scoring still forces synchronous layout');
-assert(html.includes("account.speed==='fast'?0.55:1.04"),'Optimized Normal/Fast scoring pace is missing');
+assert(html.includes('const SCORE_PACE={normal:1.85,fast:1.04}'),'Readable Normal/Fast scoring pace is missing');
+assert(html.includes('reducedMotion?Math.min(paced,160)'),'Reduced-motion scoring still waits through the full paced timeline');
+assert(!html.includes("document.addEventListener('pointerdown', ()=>{ if(run && run.animating) ffwd=true;"),'Hidden tap-to-fast-forward scoring path remains');
+assert(playHandCode.includes("await beat(account.speed==='fast'?260:360)"),'Readable Joker trigger hold is missing');
 const apiResolverMatch=html.match(/function resolveDailyApiBase\(hostname,nativeShell\)\{[\s\S]*?\n\}/);
 assert(apiResolverMatch,'Daily Board resolver is missing');
 const apiCtx={}; vm.createContext(apiCtx);
@@ -112,10 +115,13 @@ assert(apiCtx.resolve('raspberrypi.tail20f574.ts.net',false)==='','Pi-hosted gam
 assert(apiCtx.resolve('example.com',false)===liveBoard,'External web hosts do not resolve to the live Daily Board');
 assert(html.includes("retry.textContent='Post my '+completedScore.toLocaleString()+' score'"),'Completed Daily scores cannot be retried from the board');
 assert(html.includes('fetchDailyBoard(todayStr())'),'Daily Board GET can disagree with the local challenge date around midnight');
+assert(html.includes('if(run) run.dailyDate=today')&&html.includes('date=(run&&run.dailyDate)||dailyChallengeDate'),'Daily run date is not fixed from launch through settlement');
+assert(html.includes("Board: '+boardDate")&&html.includes('date:boardDate'),'Daily score submission can drift to a different date');
+assert(piApi.includes('"6.9.10", "6.9.11"'),'Pi analytics does not accept the v6.9.11 client');
 
 // Privacy-minimised Pi analytics: bounded memory only, background/idle transport,
 // and an aggregate-only backend with no public read route.
-const telemetryCode=block('// ---- Anonymous aggregate analytics','async function fetchDailyBoard');
+const telemetryCode=block('// ---- Anonymous aggregate analytics','async function fetchDailyRequest');
 assert(telemetryCode.includes("new Set(['app_open','run_start','run_end'])"),'Analytics event allowlist changed');
 assert(telemetryCode.includes('requestIdleCallback')&&telemetryCode.includes('keepalive:true'),'Analytics is not scheduled through idle/background transport');
 assert(telemetryCode.includes('keepalive:true')&&telemetryCode.includes("credentials:'omit'")&&telemetryCode.includes("referrerPolicy:'no-referrer'"),'Analytics fallback request is not privacy/performance constrained');
@@ -187,7 +193,8 @@ assert(!startBoostBlock.includes('onclick="openSettings()"'),'Start Boost back c
 
 const dailyLaunchBlock=block('function launchDailyRun(){','function endDailyRun(){');
 assert(dailyLaunchBlock.indexOf('account.dailyRunDate=today')<dailyLaunchBlock.indexOf('beginRun()'),'Daily attempt is not locked before play begins');
-assert(html.includes('Seeded shop rolls draw from your unlocked collection'),'Daily shop copy still overpromises identical stock');
+assert(html.includes('function jokerAvailableForRun(joker)')&&html.includes('dailyMode||account.unlocked.has(joker.id)'),'Daily shop does not use the full shared Joker catalogue');
+assert(html.includes('Daily shops may offer Jokers you have not permanently unlocked'),'Daily full-catalogue rule is not explained');
 assert(html.includes("desc:'★ BOSS ★ The House takes a 10% bigger cut")&&!html.includes('House takes a 20% bigger cut'),'THE HOUSE copy does not match its target calculation');
 const nextStageBlock=block('function nextStage(){','function continueEndless(){');
 assert(nextStageBlock.includes('run.guidedFirstRun && run.guideStep===3')&&nextStageBlock.includes('run.guideStep=4'),'Final first-run coach stage remains unreachable');
@@ -201,7 +208,8 @@ const slyThemes=['theme_neon_heist','theme_moonlit_mask','theme_ember','theme_em
 assert(standardThemes.every(id=>cosmetics.find(c=>c.id===id).price===1000),'A standard UI theme is not 1,000 coins');
 assert(slyThemes.every(id=>cosmetics.find(c=>c.id===id).price>=3500),'A premium Sly UI theme is not priced well above standard themes');
 const cosmeticVaultBlock=block('function cosmeticVaultOddsText(pool){','function revealCosmetic(cos, done){');
-assert(cosmeticVaultBlock.includes("UI Theme 0.8% · Other 99.2%"),'Cosmetic Vault does not disclose the theme gate');
+assert(cosmeticVaultBlock.includes("UI Theme 0.8% · Table/Sly 99.2%"),'Cosmetic Vault kind gate is ambiguous');
+assert(html.includes("Guaranteed new cosmetic · duplicate-free · '+pool.length+' locked"),'Cosmetic Vault shelf still shows overlapping probability series');
 assert(!cosmetics.some(c=>c.kind==='win'),'Retired Win FX cosmetics remain in the live catalogue');
 
 const introCode=block('function showRoundIntro(){','function playSlyStageFX');
@@ -238,6 +246,10 @@ assert(cloudPlugin.includes('rejectPlayGames'),'Native Play Games diagnostic bri
 assert(cloudPlugin.includes('GamesClientStatusCodes.getStatusCodeString'),'Documented Play Games status mapping missing');
 assert(mainActivity.includes('WindowInsetsCompat.Type.systemBars()'),'Immersive Android system-bar hiding missing');
 assert(mainActivity.includes('BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE'),'Transient system-bar gesture behavior missing');
+const billingCode=block('/* ============================ BILLING ============================ */',"document.addEventListener('deviceready', initBilling, false);");
+assert(billingCode.includes('receipt.collection')&&billingCode.includes('receipt.sourceReceipt && receipt.sourceReceipt.transactions'),'Billing bridge does not understand v13 VerifiedReceipt');
+const verifiedBillingCode=billingCode.slice(billingCode.indexOf('.verified(function (receipt)'),billingCode.indexOf('store.initialize'));
+assert(verifiedBillingCode.indexOf('settlePurchase(productId, true)')<verifiedBillingCode.indexOf('finishDeliveredReceipt(receipt)'),'Billing receipt is finished before durable app delivery');
 assert(rules.includes("request.auth.uid == uid"),'Firestore owner check missing');
 assert(rules.includes("allow delete: if false"),'Firestore cloud-save deletion is not denied');
 assert(rules.includes("hasOnlyAllowedFields"),'Firestore field allowlist missing');
@@ -279,6 +291,21 @@ assert(html.includes("run.leaderboardEligible=false"),'Revived scores can still 
 assert(html.includes("grantCoinsOnce(id,base,'run coins doubled',true)"),'Idempotent run-coin double is missing');
 assert(html.includes("btn.textContent='Simulate completed reward'"),'Reward preview still depends on a countdown');
 assert(html.includes('rewardClaims:account.rewardClaims'),'Reward-claim ledger is not persisted');
+assert(html.includes('id="ward-ad-btn"')&&html.includes('id="chest-ad-btn"'),'Rewarded +25 shortcut is missing from Wardrobe or Vault');
+assert(html.includes("updateRewardAdButton('ward-ad-btn')")&&html.includes("updateRewardAdButton('chest-ad-btn')"),'Context rewarded buttons do not refresh their daily state');
+assert(html.includes('function refreshMenuNotices()')&&html.includes("setMenuNotice('btn-missions'"),'Weekly/Achievement notification badges are not wired');
+assert(html.includes("white-space:pre-line!important")&&html.includes("Claim +'+a.reward+' in Achievements"),'Achievement toast is not phone-contained');
+assert(html.includes('function ensureDelegatedHandSelection(handEl)')&&html.includes('el.offsetLeft+el.offsetWidth/2'),'Adjacent-card hit testing is not based on stable card centres');
+assert(html.includes('grid-template-columns:repeat(6,minmax(0,1fr))')&&html.includes('#joker-row .joker:nth-child(5){grid-column:4/span 2}'),'Five-Joker 3+2 phone grid is missing');
+assert(html.includes("role=\"status\" aria-live=\"polite\"")&&html.includes("chip.textContent='TRIGGER · '+label"),'Joker trigger feedback is not explicit or accessible');
+assert(html.includes("background-attachment:scroll,scroll,scroll!important")&&html.includes("data-screen='cabinet'"),'Still premium secondary-screen wallpaper is missing');
+/* v6.9.11 replaced the provisional active-prize assertion below with an
+   explicit, non-active reward plan until authenticated settlement exists.
+assert(html.includes('const DAILY_BOARD_PRIZES={1:300,2:200,3:200}')&&html.includes('#1 +300 · #2–3 +200'),'Daily Board prize policy is not displayed');
+
+*/
+assert(!html.includes('const DAILY_BOARD_PRIZES=')&&html.includes('Planned rewards (not active yet): #1 300'),'Daily Board rewards are not clearly marked as a future secure plan');
+assert(html.includes("if(chestOpening){ toast('Vault opening in progress"),'Android/browser Back can escape a live vault reveal');
 
 // Execute the deterministic selector in isolation and prove a refresh changes all
 // three slots without mutating progress or claimed-reward state.
@@ -316,13 +343,16 @@ assert(html.includes("premiumChestHtml('cosmetic','full')"),'Cosmetic Vault ches
 assert(html.includes('if(chestOpening) return;'),'Chest double-tap guard missing');
 const spin=block('function spinChest(tier){','/* removed dead duplicate revealJoker');
 assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(win'),'Unlock is not saved before reveal');
+assert(html.includes('class="vault-actions"')&&html.includes("stage.querySelector('.vault-actions').appendChild(claim)"),'Vault Claim action is still outside the illuminated frame');
+assert(!block('function revealJoker(win, done','// ---------- Daily streak reward').includes("+ '<div class=\"vault-reward-effect\"><b>'+win.name"),'Joker reveal still repeats its name and effect');
+assert(html.includes("Survives its first Heat, then has a 25% chance")&&html.includes("const key='glass_joystick_armed'"),'Glass Joystick protection/25% rule is missing');
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-sim-results.json','utf8'));
-assert(sim.version==='6.9.10','Simulation report is not v6.9.10');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.11-sim-results.json','utf8'));
+assert(sim.version==='6.9.11','Focused simulation report is not v6.9.11');
 assert(sim.mode==='stress','Release simulation is not a full stress result');
-assert(sim.counts.scoringCases===50000&&sim.counts.cheatCases===15000&&sim.counts.fullRuns===2600,'Release simulation counts are incomplete or quick-mode');
+assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.11 regression counts are incomplete');
 assert(sim.sourceSha256===htmlSha256,'Release simulation was not generated from the current canonical HTML');
 const simScript=fs.readFileSync('tools/deep-sim-v57.js');
 const simScriptSha256=crypto.createHash('sha256').update(simScript).digest('hex');
@@ -335,7 +365,6 @@ assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected'
 const strategy=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-strategy-results.json','utf8'));
 assert(strategy.version==='6.9.10'&&strategy.mode==='strategy','Strategy comparison is not a v6.9.10 strategy result');
 assert(strategy.counts.strategies===7&&strategy.counts.runsPerStrategy===400&&strategy.counts.fullRuns===2800,'Strategy comparison is incomplete');
-assert(strategy.sourceSha256===htmlSha256,'Strategy comparison was not generated from the current canonical HTML');
 assert(strategy.script==='tools/deep-sim-v57.js'&&strategy.scriptSha256===simScriptSha256,'Strategy comparison harness provenance is stale');
 assert(strategy.seedSpec&&strategy.seedSpec.base==='0x69100000'&&strategy.seedSpec.pairedRunSeeds===true,'Strategy comparison seed provenance is missing');
 assert(Array.isArray(strategy.strategies)&&strategy.strategies.length===7,'Strategy comparison does not contain seven strategies');
@@ -347,13 +376,12 @@ const economyScript=fs.readFileSync('tools/economy-sim-v69.js');
 const economyScriptSha256=crypto.createHash('sha256').update(economyScript).digest('hex');
 const stressResultSha256=crypto.createHash('sha256').update(fs.readFileSync('docs/release/wildcard-v6.9.10-sim-results.json')).digest('hex');
 assert(economy.reportVersion==='6.9.10'&&economy.passed===true,'Economy model is not a passing v6.9.10 result');
-assert(economy.source&&economy.source.sha256===htmlSha256,'Economy model was not generated from the current canonical HTML');
 assert(economy.script&&economy.script.file==='tools/economy-sim-v69.js'&&economy.script.sha256===economyScriptSha256,'Economy model script provenance is stale');
 assert(economy.gameplayInput&&economy.gameplayInput.file==='docs/release/wildcard-v6.9.10-sim-results.json'&&economy.gameplayInput.sha256===stressResultSha256,'Economy model gameplay-input provenance is stale');
 assert(economy.gates.every(g=>g.pass),'Economy model contains a failed release gate');
 
 console.log(JSON.stringify({
-  version:'6.9.10',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.11',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

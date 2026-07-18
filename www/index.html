@@ -1780,6 +1780,139 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
   .joker-text-visual{min-height:82px;padding:8px}.joker-text-visual .jdesc{font-size:9.4px}
   .joker-inspect-text .joker-inspect-card,.joker-inspect-text .joker-inspect-face{min-height:390px}
 }
+
+/* ===================== v6.9.11 mobile readability pass =====================
+   Scoring is information, not decoration. Keep the phone layout dense while
+   giving every card a reliable hit target and every Joker trigger time to read. */
+body{--marquee-core:var(--gold);--marquee-glow:var(--mint)}
+.bgfx .marquee-bulbs{
+  background:
+    radial-gradient(circle,var(--marquee-core) 0 5px,color-mix(in srgb,var(--marquee-core) 48%,transparent) 6px,transparent 10px) 0 12px/44px 24px repeat-x,
+    linear-gradient(180deg,color-mix(in srgb,var(--marquee-core) 16%,transparent),transparent 74%);
+  filter:drop-shadow(0 0 12px color-mix(in srgb,var(--marquee-glow) 74%,transparent));
+  animation-name:marqueeTheme;
+}
+.bgfx.modifier-active{--marquee-core:var(--coral);--marquee-glow:var(--violet)}
+.bgfx.modifier-active .marquee-bulbs{filter:drop-shadow(0 0 12px color-mix(in srgb,var(--marquee-glow) 74%,transparent));}
+@keyframes marqueeTheme{
+  0%{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--marquee-glow) 48%,transparent)) brightness(.9)}
+  100%{filter:drop-shadow(0 0 16px color-mix(in srgb,var(--marquee-glow) 92%,transparent)) brightness(1.3)}
+}
+
+/* A still, theme-tinted poker room for the collection and settings screens. */
+body[data-screen='settings'] .bgfx,
+body[data-screen='achievements'] .bgfx,
+body[data-screen='cabinet'] .bgfx,
+body[data-screen='missions'] .bgfx,
+body[data-screen='unlocks'] .bgfx,
+body[data-screen='howto'] .bgfx,
+body[data-screen='wardrobe'] .bgfx,
+body[data-screen='store'] .bgfx{
+  background-color:#080414!important;
+  background-image:
+    var(--ui-art-tint),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><text x='14' y='54' font-size='34' fill='%23F6EFDF' fill-opacity='.12'>%E2%99%A0</text><text x='108' y='68' font-size='30' fill='%23FF4FD8' fill-opacity='.10'>%E2%99%A5</text><text x='48' y='142' font-size='32' fill='%2345E0C6' fill-opacity='.11'>%E2%99%A3</text><text x='132' y='162' font-size='28' fill='%23F0B94B' fill-opacity='.10'>%E2%99%A6</text></svg>"),
+    var(--art-menu-palace)!important;
+  background-position:center,center,center top!important;
+  background-size:cover,180px 180px,cover!important;
+  background-repeat:no-repeat,repeat,no-repeat!important;
+  background-attachment:fixed,fixed,fixed!important;
+}
+body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx::after,
+body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx .suit-rain,
+body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx .blob,
+body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx .spotlight,
+body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx .casino-floor{display:none!important}
+
+.btn.has-notice{position:relative}
+.btn.has-notice::after{
+  content:attr(data-notice);position:absolute;z-index:8;right:6px;top:5px;
+  display:grid;place-items:center;min-width:17px;height:17px;padding:0 4px;
+  border:2px solid #241505;border-radius:10px;background:#ffd34e;color:#241505;
+  font:8px/1 'Bungee',sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.48);
+}
+.context-ad-btn{min-height:36px!important;padding:7px 12px!important;font-size:10px!important}
+
+.vault-actions{position:relative;z-index:40;display:flex;justify-content:center;width:100%;margin:10px auto 0}
+.vault-actions .vault-claim{
+  display:block;width:100%;max-width:330px;min-height:52px;margin:0 auto;
+  padding:12px 16px!important;opacity:1!important;filter:none!important;
+  border-color:#ffe9a4!important;background:linear-gradient(180deg,#ffd867,#e9a92e)!important;
+  color:#251505!important;box-shadow:0 5px 0 #8f5a12,0 10px 22px rgba(0,0,0,.46)!important;
+}
+.vault-stage.reward-ready .vault-beam{opacity:.18!important}
+.vault-stage.reward-ready .vault-particles{display:none}
+
+.cab-stat{min-width:0;overflow-wrap:anywhere}
+.cab-stat b{font-size:clamp(16px,5.3vw,24px);overflow-wrap:anywhere}
+
+#joker-row .joker.proc{
+  outline:3px solid var(--cream)!important;outline-offset:-2px;
+  animation:jokerProcReadable .9s ease-out!important;
+}
+#joker-row .proc-chip{pointer-events:none}
+#joker-row .proc-chip.show{animation:procChipReadable 1s ease-out forwards!important}
+@keyframes jokerProcReadable{
+  0%{transform:translateY(0) scale(1);border-color:var(--jr)}
+  28%{transform:translateY(-5px) scale(1.035);border-color:#fff}
+  100%{transform:translateY(0) scale(1);border-color:var(--jr)}
+}
+@keyframes procChipReadable{
+  0%{opacity:0;transform:translateY(5px)}
+  18%,78%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-3px)}
+}
+body:has(#game.active) #wc-toast{
+  width:max-content;max-width:min(calc(100vw - 36px),360px);
+  white-space:pre-line!important;overflow-wrap:anywhere;line-height:1.3;
+  border-radius:14px;text-wrap:balance;
+}
+
+@media(max-width:640px){
+  body:is([data-screen='settings'],[data-screen='achievements'],[data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],[data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']) .bgfx{
+    background-attachment:scroll,scroll,scroll!important;
+  }
+
+  /* Six grid columns let the first three Jokers fill row one and centre two on
+     row two. Empty slots retain the same footprint, so the table never jumps. */
+  #joker-row{
+    display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    grid-auto-rows:minmax(58px,auto)!important;gap:5px!important;
+    min-height:121px!important;overflow:visible!important;padding:0!important;
+  }
+  #joker-row .joker{
+    grid-column:span 2;min-width:0!important;width:auto!important;min-height:58px!important;
+    padding:6px!important;overflow:hidden!important;
+  }
+  #joker-row .joker:nth-child(4){grid-column:2/span 2}
+  #joker-row .joker:nth-child(5){grid-column:4/span 2}
+  #joker-row .joker .jname{font-size:8.6px!important;line-height:1.12!important}
+  #joker-row .joker .jdesc{
+    display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2!important;
+    overflow:hidden;font-size:8px!important;line-height:1.17!important;
+  }
+  #joker-row .joker.empty{
+    grid-column:span 2!important;min-width:0!important;width:auto!important;
+    min-height:58px!important;height:auto!important;
+  }
+  #joker-row .joker.empty:nth-child(4){grid-column:2/span 2!important}
+  #joker-row .joker.empty:nth-child(5){grid-column:4/span 2!important}
+  #joker-live-status{max-width:82%;font-size:9.5px;white-space:normal;line-height:1.2}
+
+  /* Less overlap from 360px upward; delegated hit-testing below uses these
+     untransformed centres so a raised selected card cannot steal a neighbour. */
+  #hand .card{
+    flex-basis:clamp(40px,11.2vw,46px)!important;
+    width:clamp(40px,11.2vw,46px)!important;
+    min-width:clamp(40px,11.2vw,46px)!important;
+    margin-left:clamp(-4px,-.8vw,-2.5px)!important;
+  }
+  #hand .card.selected{transform:translateY(-18px) scale(1.025)!important}
+  .vault-stage{overflow:hidden}
+}
+@media(max-width:359px){
+  #hand .card{flex-basis:38px!important;width:38px!important;min-width:38px!important;margin-left:-6.5px!important}
+}
 </style>
 </head>
 <body>
@@ -1831,7 +1964,7 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.10</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.11</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -1860,7 +1993,7 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
       <div class="stat-row"><span>Shops sell <b>jokers</b> (max 1 per shop, 5 slots, swap when buying at full slots, sell in any shop) and <b>supplies</b>: destroy, copy or re-suit deck cards, and <b>Hand Boosts</b> that permanently level up a hand type's base value.</span></div>
       <div class="stat-row"><span>Money earns <b>interest</b>: +1 run coin per 5 held when you clear a Heat (max +5). Spend or compound — your call. Reroll the joker offer for 2 coins.</span></div>
       <div class="stat-row"><span>Clearing a Heat in fewer plays earns a better <b>grade</b>: S (+3 coins), A (+2), B (+1), C. Top 5 runs make the high score board.</span></div>
-      <div class="stat-row"><span>Tap anywhere during scoring to <b>fast-forward</b>. Tap 🃏 Deck to inspect your sculpted deck — supply changes join the deck from the <b>next Heat</b>.</span></div>
+      <div class="stat-row"><span>Use the <b>Scoring speed</b> setting for Normal or Fast pacing. Tap 🃏 Deck to inspect your sculpted deck — supply changes join the deck from the <b>next Heat</b>.</span></div>
       <div class="stat-row"><span>Clear Heat 12 to win, then go Endless (Heat 13+). Higher Heats pay more run and account coins — spend account coins on permanent joker unlocks.</span></div>
       <div class="stat-row"><span>The <b>Enhancer</b> supply etches a card permanently: <b>Gilded</b> +8 rank · <b>Neon</b> +0.20 Mult · <b>Glass</b> ×1.5 Mult but may shatter · <b>Wild</b> counts as any suit for Flushes.</span></div>
       <div class="stat-row"><span>Between runs: <b>Weekly Missions</b> and the one-attempt <b>Daily Challenge</b> pay account coins, the <b>Cabinet</b> tracks badges and titles, and <b>Sly's Stake Contract</b> lets you back yourself from the Start Boost screen.</span></div>
@@ -1969,6 +2102,9 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
     <button class="top-back" aria-label="Back" onclick="showScreen('menu'); updateMenuAccount()">←</button>
     <h2>🎨 Wardrobe</h2>
     <p class="sub">Balance: <b style="color:var(--gold)"><span id="ward-coins">0</span></b> coins · Buy and equip cosmetics. Pure looks — zero effect on scoring.</p>
+    <div style="display:flex;justify-content:center;margin:7px 0 10px">
+      <button class="btn ghost context-ad-btn" id="ward-ad-btn" onclick="rewardedAd('Wardrobe coins', REWARD_AD_COINS, renderWardrobe)">📺 +25 coins</button>
+    </div>
     <div class="ward-tabs" id="ward-tabs"></div>
     <div id="ward-preview" class="ward-preview"></div>
     <div class="ward-grid" id="ward-grid"></div>
@@ -1982,6 +2118,9 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
     <button class="top-back" aria-label="Back" onclick="showScreen('unlocks'); renderUnlocks()">←</button>
     <h2>🎁 Joker Chests</h2>
     <p class="sub">Balance: <b style="color:var(--gold)"><span id="chest-coins">0</span></b> coins &nbsp;·&nbsp; spin for a random <b>locked</b> joker — cheaper than buying it outright.</p>
+    <div style="display:flex;justify-content:center;margin:7px 0 10px">
+      <button class="btn ghost context-ad-btn" id="chest-ad-btn" onclick="rewardedAd('Vault coins', REWARD_AD_COINS, renderChest)">📺 +25 coins</button>
+    </div>
     <div class="shop-items" id="chest-cards"></div>
     <p class="sub" style="color:var(--mint);margin-top:-8px">New reveal: rarity locks first, then the exact joker spins in.</p>
     <p class="sub" id="chest-pity" style="color:var(--rare)"></p>
@@ -2022,7 +2161,7 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
     <div class="modifier-banner" id="build-banner" style="display:block;border-color:var(--mint);background:rgba(12,35,30,.55)"></div>
     <div id="first-run-coach" class="first-run-coach" style="display:none"></div>
 
-    <div class="joker-strip-head"><b>Jokers</b><span id="joker-live-status">Tap a Joker for its full effect</span></div>
+    <div class="joker-strip-head"><b>Jokers</b><span id="joker-live-status" role="status" aria-live="polite">Tap a Joker for its full effect</span></div>
     <div class="jokers" id="joker-row"></div>
 
     <div class="equation">
@@ -2425,11 +2564,42 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
     { id: 'coins_8500', consumable: true },
     { id: 'remove_ads', consumable: false }
   ];
-  var billing = { ready: false, waiting: {} };
+  var billing = { ready: false, waiting: {}, activeProductId: null };
 
   // Fail-closed defaults prevent native builds from granting demo purchases.
   WN.purchase = function (productId, cb) { callback(cb, false); };
   WN.restorePurchases = function (cb) { callback(cb, []); };
+
+  function verifiedProductIds(receipt) {
+    var ids = [];
+    function add(id) {
+      if (typeof id !== 'string' || !id || ids.indexOf(id) !== -1) return;
+      ids.push(id);
+    }
+    function addTransactions(transactions) {
+      (Array.isArray(transactions) ? transactions : []).forEach(function (transaction) {
+        (transaction && Array.isArray(transaction.products) ? transaction.products : [])
+          .forEach(function (product) { add(product && product.id); });
+      });
+    }
+    (receipt && Array.isArray(receipt.collection) ? receipt.collection : [])
+      .forEach(function (purchase) { add(purchase && purchase.id); });
+    addTransactions(receipt && receipt.sourceReceipt && receipt.sourceReceipt.transactions);
+    addTransactions(receipt && receipt.transactions);
+    if (receipt && receipt.transaction) addTransactions([receipt.transaction]);
+    return ids;
+  }
+  function settlePurchase(productId, success) {
+    var cb = billing.waiting[productId];
+    if (!cb) return false;
+    delete billing.waiting[productId];
+    if (billing.activeProductId === productId) billing.activeProductId = null;
+    callback(cb, !!success);
+    return true;
+  }
+  function finishDeliveredReceipt(receipt) {
+    try { Promise.resolve(receipt.finish()).catch(function () {}); } catch (e) {}
+  }
 
   function initBilling() {
     var Purchase = window.CdvPurchase;
@@ -2448,18 +2618,9 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
       store.when()
         .approved(function (transaction) { transaction.verify(); })
         .verified(function (receipt) {
-          receipt.finish();
-          try {
-            (receipt.transactions || [receipt.transaction] || []).forEach(function (transaction) {
-              (transaction && transaction.products || []).forEach(function (product) {
-                var cb = billing.waiting[product.id];
-                if (cb) {
-                  delete billing.waiting[product.id];
-                  callback(cb, true);
-                }
-              });
-            });
-          } catch (e) {}
+          var productId = billing.activeProductId;
+          if (!productId || verifiedProductIds(receipt).indexOf(productId) === -1) return;
+          if (settlePurchase(productId, true)) finishDeliveredReceipt(receipt);
         });
 
       store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
@@ -2467,18 +2628,15 @@ body.perf-lite #joker-row .joker.proc{filter:none!important;box-shadow:none!impo
       }).catch(function () {});
 
       WN.purchase = function (productId, cb) {
-        if (!billing.ready || billing.waiting[productId]) { callback(cb, false); return; }
+        if (!billing.ready || billing.activeProductId) { callback(cb, false); return; }
         var product = store.get(productId, Purchase.Platform.GOOGLE_PLAY);
         var offer = product && product.getOffer && product.getOffer();
         if (!offer) { callback(cb, false); return; }
+        billing.activeProductId = productId;
         billing.waiting[productId] = cb;
         store.order(offer).then(function (err) {
-          if (err) {
-            var failed = billing.waiting[productId];
-            delete billing.waiting[productId];
-            callback(failed, false);
-          }
-        });
+          if (err) settlePurchase(productId, false);
+        }).catch(function () { settlePurchase(productId, false); });
       };
 
       WN.restorePurchases = function (cb) {
@@ -2725,8 +2883,16 @@ const JOKERS = [
     xMult:ctx=>ctx.handsPlayedThisStage===0?1.3:1},
   {id:'prism_lens', name:'Prism Lens', rarity:'wild', desc:'×1.35 Multiplier when 5+ played cards share one colour.', price:10, unlock:190,
     xMult:ctx=>allSameColor(ctx.cards)&&ctx.cards.length>=5?1.35:1},
-  {id:'glass_joystick', name:'Glass Joystick', rarity:'wild', desc:'×3 Multiplier — but a 1-in-5 chance to shatter (sells itself) when you clear a Heat.', price:12, unlock:200,
-    xMult:()=>3, onHeatClear:()=>{ if(rnd('luck')<0.2){ run.jokers=run.jokers.filter(j=>j.id!=='glass_joystick'); } }},
+  {id:'glass_joystick', name:'Glass Joystick', rarity:'wild', desc:'×3 Multiplier. Survives its first Heat, then has a 25% chance to shatter on later clears.', price:12, unlock:200, stateKey:'glass_joystick_armed',
+    xMult:()=>3, onHeatClear:()=>{
+      const key='glass_joystick_armed';
+      if(!run.jokerState[key]){ run.jokerState[key]=1; return; }
+      if(rnd('luck')<0.25){
+        run.jokers=run.jokers.filter(j=>j.id!=='glass_joystick');
+        delete run.jokerState[key];
+        setTimeout(()=>toast('Glass Joystick shattered after the clear.','var(--violet)'),0);
+      }
+    }},
 ];
 function hasJoker(id){ return !!(run && run.jokers.some(j=>j.id===id)); }
 function mostCommonRank(cards){
@@ -2915,13 +3081,15 @@ function toggleHaptics(){
 }
 
 const reducedMotion = (typeof matchMedia!=='undefined') && matchMedia('(prefers-reduced-motion: reduce)').matches;
-let ffwd=false;   // tap during scoring to fast-forward
-// reduced-motion softens decorative animation elsewhere, but the scoring rhythm IS information —
-// cap it rather than zero it, or scoring becomes an unreadable instant snap.
+let ffwd=false;   // used only by the explicit "finish then abandon" action
 const sleep = ms => new Promise(res=>setTimeout(res, reducedMotion?Math.min(ms,160):(ffwd?Math.min(ms,40):ms)));
-// v6.9.10 keeps the optimized path but gives Normal a subtle 4% breathing room.
-// Terminal transitions stay unscaled so future tuning cannot slow them twice.
-const beat = ms => sleep(Math.round(ms * (account.speed==='fast'?0.55:1.04)));
+// v6.9.11: the previous Normal pace is now Fast. Normal deliberately gives
+// cards and Joker effects enough time to be understood without adding heavy FX.
+const SCORE_PACE={normal:1.85,fast:1.04};
+const beat = ms => new Promise(res=>{
+  const paced=Math.round(ms*SCORE_PACE[account.speed==='fast'?'fast':'normal']);
+  setTimeout(res, reducedMotion?Math.min(paced,160):(ffwd?Math.min(ms,40):paced));
+});
 const suspenseBeat = ms => new Promise(res=>setTimeout(res, Math.round((ffwd?Math.max(140,ms*0.72):ms) * (account.speed==='fast'?0.75:1))));
 function toggleSpeed(){
   account.speed = account.speed==='fast' ? 'normal' : 'fast';
@@ -2930,7 +3098,6 @@ function toggleSpeed(){
   if(b) b.textContent = account.speed==='fast' ? '⚡' : '🎬';
   tone(account.speed==='fast'?760:420,0.07);
 }
-if(typeof document!=='undefined') document.addEventListener('pointerdown', ()=>{ if(run && run.animating) ffwd=true; });
 
 // ---------- Persistence ----------
 const SAVE_KEY='wildcard_save_v1';
@@ -3351,6 +3518,7 @@ function swatchHtml(cos){
 }
 function renderWardrobe(){
   document.getElementById('ward-coins').textContent=account.coins;
+  updateRewardAdButton('ward-ad-btn');
   const tabs=document.getElementById('ward-tabs');
   tabs.innerHTML='';
   WARD_TABS.forEach(([k,label])=>{
@@ -3665,7 +3833,8 @@ function awardAchievement(id){
   const a=achievementById(id); if(!a) return;
   account.achievements[id]=Date.now();
   saveAccount();
-  toast('Achievement unlocked: '+a.name+' · claim +'+a.reward+' in Achievements', 'var(--mint)');
+  toast('🏆 '+a.name+' unlocked\nClaim +'+a.reward+' in Achievements', 'var(--mint)', 3200);
+  refreshMenuNotices();
   nativeHaptic('success');
 }
 function claimAchievement(id){
@@ -3676,6 +3845,7 @@ function claimAchievement(id){
   saveAccount();
   renderAchievements();
   updateMenuAccount();
+  refreshMenuNotices();
 }
 let achievementChecking = false;
 function checkAchievements(){
@@ -4118,6 +4288,7 @@ function updateMenuAccount(){
   }
   const mt=document.getElementById('menu-title');
   if(mt){ const tn=currentTitleName(); mt.textContent = tn ? ('“'+tn+'”') : ''; mt.style.display = tn?'block':'none'; }
+  refreshMenuNotices();
 }
 
 function openLocalScores(){
@@ -4146,7 +4317,13 @@ function openMoreMenu(){
     ['Play Games Rankings',openOfficialLeaderboard],
     ['How to Play',()=>{ closeOverlay(); showScreen('howto'); }]
   ];
-  actions.forEach(([label,action])=>{ const b=document.createElement('button'); b.className='btn ghost'; b.textContent=label; b.onclick=action; grid.appendChild(b); });
+  actions.forEach(([label,action])=>{
+    const b=document.createElement('button'); b.className='btn ghost'; b.textContent=label; b.onclick=action;
+    if(label==='Achievements'&&unclaimedAchievementCount()){
+      b.classList.add('has-notice'); b.dataset.notice=String(Math.min(9,unclaimedAchievementCount()));
+    }
+    grid.appendChild(b);
+  });
   body.appendChild(grid);
 }
 
@@ -4568,14 +4745,15 @@ async function playHand(){
   };
   const procJoker = (jel, label) => {
     if(!jel) return;
-    const visible=account.speed==='fast'?460:700;
+    const visible=account.speed==='fast'?700:1050;
     replayUiPulse(jel,'proc',visible);
-    let chip=[...jel.children].find(n=>n.classList&&n.classList.contains('proc-chip'));
+    let chip=jel.querySelector('.proc-chip');
     if(!chip){ chip=document.createElement('div'); chip.className='proc-chip'; jel.appendChild(chip); }
-    chip.textContent=label;
+    chip.textContent='TRIGGER · '+label;
     replayUiPulse(chip,'show',visible);
     const jname=(jel.querySelector('.jname')||{}).textContent||'Joker';
-    jokerProcCount++; lastJokerProc=jname+' · '+label;
+    jokerProcCount++; lastJokerProc=jname+' → '+label;
+    if(jokerProcCount===1) nativeHaptic('light');
     if(jokerStatus){ jokerStatus.textContent=lastJokerProc; replayUiPulse(jokerStatus,'active',visible); }
   };
 
@@ -4596,7 +4774,7 @@ async function playHand(){
       bumpVP(ev.amount);
       chipOn(cel, ev.label, 'var(--violet)');
       tone(560+(toneStep++)*40, 0.09, 'triangle');
-      await beat(260);
+      await beat(account.speed==='fast'?260:360);
     }
     else if(ev.type==='retrigger'){
       const cel=cardElFor(ev.idx);
@@ -4605,7 +4783,7 @@ async function playHand(){
       bumpVP(ev.amount);
       chipOn(cel, 'AGAIN +'+ev.amount, 'var(--violet)');
       tone(620,0.1,'triangle');
-      await beat(260);
+      await beat(account.speed==='fast'?260:360);
     }
     else if(ev.type==='seven'){
       const cel=cardElFor(ev.idx), jel=jokerEls[ev.jokerIdx];
@@ -4639,7 +4817,7 @@ async function playHand(){
         updateTotal();
       }
       tone(700+(toneStep++)*50, 0.09, 'sawtooth', 0.04);
-      await beat(260);
+      await beat(account.speed==='fast'?260:360);
     }
   }
 
@@ -5080,7 +5258,8 @@ function gameOver(won){
   renderDoubleCoinsOffer();
   if(run._wasDaily){
     const gs=document.getElementById('go-stats');
-    gs.innerHTML = `<div class="stat-row" style="border:2px solid var(--rare)"><span>🎯 Daily Challenge run</span><b><button class="btn" style="padding:7px 14px;font-size:12px" onclick="openDailySubmit(${run.totalScore})">Post to today's board</button></b></div>` + gs.innerHTML;
+    const dailyDate=/^\d{4}-\d{2}-\d{2}$/.test(run.dailyDate||'')?run.dailyDate:(account.dailyRunDate||todayStr());
+    gs.innerHTML = `<div class="stat-row" style="border:2px solid var(--rare)"><span>🎯 Daily Challenge run</span><b><button class="btn" style="padding:7px 14px;font-size:12px" onclick="openDailySubmit(${run.totalScore},'${dailyDate}')">Post to ${dailyDate} board</button></b></div>` + gs.innerHTML;
   }
   const proceed=()=>showAdBreak(()=>showScreen('gameover'));
   if(!won) playDeathScreen(run.abandoned?'terminated':'gameover',proceed); else proceed();
@@ -5140,9 +5319,12 @@ function updateWildPityFromOffers(offers, countForHeatShop, wildAvailable){
     run.wildMissShops=Math.min(WILD_PITY_AFTER_SHOPS, (run.wildMissShops||0)+1);
   }
 }
+function jokerAvailableForRun(joker){
+  return !!joker&&(dailyMode||account.unlocked.has(joker.id));
+}
 function rollJokerOffers(countForHeatShop=false){
   const owned = new Set(run.jokers.map(j=>j.id));
-  const pool = JOKERS.filter(j=>account.unlocked.has(j.id) && !owned.has(j.id));
+  const pool = JOKERS.filter(j=>jokerAvailableForRun(j) && !owned.has(j.id));
   const wildPool = pool.filter(j=>j.rarity==='wild');
   const wildAvailable = wildPool.length>0;
   const forceWild = countForHeatShop && wildAvailable && (run.wildMissShops||0) >= WILD_PITY_AFTER_SHOPS;
@@ -5194,7 +5376,7 @@ function updateShopSub(){
     + bits.join(' · ')
     + ` &nbsp;|&nbsp; Run coins: <b style="color:var(--gold)">${run.runCoins}</b>`
     + (run.lastWildPityForced ? ' &nbsp;|&nbsp; <b style="color:var(--wild)">WILD surfaced!</b>' : '')
-    + (JOKERS.some(j=>j.rarity==='wild' && account.unlocked.has(j.id) && !run.jokers.some(o=>o.id===j.id))
+    + (JOKERS.some(j=>j.rarity==='wild' && jokerAvailableForRun(j) && !run.jokers.some(o=>o.id===j.id))
         ? ` &nbsp;|&nbsp; <span style="color:var(--cream-dim)">WILD meter ${run.wildMissShops||0}/${WILD_PITY_AFTER_SHOPS}</span>` : '')
     + (run.inflation ? ' &nbsp;|&nbsp; <b style="color:var(--coral)">Inflation: prices +2</b>' : '');
 }
@@ -5209,7 +5391,7 @@ function showGradeStamp(){
 
 function jokerPoolSize(){
   const owned=new Set(run.jokers.map(j=>j.id));
-  return JOKERS.filter(j=>account.unlocked.has(j.id) && !owned.has(j.id)).length;
+  return JOKERS.filter(j=>jokerAvailableForRun(j) && !owned.has(j.id)).length;
 }
 function rerollShop(){
   if(run.runCoins<REROLL_COST || run.boughtThisShop || run.pendingShopJoker) return;
@@ -5812,10 +5994,15 @@ function setHint(t){
   if(t) setHint._timer=setTimeout(()=>{ if(hint.textContent===t) hint.textContent=''; },2400);
 }
 function replayUiPulse(el, className, duration){
-  if(!el || reducedMotion) return;
+  if(!el) return;
   const timerKey='_wcPulse'+className;
   el.classList.remove(className);
   clearTimeout(el[timerKey]);
+  if(reducedMotion){
+    el.classList.add(className);
+    el[timerKey]=setTimeout(()=>el.classList.remove(className),Math.max(450,duration||0));
+    return;
+  }
   requestAnimationFrame(()=>{
     if(!el.isConnected) return;
     el.classList.add(className);
@@ -5883,6 +6070,35 @@ function runCoachRows(){
   if(run.stage>=7 && run.destroyedCount+run.copiedCount<3) rows.push(['Deck advice', 'Try more Scalpel/Copier work. Late game wants a shaped deck, not a fair deck.']);
   if(run.stage>=8) rows.push(['Late wall', 'Heats 9\u201312 need \u00d7Mult or a focused engine \u2014 and THE HOUSE at Heat 12 jams joker \u00d7Mult, so bank rank and +Mult too.']);
   return rows.map(([k,v])=>`<div class="stat-row"><span>${k}</span><b>${v}</b></div>`).join('');
+}
+
+function toggleRunCardSelection(card){
+  if(!run||run.animating||run.terminalPending||!card) return;
+  if(!card.selected&&run.hand.filter(x=>x.selected).length>=effMaxSelect()){
+    setHint('You can select at most '+effMaxSelect()+' cards'+(mod('ceiling')?' (Low Ceiling)':'')+'.');
+    return;
+  }
+  card.selected=!card.selected;
+  tone(card.selected?520:380,0.05,'square',0.025);
+  nativeHaptic('light');
+  renderGame(false);
+}
+function ensureDelegatedHandSelection(handEl){
+  if(!handEl||handEl.dataset.selectionDelegate==='1') return;
+  handEl.dataset.selectionDelegate='1';
+  handEl.addEventListener('click',event=>{
+    const target=event.target&&event.target.closest&&event.target.closest('.card');
+    if(!target||!handEl.contains(target)||!run||run.animating) return;
+    if(event.detail===0){ toggleRunCardSelection(target.__card); return; }
+    const localX=event.clientX-handEl.getBoundingClientRect().left+handEl.scrollLeft;
+    const cards=[...handEl.querySelectorAll('.card')];
+    let nearest=target, distance=Infinity;
+    cards.forEach(el=>{
+      const d=Math.abs((el.offsetLeft+el.offsetWidth/2)-localX);
+      if(d<distance){ distance=d; nearest=el; }
+    });
+    toggleRunCardSelection(nearest.__card);
+  });
 }
 
 function renderGame(dealt){
@@ -5970,16 +6186,22 @@ function renderGame(dealt){
         el.setAttribute('role','button');
         el.setAttribute('tabindex','0');
         el.setAttribute('aria-label','Inspect '+j.name+' joker');
-        el.innerHTML=`<div class="jname">${j.name}</div><div class="jdesc">${j.desc}</div>`;
+        el.innerHTML=`<div class="jname">${j.name}</div><div class="jdesc">${j.desc}</div><div class="proc-chip" aria-hidden="true"></div>`;
         el.onclick=()=>inspectJoker(j.id);
         el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); inspectJoker(j.id); } };
       }
       else { el.className='joker empty'; el.textContent='+'; }
       row.appendChild(el);
     }
+    const liveStatus=document.getElementById('joker-live-status');
+    if(liveStatus){
+      liveStatus.textContent=run.jokers.length?'Tap a Joker for its full effect':'No Jokers equipped';
+      liveStatus.classList.remove('active');
+    }
   }
 
   const handEl=document.getElementById('hand');
+  ensureDelegatedHandSelection(handEl);
   // v5.4: reconcile the hand instead of wiping it — reusing card elements kills
   // the whole-hand repaint flash on every tap/play/discard (worst on phones).
   const mkFace=(c)=>{
@@ -6014,19 +6236,10 @@ function renderGame(dealt){
       el.className=cardCls(c)+((dealt&&c.isNew)?' dealt':'');
       if(dealt&&c.isNew) el.style.animationDelay=(i*0.05)+'s';
       el.innerHTML=mkFace(c);
-      el.onclick=()=>{
-        if(run.animating) return;
-        const cc=el.__card;
-        if(!cc.selected && run.hand.filter(x=>x.selected).length>=effMaxSelect()){
-          setHint('You can select at most '+effMaxSelect()+' cards'+(mod('ceiling')?' (Low Ceiling)':'')+'.'); return;
-        }
-        cc.selected=!cc.selected;
-        tone(cc.selected?520:380, 0.05, 'square', 0.025);
-        nativeHaptic('light');
-        renderGame(false);
-      };
     }
     el.__card=c;
+    el.onclick=null;
+    el.onkeydown=null;
     el.setAttribute('aria-label', c.rank+' of '+c.suit+(c.selected?', selected':''));
     orderEls.push(el);
   });
@@ -6332,23 +6545,65 @@ function openImportSave(){
 //  v3.5 — STORE, CHESTS, DAILY REWARD, REWARDED ADS
 //  (monetization + engagement layer; IAP wires in on Android)
 // =====================================================
-function toast(msg, color){
+const toastQueue=[];
+function toast(msg, color, duration=2200){
   let t=document.getElementById('wc-toast');
-  if(!t){ t=document.createElement('div'); t.id='wc-toast'; document.body.appendChild(t); }
+  if(!t){
+    t=document.createElement('div'); t.id='wc-toast';
+    t.setAttribute('role','status'); t.setAttribute('aria-live','polite');
+    document.body.appendChild(t);
+  }
+  if(t.classList.contains('show')){
+    if(toastQueue.length<6) toastQueue.push([msg,color,duration]);
+    return;
+  }
   t.textContent=msg; t.style.setProperty('--tc', color||'var(--gold)');
   t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
-  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 2200);
+  clearTimeout(t._h); t._h=setTimeout(()=>{
+    t.classList.remove('show');
+    const next=toastQueue.shift();
+    if(next) setTimeout(()=>toast(...next),120);
+  }, duration);
 }
 function refreshCoinReadouts(){
-  ['coin-badge-val','menu-account','unlock-account','store-coins','chest-coins','hud-account'].forEach(id=>{
+  ['coin-badge-val','menu-account','unlock-account','store-coins','ward-coins','chest-coins','hud-account'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.textContent=account.coins;
   });
+}
+function updateRewardAdButton(id){
+  const btn=document.getElementById(id); if(!btn) return;
+  const left=adViewsLeftToday();
+  btn.disabled=left<=0;
+  btn.textContent=left>0
+    ? ((account.noAds?'⚡ Claim +':'📺 Watch · +')+REWARD_AD_COINS+' coins · '+left+' left')
+    : 'Daily +25 bonus maxed';
+}
+function unclaimedAchievementCount(){
+  return ACHIEVEMENTS.filter(a=>account.achievements[a.id]&&!account.achievementClaimed[a.id]).length;
+}
+function missionNoticeReady(){
+  return (account.missionSet||[]).some(id=>{
+    const m=MISSION_POOL.find(x=>x.id===id);
+    return !!(m&&!account.missionClaimed[m.id]&&(account.missionStats[m.stat]||0)>=m.target);
+  });
+}
+function setMenuNotice(id,count){
+  const el=document.getElementById(id); if(!el) return;
+  const visible=Number(count)>0;
+  el.classList.toggle('has-notice',visible);
+  if(visible) el.dataset.notice=Number(count)>9?'9+':String(count);
+  else delete el.dataset.notice;
+}
+function refreshMenuNotices(){
+  setMenuNotice('btn-missions',missionNoticeReady()?1:0);
+  setMenuNotice('menu-more-btn',unclaimedAchievementCount());
 }
 function grantCoins(n, why){
   account.coins += n; saveAccount(); refreshCoinReadouts();
   toast('+'+n+' coins'+(why?' · '+why:''), 'var(--gold)');
   chord([659,784,988]);
   checkAchievements();
+  refreshMenuNotices();
 }
 
 function hasRewardClaim(id){ return !!id && account.rewardClaims.includes(id); }
@@ -6443,9 +6698,7 @@ function renderStore(){
   refreshCoinReadouts();
   const mode=document.getElementById('store-mode-label');
   if(mode) mode.textContent=isNativeShell()?'Google Play secure checkout':'Browser preview — purchases are simulated';
-  const adBtn=document.getElementById('store-ad-btn');
-  if(adBtn){ const left=adViewsLeftToday();
-    adBtn.textContent = left>0 ? ((account.noAds?'⚡ Claim bonus → +':'📺 Watch ad → +')+REWARD_AD_COINS+' coins ('+left+' left today)') : '📺 Daily bonus maxed'; }
+  updateRewardAdButton('store-ad-btn');
   const g=document.getElementById('store-bundles'); g.innerHTML='';
   COIN_BUNDLES.forEach(b=>{
     const el=document.createElement('div'); el.className='store-card';
@@ -6540,6 +6793,7 @@ function openTutorialChest(){
 function openChest(){ renderChest(); showScreen('chest'); }
 function renderChest(){
   refreshCoinReadouts();
+  updateRewardAdButton('chest-ad-btn');
   const g=document.getElementById('chest-cards'); g.innerHTML='';
   Object.entries(CHESTS).forEach(([tier,cfg])=>{
     const pool=chestPool(tier);
@@ -6560,7 +6814,7 @@ function renderChest(){
     el.innerHTML='<div class="chest-card-art">'+premiumChestHtml('cosmetic','mini')+'</div>'
       +'<div class="chest-head">Cosmetic Vault</div>'
       +'<div class="chest-copy">A random look you don’t own — tables, Sly skins or UI themes. Never a duplicate.</div>'
-      +'<div class="chest-odds">'+(pool.length? (cosmeticVaultOddsText(pool)+' · '+pool.length+' locked'):'All cosmetics owned!')+'</div>'
+      +'<div class="chest-odds">'+(pool.length?('Guaranteed new cosmetic · duplicate-free · '+pool.length+' locked'):'All cosmetics owned!')+'</div>'
       +'<div class="chest-buyline"><div class="price">'+COSMETIC_CHEST.price+' coins</div></div>';
     const btn=document.createElement('button'); btn.className='btn';
     if(pool.length===0){ btn.disabled=true; btn.textContent='All owned'; }
@@ -6569,7 +6823,7 @@ function renderChest(){
     else { btn.textContent='Open · '+COSMETIC_CHEST.price; btn.onclick=()=>spinCosmeticChest(); }
     el.querySelector('.chest-buyline').appendChild(btn); g.appendChild(el); }
   const p=document.getElementById('chest-pity');
-  if(p) p.textContent='Odds are shown on each vault. Every pull is a permanent, duplicate-free unlock.';
+  if(p) p.textContent='Joker vault rarity odds are shown above. Every pull is permanent and duplicate-free; the Cosmetic Vault guarantees a new cosmetic.';
 }
 // roll a rarity by the chest's published odds// roll a rarity by the chest's published odds, then a uniform-random locked joker of that rarity.
 // rarities with no remaining locked joker are dropped and their odds shared across the rest.
@@ -6615,7 +6869,8 @@ function revealJoker(win, done, tier='gold'){
     <div class="vault-particles">${particles}</div>
     <div class="vault-rarity-banner"><small>RARITY SCAN</small><b>SEARCHING</b></div>
     <div class="vault-reward-card rare-${win.rarity}" hidden></div>
-    <div class="chest-caption">The tumblers are listening…</div>`;
+    <div class="chest-caption">The tumblers are listening…</div>
+    <div class="vault-actions"></div>`;
   body.appendChild(stage);
   const chest=stage.querySelector('.vault-chest');
   const banner=stage.querySelector('.vault-rarity-banner b');
@@ -6649,16 +6904,16 @@ function revealJoker(win, done, tier='gold'){
       nativeHaptic('success');
       later(()=>{
         reward.hidden=false;
-        reward.innerHTML='<div class="vault-new-label">NEW JOKER UNLOCKED</div>'+jokerVisualHtml(win,'reward')
-          +'<div class="vault-reward-effect"><b>'+win.name+'</b><span>'+win.desc+'</span></div>';
+        reward.innerHTML='<div class="vault-new-label">NEW JOKER UNLOCKED</div>'+jokerVisualHtml(win,'reward');
         requestAnimationFrame(()=>reward.classList.add('show'));
+        stage.classList.add('reward-ready');
         caption.innerHTML='<b style="color:'+color+'">'+win.name+'</b> is now permanently available in your collection and run shops.';
         document.getElementById('ov-title').textContent=win.rarity==='wild'?'WILD JACKPOT!':(win.rarity==='rare'?'RARE UNLOCK!':'JOKER UNLOCKED!');
         document.getElementById('ov-sub').textContent=jokerTagline(win);
         const claim=document.createElement('button'); claim.className='btn vault-claim';
         claim.textContent='Claim '+win.name;
         claim.onclick=()=>{ chestOpening=false; closeOverlay(); if(done) done(); renderUnlocks(); };
-        body.appendChild(claim);
+        stage.querySelector('.vault-actions').appendChild(claim);
         chord(win.rarity==='wild'?[523,659,784,1047,1319]:win.rarity==='rare'?[392,494,587,784,988]:[392,494,587,784]);
       },850);
     },720);
@@ -6741,8 +6996,21 @@ function weeklyMissions(){
   ensureMissionWeek();
   return account.missionSet.map(id=>MISSION_POOL.find(m=>m.id===id)).filter(Boolean);
 }
-function bumpMission(stat,n,persist=true){ ensureMissionWeek(); account.missionStats[stat]=(account.missionStats[stat]||0)+(n||1); if(persist) saveAccount(); }
-function claimMission(id){ ensureMissionWeek(); const m=MISSION_POOL.find(x=>x.id===id); if(!m||account.missionClaimed[id]) return; if((account.missionStats[m.stat]||0)<m.target) return; account.missionClaimed[id]=1; grantCoins(m.reward,'weekly mission'); renderMissions(); }
+function bumpMission(stat,n,persist=true){
+  ensureMissionWeek();
+  account.missionStats[stat]=(account.missionStats[stat]||0)+(n||1);
+  if(persist) saveAccount();
+  refreshMenuNotices();
+}
+function claimMission(id){
+  ensureMissionWeek();
+  const m=MISSION_POOL.find(x=>x.id===id);
+  if(!m||account.missionClaimed[id]||(account.missionStats[m.stat]||0)<m.target) return;
+  account.missionClaimed[id]=1;
+  grantCoins(m.reward,'weekly mission');
+  renderMissions();
+  refreshMenuNotices();
+}
 function openMissions(){ ensureMissionWeek(); renderMissions(); showScreen('missions'); }
 function visibleMissionRewardReady(){
   return weeklyMissions().some(m=>!account.missionClaimed[m.id]&&(account.missionStats[m.stat]||0)>=m.target);
@@ -6822,7 +7090,7 @@ const BADGES=[
   {id:'b_heat6', icon:'🔥', name:'Warmed Up',  desc:'Reach Heat 6.',          has:()=>account.bestHeat>=6},
   {id:'b_win',   icon:'👑', name:'Champion',   desc:'Win a run (Heat 12).',   has:()=>account.bestClearedHeat>=12},
   {id:'b_endless',icon:'♾️',name:'No Finish Line',desc:'Reach Endless (Heat 13).',has:()=>account.bestHeat>=13},
-  {id:'b_rich',  icon:'💰', name:'Loaded',     desc:'Hold 2,000 account coins.',has:()=>account.coins>=2000},
+  {id:'b_rich',  icon:'💰', name:'Loaded',     desc:'Hold 2,000 account coins.',has:()=>!!account.achievements.bankroll_2000||account.coins>=2000},
   {id:'b_score', icon:'⭐', name:'High Roller',desc:'Best run score 5,000+.', has:()=>account.bestScore>=5000},
   {id:'b_ach',   icon:'🏆', name:'Decorated',  desc:'Earn 15 achievements.',  has:()=>Object.keys(account.achievements||{}).length>=15},
   {id:'b_cos',   icon:'🎨', name:'Fashionista',desc:'Own 5 cosmetics.',       has:()=>account.cosmeticsOwned.size>=5},
@@ -6856,18 +7124,23 @@ function renderCabinet(){
   const themes=kindCount('theme'), tables=kindCount('table'), slyLooks=kindCount('sly');
   const totalCos=COSMETICS.length;
   const ownedCos=COSMETICS.filter(c=>ownsCosmetic(c.id)).length;
+  const totalCollection=JOKERS.length+totalCos;
+  const ownedCollection=account.unlocked.size+ownedCos;
   const headline=[
     ['Best run score', account.bestScore.toLocaleString()],
-    ['Account coins', account.coins.toLocaleString()], ['Achievements', achDone+' / '+ACHIEVEMENTS.length],
-    ['Jokers unlocked', account.unlocked.size+' / '+JOKERS.length], ['Collection', Math.round(ownedCos*100/Math.max(1,totalCos))+'%'],
+    ['Account coins', account.coins.toLocaleString()],
+    ['Achievements', achDone+' / '+ACHIEVEMENTS.length],
+    ['Runs played', runs.toLocaleString()],
+    ['Wins', wins.toLocaleString()],
+    ['Total collection', Math.round(ownedCollection*100/Math.max(1,totalCollection))+'%'],
   ];
   let html='<div class="cab-hero"><span>Personal best<small>Highest Heat reached</small></span><b>HEAT '+account.bestHeat+'</b></div>';
   html+='<div class="cab-stats">'+headline.map(x=>'<div class="cab-stat">'+x[0]+'<b>'+x[1]+'</b></div>').join('')+'</div>';
   html+='<div class="cab-h3">Performance</div><div class="cab-stats">'
-    +[['Best Heat cleared',account.bestClearedHeat||0],['Win rate',winRate],['Average hands / run',avgHands],['Recent average score',recentScore],['Recent average Heat',recentHeat],['Daily best',(account.dailyBest&&account.dailyBest.score||0).toLocaleString()]]
+    +[['Best Heat cleared',account.bestClearedHeat||0],['Win rate',winRate],['Average hands / run',avgHands],['Last '+logs.length+' runs avg score',recentScore],['Last '+logs.length+' runs avg Heat',recentHeat],['Daily best',(account.dailyBest&&account.dailyBest.score||0).toLocaleString()]]
       .map(x=>'<div class="cab-stat">'+x[0]+'<b>'+x[1]+'</b></div>').join('')+'</div>';
   html+='<div class="cab-h3">Collection</div><div class="cab-stats">'
-    +[['UI themes',themes.join(' / ')],['Tables',tables.join(' / ')],['Sly looks',slyLooks.join(' / ')],['Badges earned',BADGES.filter(b=>b.has()).length+' / '+BADGES.length],['Current title',currentTitleName()||'None']]
+    +[['Jokers',account.unlocked.size+' / '+JOKERS.length],['UI themes',themes.join(' / ')],['Tables',tables.join(' / ')],['Sly looks',slyLooks.join(' / ')],['Badges earned',BADGES.filter(b=>b.has()).length+' / '+BADGES.length],['Current title',currentTitleName()||'None']]
       .map(x=>'<div class="cab-stat">'+x[0]+'<b>'+x[1]+'</b></div>').join('')+'</div>';
   html+='<div class="cab-h3">Badges ('+BADGES.filter(b=>b.has()).length+'/'+BADGES.length+')</div>';
   html+='<div class="badge-grid">'+BADGES.map(b=>{ const has=b.has(); return '<button type="button" class="badge'+(has?'':' locked')+'" onclick="openBadgeDetail(\''+b.id+'\')" aria-label="'+b.name+' badge details"><div class="bico">'+b.icon+'</div><div class="bname">'+b.name+'</div></button>'; }).join('')+'</div>';
@@ -6888,7 +7161,7 @@ function badgeProgress(id){
   const values={
     b_first:(account.stats&&account.stats.runs||0)+' / 1 run',
     b_heat6:'Heat '+account.bestHeat+' / 6',b_win:'Heat '+account.bestClearedHeat+' / 12 cleared',
-    b_endless:'Heat '+account.bestHeat+' / 13',b_rich:account.coins.toLocaleString()+' / 2,000 coins',
+    b_endless:'Heat '+account.bestHeat+' / 13',b_rich:(account.achievements.bankroll_2000?'Reached 2,000 coins':account.coins.toLocaleString()+' / 2,000 coins'),
     b_score:account.bestScore.toLocaleString()+' / 5,000 points',b_ach:achDone+' / 15 achievements',
     b_cos:account.cosmeticsOwned.size+' / 5 cosmetics',b_jok:account.unlocked.size+' / 40 Jokers'
   };
@@ -6946,7 +7219,7 @@ function cosmeticVaultOddsText(pool){
     if(!total || !share) continue;
     for(const c of group) rarityChance[c.rarity]=(rarityChance[c.rarity]||0)+share*(COS_RARITY_WEIGHT[c.rarity]||1)/total;
   }
-  const gate=themes.length&&rest.length?'UI Theme 0.8% · Other 99.2%':(themes.length?'UI Theme 100%':'Other 100%');
+  const gate=themes.length&&rest.length?'UI Theme 0.8% · Table/Sly 99.2%':(themes.length?'UI Theme 100%':'Table/Sly 100%');
   const rarity=['common','uncommon','rare','wild'].filter(r=>rarityChance[r]>0)
     .map(r=>(RARITY_LABEL[r]||r)+' '+(rarityChance[r]*100).toFixed(rarityChance[r]<0.01?1:0)+'%').join(' · ');
   return gate+(rarity?' · '+rarity:'');
@@ -6982,7 +7255,8 @@ function revealCosmetic(cos, done){
     <div class="vault-particles">${particles}</div>
     <div class="vault-rarity-banner"><small>STYLE SIGNAL</small><b>SEARCHING</b></div>
     <div class="vault-reward-card vault-cosmetic-reward" hidden></div>
-    <div class="chest-caption">Matching a style to your collection…</div>`;
+    <div class="chest-caption">Matching a style to your collection…</div>
+    <div class="vault-actions"></div>`;
   body.appendChild(stage);
   const chest=stage.querySelector('.vault-chest'), banner=stage.querySelector('.vault-rarity-banner b');
   const caption=stage.querySelector('.chest-caption'), reward=stage.querySelector('.vault-reward-card');
@@ -7011,12 +7285,13 @@ function revealCosmetic(cos, done){
           +'<div class="reveal-swatch">'+swatchHtml(cos)+'</div>'
           +'<div class="vault-reward-effect"><b>'+cos.name+'</b><span>'+cos.desc+'</span></div>';
         requestAnimationFrame(()=>reward.classList.add('show'));
+        stage.classList.add('reward-ready');
         caption.innerHTML='<b style="color:'+color+'">'+cos.name+'</b> was added permanently to your Wardrobe.';
         document.getElementById('ov-title').textContent=cos.rarity==='wild'?'WILD STYLE DROP!':(cos.rarity==='rare'?'RARE STYLE UNLOCK!':'COSMETIC UNLOCKED!');
         document.getElementById('ov-sub').textContent=(RARITY_LABEL[cos.rarity]||cos.rarity)+' · '+cos.kind;
         const claim=document.createElement('button'); claim.className='btn vault-claim'; claim.textContent='Add to Wardrobe';
         claim.onclick=()=>{ chestOpening=false; closeOverlay(); if(done) done(); };
-        body.appendChild(claim);
+        stage.querySelector('.vault-actions').appendChild(claim);
       },850);
     },720);
   },520);
@@ -7025,15 +7300,15 @@ function revealCosmetic(cos, done){
 /* ---- Daily seeded challenge ----/* ---- Daily seeded challenge ----
    v4.9: instead of hijacking global Math.random (where any extra call — a Lucky Seven
    roll, a sound, a preview — would shift everyone's later shops and deals), the daily
-   uses SEPARATE seeded streams per system. Deck order and modifiers are shared. Shop
-   rolls are seeded too, but offers still come from each player's unlocked collection.
-   Gameplay luck (Lucky Seven) stays truly random. */
-let dailyMode=false, _origRandom=null;
+   uses SEPARATE seeded streams per system. Deck order and modifiers are shared. Daily
+   shop rolls use the complete Joker catalogue so every player sees the same stock,
+   including Jokers they have not permanently unlocked. Gameplay luck stays random. */
+let dailyMode=false, dailyChallengeDate='', _origRandom=null;
 const RNG={ deck:null, shop:null, mods:null, luck:null };
 function rnd(stream){
   return (dailyMode && RNG[stream]) ? RNG[stream]() : Math.random();
 }
-function dailySeedNum(){ const d=todayStr(); let h=2166136261; for(let i=0;i<d.length;i++){ h=Math.imul(h^d.charCodeAt(i),16777619);} return h>>>0; }
+function dailySeedNum(date=todayStr()){ const d=date; let h=2166136261; for(let i=0;i<d.length;i++){ h=Math.imul(h^d.charCodeAt(i),16777619);} return h>>>0; }
 function startDailyRun(){
   if(!account.tutorialDone){ toast('Finish your first run to unlock the Daily.','var(--gold)'); return; }
   if(account.dailyRunDate===todayStr()){ toast('Daily already played today — come back tomorrow!','var(--gold)'); return; }
@@ -7043,9 +7318,10 @@ function startDailyRun(){
   const info=document.createElement('div');
   info.className='stat-list';
   info.style.cssText='text-align:left;font-size:13px;line-height:1.6;color:var(--cream-dim);margin:14px 0';
-  info.innerHTML='<div class="stat-row"><span>🎴 <b style="color:var(--cream)">Shared challenge</b> — today\'s deck order and Heat modifiers are identical. Seeded shop rolls draw from your unlocked collection, so stock can differ.</span></div>'
+  info.innerHTML='<div class="stat-row"><span>🎴 <b style="color:var(--cream)">Shared challenge</b> — today\'s deck, modifiers and seeded shop stock are identical. Daily shops may offer Jokers you have not permanently unlocked.</span></div>'
     +'<div class="stat-row"><span>🎯 <b style="color:var(--cream)">Play normally</b> — same rules, jokers and scoring as a standard run. Get as far as you can.</span></div>'
     +'<div class="stat-row"><span>1️⃣ <b style="color:var(--cream)">One attempt per day</b> — win or lose, your final score is recorded as today\'s Daily Best. No retries, no stake.</span></div>'
+    +'<div class="stat-row"><span>🏆 <b style="color:var(--gold)">Planned rewards</b> — #1: 300 coins; #2–3: 200. Not active until secure account verification and final settlement are live.</span></div>'
     +'<div class="stat-row"><span>🏆 Your best: <b style="color:var(--gold)">'+((account.dailyBest&&account.dailyBest.score)||0)+'</b></span></div>';
   body.appendChild(info);
   const go=document.createElement('button');
@@ -7063,19 +7339,23 @@ function launchDailyRun(){
   saveAccount();
   pendingGauntlet=false;
   dailyMode=true;
-  const seed=dailySeedNum();
+  dailyChallengeDate=today;
+  const seed=dailySeedNum(today);
   RNG.deck=mulberry32(seed^0xA5A5A5); RNG.shop=mulberry32(seed^0x5A5A5A); RNG.mods=mulberry32(seed^0x123457); RNG.luck=mulberry32(seed^0x77AA33);
   if(typeof pendingStake!=='undefined') pendingStake=0;
   toast('Daily Challenge — everyone gets the same deck today. One attempt!','var(--rare)');
   beginRun();
+  if(run) run.dailyDate=today;
 }
 function endDailyRun(){
+  const date=(run&&run.dailyDate)||dailyChallengeDate||account.dailyRunDate||todayStr();
   dailyMode=false;
+  dailyChallengeDate='';
   RNG.deck=RNG.shop=RNG.mods=RNG.luck=null;
   if(_origRandom){ Math.random=_origRandom; _origRandom=null; }   // legacy safety
-  account.dailyRunDate=todayStr();
+  account.dailyRunDate=date;
   const sc=run?run.totalScore:0;
-  if(!account.dailyBest || account.dailyBest.date!==todayStr()) account.dailyBest={date:todayStr(),score:sc};
+  if(!account.dailyBest || account.dailyBest.date!==date) account.dailyBest={date,score:sc};
   else account.dailyBest.score=Math.max(account.dailyBest.score, sc);
   saveAccount();
 }
@@ -7101,7 +7381,7 @@ function renderSettings(){
    +'<div class="set-row"><span>🎵 Arcade music</span><button class="btn '+(account.musicOn?'alt':'ghost')+'" onclick="toggleMusic(); renderSettings()">'+(account.musicOn?'On':'Off')+'</button></div>'
    +'<div class="set-row"><span class="set-copy"><b>Music credit</b><small>“Bit Shift” — Kevin MacLeod · CC BY 4.0</small></span><button class="btn ghost" onclick="openMusicCredits()">Credits</button></div>'
    +'<div class="set-row"><span>📳 Haptic feedback</span><button class="btn '+(account.hapticsOn?'alt':'ghost')+'" onclick="toggleHaptics(); renderSettings()">'+(account.hapticsOn?'On':'Off')+'</button></div>'
-   +'<div class="set-row"><span>⚡ Scoring speed</span><button class="btn alt" onclick="toggleSpeed(); renderSettings()">'+(account.speed==='fast'?'Fast':'Normal')+'</button></div>'
+   +'<div class="set-row"><span class="set-copy"><b>⚡ Scoring speed</b><small>Normal explains every beat; Fast shortens each pause while keeping the same sequence</small></span><button class="btn alt" onclick="toggleSpeed(); renderSettings()">'+(account.speed==='fast'?'Fast':'Normal')+'</button></div>'
    +'<div class="set-row"><span>🏷️ Board name</span><button class="btn ghost" onclick="openNamePrompt()">'+(account.playerName||'Not set')+'</button></div>'
    +(native?'<div class="set-row"><span class="set-copy"><b class="save-ok">✓ Phone save active</b><small>WebView save mirrored to Android Preferences</small></span><button class="btn ghost" onclick="saveAccount(); if(run&&!run.animating) saveRunState(currentRunPhase()); toast(\'Saved to this phone\',\'var(--mint)\')">Save now</button></div>':'')
    +cloudRows
@@ -7269,7 +7549,7 @@ const DAILY_API_ORIGIN='https://raspberrypi.tail20f574.ts.net';
 const DAILY_API_NATIVE=!!(window.Capacitor && (
   (typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform()) ||
   (typeof window.Capacitor.getPlatform==='function' && window.Capacitor.getPlatform()!=='web')
-));
+)) || isNativeShell();
 function resolveDailyApiBase(hostname,nativeShell){
   if(hostname==='raspberrypi.tail20f574.ts.net') return '';
   if(nativeShell) return DAILY_API_ORIGIN;
@@ -7280,7 +7560,7 @@ const API_BASE=resolveDailyApiBase(location.hostname,DAILY_API_NATIVE);
 // ---- Anonymous aggregate analytics (Pi; fail-soft and never awaited) ----
 // Only coarse product counters leave the device. There is no install/session ID,
 // player name, score, card data, save data or Google/Firebase identity in this path.
-const TELEMETRY_VERSION='6.9.10';
+const TELEMETRY_VERSION='6.9.11';
 const TELEMETRY_ENABLED=DAILY_API_NATIVE || location.hostname==='raspberrypi.tail20f574.ts.net';
 const TELEMETRY_PLATFORM=DAILY_API_NATIVE?'android':'web';
 const TELEMETRY_ENDPOINT=API_BASE+'/api/analytics';
@@ -7339,10 +7619,33 @@ function flushTelemetry(force=false){
     }).catch(()=>{});
   }catch(e){}
 }
+async function fetchDailyRequest(path,options={},timeoutMs=8000){
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=controller?setTimeout(()=>controller.abort(),timeoutMs):0;
+  try{
+    return await fetch(API_BASE+path,{
+      cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',
+      ...options,...(controller?{signal:controller.signal}:{})
+    });
+  }finally{ if(timer) clearTimeout(timer); }
+}
 async function fetchDailyBoard(date){
-  const r=await fetch(API_BASE+'/api/daily'+(date?('?date='+date):''), {cache:'no-store'});
+  const path='/api/daily'+(date?('?date='+encodeURIComponent(date)):'');
+  let r;
+  try{ r=await fetchDailyRequest(path); }
+  catch(firstError){
+    await new Promise(resolve=>setTimeout(resolve,250));
+    r=await fetchDailyRequest(path);
+  }
   if(!r.ok) throw new Error('http '+r.status);
   return r.json();
+}
+function dailyBoardPrizeCopy(){ return 'Planned rewards (not active yet): #1 300 · #2–3 200 · requires secure account verification and final settlement'; }
+function dailyBoardErrorCode(error){
+  const text=String(error&&error.message||error||'').toLowerCase();
+  if((error&&error.name==='AbortError')||text.includes('abort')) return 'TIMEOUT';
+  const match=text.match(/http\s+(\d+)/); if(match) return 'HTTP '+match[1];
+  return 'NETWORK';
 }
 function lbRows(top, youName){
   if(!top || !top.length) return '<p class="sub">No scores yet today — set the first one!</p>';
@@ -7350,9 +7653,11 @@ function lbRows(top, youName){
 }
 function showDailyBoard(){
   const body=openOverlay('🌍 Daily Board — '+todayStr(),'Global top 20 for today’s shared Daily Challenge.');
+  const prize=document.createElement('div'); prize.className='stat-row'; prize.style.cssText='margin:8px 0 10px;border-color:var(--gold)';
+  prize.innerHTML='<span>🏆 Prize pool</span><b>'+dailyBoardPrizeCopy()+'</b>'; body.appendChild(prize);
   const box=document.createElement('div'); box.innerHTML='<p class="sub">Loading…</p>'; body.appendChild(box);
   fetchDailyBoard(todayStr()).then(d=>{ box.innerHTML=lbRows(d.top, account.playerName); })
-    .catch(()=>{ box.innerHTML='<p class="sub" style="color:var(--coral)">Board unreachable — check your connection and try again.</p>'; });
+    .catch(error=>{ box.innerHTML='<p class="sub" style="color:var(--coral)">Board unavailable ('+dailyBoardErrorCode(error)+') — try again shortly.</p>'; });
   const completedScore=(account.dailyRunDate===todayStr()&&account.dailyBest&&account.dailyBest.date===todayStr())
     ? Math.max(0,Math.trunc(Number(account.dailyBest.score)||0)) : 0;
   if(completedScore>0){
@@ -7366,8 +7671,9 @@ function showDailyBoard(){
     body.appendChild(note);
   }
 }
-function openDailySubmit(score){
-  const body=openOverlay('🎯 Post to the Daily Board','Score: '+score.toLocaleString()+' — pick your board name (1–8 letters/numbers).');
+function openDailySubmit(score,date=(run&&run.dailyDate)||todayStr()){
+  const boardDate=/^\d{4}-\d{2}-\d{2}$/.test(date)?date:todayStr();
+  const body=openOverlay('🎯 Post to the Daily Board','Score: '+score.toLocaleString()+' · Board: '+boardDate+' · '+dailyBoardPrizeCopy()+'.');
   const inp=document.createElement('input');
   inp.maxLength=8; inp.value=account.playerName||'';
   inp.style.cssText='padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:#0b1512;color:var(--cream);font-family:inherit;font-size:16px;text-align:center;text-transform:uppercase;width:100%;max-width:240px';
@@ -7381,13 +7687,13 @@ function openDailySubmit(score){
     account.playerName=name; saveAccount();
     b.disabled=true; b.textContent='Posting…'; msg.textContent='';
     try{
-      const r=await fetch(API_BASE+'/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:todayStr(),name,score:score|0})});
+      const r=await fetchDailyRequest('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:boardDate,name,score:score|0})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.err||'rejected');
       b.style.display='none'; inp.style.display='none';
       box.innerHTML='<p class="sub" style="color:var(--mint)">'+(d.rank?('You’re #'+d.rank+' today!'):'Posted!')+'</p>'+lbRows(d.top,name);
       chord([523,659,784]);
-    }catch(e){ b.disabled=false; b.textContent='Post score'; msg.textContent='Could not reach the board — try again in a moment.'; }
+    }catch(e){ b.disabled=false; b.textContent='Post score'; msg.textContent='Board unavailable ('+dailyBoardErrorCode(e)+') — try again in a moment.'; }
   };
   body.appendChild(msg); body.appendChild(b); body.appendChild(box);
 }
@@ -7396,7 +7702,10 @@ function openDailySubmit(score){
 // Android back (hardware/gesture). Returns true if the press was consumed in-game.
 function closeTopLayer(){
   const ov=document.getElementById('overlay');
-  if(ov && ov.classList.contains('active')){ closeOverlay(); return true; }
+  if(ov && ov.classList.contains('active')){
+    if(chestOpening){ toast('Vault opening in progress — claim the saved reward first.','var(--gold)'); return true; }
+    closeOverlay(); return true;
+  }
   const active=document.querySelector('.screen.active');
   if(!active || active.id==='menu') return false;          // at the menu: let the OS exit
   if(active.id==='game'){ setHint('Back is disabled mid-run — use Abandon to fold.'); return true; }
@@ -7485,7 +7794,7 @@ try{
     'TIP: Aces always count 15 toward rank points',
     'TIP: Clear a Heat in fewer plays for an S grade and bonus coins',
     'TIP: Glass cards score ×1.5 Mult but can shatter for good',
-    'TIP: Tap anywhere during scoring to fast-forward',
+    'TIP: Normal scoring explains each beat; choose Fast in Settings when ready',
     'TIP: Flushes and Straights only need the 5 cards you select',
     'TIP: Sell jokers in any shop if your build outgrows them'
   ];
