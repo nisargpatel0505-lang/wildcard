@@ -2,6 +2,8 @@ const fs = require('fs');
 
 const expected = {
   packageName: 'com.nisarg.wildcard',
+  versionName: '6.9.13',
+  versionCode: 33,
   projectId: 'wildcard-31d50',
   projectNumber: '420107184674',
   leaderboardId: 'CgkIotTbgp0MEAIQAQ',
@@ -45,6 +47,7 @@ const firebasePackages = (services.client || []).map(client =>
 
 const hardChecks = {
   packageName: packageName === expected.packageName,
+  releaseVersion: versionName === expected.versionName && versionCode === expected.versionCode,
   firebasePackage: firebasePackages.includes(expected.packageName),
   firebaseProject: services.project_info && services.project_info.project_id === expected.projectId,
   projectNumber: services.project_info && services.project_info.project_number === expected.projectNumber,
@@ -86,9 +89,5 @@ const report = {
 if (!report.firebaseAndroidOauth.playSigningSha1Present) {
   report.warnings.push('The committed google-services.json does not contain the Play app-signing SHA-1 Android OAuth client; add that SHA-1 to the Firebase Android app and download a fresh file before testing Firebase Auth in a Play-signed build.');
 }
-if (versionName !== '6.9.1') {
-  report.warnings.push(`GitHub main currently identifies as ${versionName || 'unknown'}, not the phone-validated v6.9.1 described in the handoff.`);
-}
-
 console.log(JSON.stringify(report, null, 2));
 if (report.failures.length) process.exitCode = 1;

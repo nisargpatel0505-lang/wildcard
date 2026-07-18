@@ -7,8 +7,8 @@ android {
         applicationId "com.nisarg.wildcard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
-        versionName "6.9.1"
+        versionCode 33
+        versionName "6.9.13"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -31,6 +31,21 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+        }
+        developer {
+            initWith release
+            matchingFallbacks = ['release']
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+// Keep the local developer build below the Play release so a later
+// Play-installed build can update it in place without risking the phone save.
+androidComponents {
+    onVariants(selector().withBuildType("developer")) { variant ->
+        variant.outputs.each { output ->
+            output.versionCode.set(32)
         }
     }
 }

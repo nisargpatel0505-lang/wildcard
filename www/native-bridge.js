@@ -92,6 +92,7 @@
     privacyRequired: false,
     rewardedReady: false,
     rewardedPreparing: false,
+    rewardedInFlight: false,
     rewardedEarned: false,
     rewardedCb: null,
     interstitialReady: false,
@@ -127,6 +128,23 @@
     prepareInterstitial();
   }
 
+  function settleRewarded(success) {
+    var cb = ad.rewardedCb;
+    if (!cb) return false;
+    ad.rewardedCb = null;
+    callback(cb, !!success);
+    return true;
+  }
+
+  function finishRewardedShow() {
+    var earned = ad.rewardedEarned;
+    ad.rewardedInFlight = false;
+    ad.rewardedEarned = false;
+    ad.rewardedReady = false;
+    prepareRewarded();
+    if (!earned) settleRewarded(false);
+  }
+
   function applyConsentInfo(info) {
     info = info || {};
     ad.allowed = !!info.canRequestAds;
@@ -148,22 +166,18 @@
       ad.rewardedPreparing = false;
       setTimeout(prepareRewarded, 30000);
     });
-    AdMob.addListener('onRewardedVideoAdReward', function () { ad.rewardedEarned = true; });
+    AdMob.addListener('onRewardedVideoAdReward', function () {
+      if (!ad.rewardedInFlight || ad.rewardedEarned) return;
+      ad.rewardedEarned = true;
+      settleRewarded(true);
+    });
     AdMob.addListener('onRewardedVideoAdDismissed', function () {
-      var cb = ad.rewardedCb;
-      var earned = ad.rewardedEarned;
-      ad.rewardedCb = null;
-      ad.rewardedEarned = false;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, earned);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
     AdMob.addListener('onRewardedVideoAdFailedToShow', function () {
-      var cb = ad.rewardedCb;
-      ad.rewardedCb = null;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, false);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
 
     AdMob.addListener('interstitialAdLoaded', function () {
@@ -209,19 +223,17 @@
     });
 
     WN.showRewardedAd = function (cb) {
-      if (!ad.allowed || !ad.rewardedReady || ad.rewardedCb) {
+      if (!ad.allowed || !ad.rewardedReady || ad.rewardedInFlight) {
         prepareRewarded();
         callback(cb, false);
         return;
       }
       ad.rewardedEarned = false;
+      ad.rewardedInFlight = true;
       ad.rewardedCb = cb;
       AdMob.showRewardVideoAd().catch(function () {
-        var failed = ad.rewardedCb;
-        ad.rewardedCb = null;
-        ad.rewardedReady = false;
-        prepareRewarded();
-        callback(failed, false);
+        if (!ad.rewardedInFlight) return;
+        finishRewardedShow();
       });
     };
 
@@ -264,11 +276,50 @@
     { id: 'coins_8500', consumable: true },
     { id: 'remove_ads', consumable: false }
   ];
-  var billing = { ready: false, waiting: {} };
+  var billing = { ready: false, waiting: {}, activeProductId: null };
 
   // Fail-closed defaults prevent native builds from granting demo purchases.
   WN.purchase = function (productId, cb) { callback(cb, false); };
   WN.restorePurchases = function (cb) { callback(cb, []); };
+
+  function verifiedProductIds(receipt) {
+    var ids = [];
+    function add(id) {
+      if (typeof id !== 'string' || !id || ids.indexOf(id) !== -1) return;
+      ids.push(id);
+    }
+    function addTransactions(transactions) {
+      (Array.isArray(transactions) ? transactions : []).forEach(function (transaction) {
+        (transaction && Array.isArray(transaction.products) ? transaction.products : [])
+          .forEach(function (product) { add(product && product.id); });
+      });
+    }
+
+    // cordova-plugin-purchase v13 VerifiedReceipt shape.
+    (receipt && Array.isArray(receipt.collection) ? receipt.collection : [])
+      .forEach(function (purchase) { add(purchase && purchase.id); });
+    addTransactions(receipt && receipt.sourceReceipt && receipt.sourceReceipt.transactions);
+
+    // Retain compatibility with receipt shapes used by older plugin releases.
+    addTransactions(receipt && receipt.transactions);
+    if (receipt && receipt.transaction) addTransactions([receipt.transaction]);
+    return ids;
+  }
+
+  function settlePurchase(productId, success) {
+    var cb = billing.waiting[productId];
+    if (!cb) return false;
+    delete billing.waiting[productId];
+    if (billing.activeProductId === productId) billing.activeProductId = null;
+    callback(cb, !!success);
+    return true;
+  }
+
+  function finishDeliveredReceipt(receipt) {
+    try {
+      Promise.resolve(receipt.finish()).catch(function () {});
+    } catch (e) {}
+  }
 
   function initBilling() {
     var Purchase = window.CdvPurchase;
@@ -287,18 +338,13 @@
       store.when()
         .approved(function (transaction) { transaction.verify(); })
         .verified(function (receipt) {
-          receipt.finish();
-          try {
-            (receipt.transactions || [receipt.transaction] || []).forEach(function (transaction) {
-              (transaction && transaction.products || []).forEach(function (product) {
-                var cb = billing.waiting[product.id];
-                if (cb) {
-                  delete billing.waiting[product.id];
-                  callback(cb, true);
-                }
-              });
-            });
-          } catch (e) {}
+          var productId = billing.activeProductId;
+          if (!productId || verifiedProductIds(receipt).indexOf(productId) === -1) return;
+
+          // Delivery must happen before acknowledgement/consumption. Deleting the
+          // waiting callback first also makes duplicate verified events idempotent
+          // for the lifetime of this bridge instance.
+          if (settlePurchase(productId, true)) finishDeliveredReceipt(receipt);
         });
 
       store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
@@ -306,18 +352,17 @@
       }).catch(function () {});
 
       WN.purchase = function (productId, cb) {
-        if (!billing.ready || billing.waiting[productId]) { callback(cb, false); return; }
+        if (!billing.ready || billing.activeProductId) { callback(cb, false); return; }
         var product = store.get(productId, Purchase.Platform.GOOGLE_PLAY);
         var offer = product && product.getOffer && product.getOffer();
         if (!offer) { callback(cb, false); return; }
+        billing.activeProductId = productId;
         billing.waiting[productId] = cb;
         store.order(offer).then(function (err) {
           if (err) {
-            var failed = billing.waiting[productId];
-            delete billing.waiting[productId];
-            callback(failed, false);
+            settlePurchase(productId, false);
           }
-        });
+        }).catch(function () { settlePurchase(productId, false); });
       };
 
       WN.restorePurchases = function (cb) {

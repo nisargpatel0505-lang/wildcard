@@ -1,0 +1,860 @@
+{
+  "reportVersion": "6.9.9",
+  "generatedAt": "2026-07-16T11:10:44.625Z",
+  "durationMs": 11039,
+  "modelHash": "06170810f8f591b073dc746cf301e95b533b0b5a814610d29e337b788c1ec0a7",
+  "source": {
+    "file": "www/index.html",
+    "detectedVersion": "6.9.9",
+    "sha256": "64bbcfe2e2141260bf8ed948af12ad5db7f1e3cfe3d5b8e62555ee3244b642c3"
+  },
+  "gameplayInput": {
+    "file": "docs/release/wildcard-v6.9.9-sim-results.json",
+    "version": "6.9.9",
+    "allUnlockedRuns": 300,
+    "freePoolRuns": 150
+  },
+  "assumptions": {
+    "horizonDays": 180,
+    "trialsPerCohort": 1000,
+    "starterGift": 200,
+    "cohortDefinitions": [
+      {
+        "id": "casual",
+        "label": "Casual",
+        "loginChance": 0.5714285714285714,
+        "weeklyRunDays": [
+          0,
+          2,
+          5
+        ],
+        "runsPerRunDay": 1,
+        "adViewsPerActiveDay": 0
+      },
+      {
+        "id": "regular",
+        "label": "Regular F2P",
+        "loginChance": 0.8571428571428571,
+        "weeklyRunDays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "runsPerRunDay": 1,
+        "adViewsPerActiveDay": 2
+      },
+      {
+        "id": "grinder",
+        "label": "Grinder F2P",
+        "loginChance": 1,
+        "weeklyRunDays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "runsPerRunDay": 3,
+        "adViewsPerActiveDay": 5
+      }
+    ]
+  },
+  "catalog": {
+    "freeJokers": 10,
+    "paidJokers": 47
+  },
+  "scenarios": {
+    "baseline": {
+      "label": "v6.9.7 baseline",
+      "directTotal": 4700,
+      "vaultRoute": {
+        "trials": 20000,
+        "mean": 2969.19,
+        "p05": 2750,
+        "p10": 2815,
+        "p50": 3010,
+        "p90": 3075,
+        "p95": 3140,
+        "min": 2165,
+        "max": 3140,
+        "meanPulls": {
+          "wood": 26.63,
+          "gold": 20.37
+        }
+      },
+      "vaultDiscountPct": 36.83,
+      "dailyConfig": {
+        "base": 50,
+        "step": 30,
+        "cap": 320
+      },
+      "dailyTotals": {
+        "day7": 980,
+        "day30": 8250,
+        "day180": 56250
+      },
+      "vaultPrices": {
+        "wood": 35,
+        "gold": 100
+      },
+      "rewardedCoin": {
+        "amount": 25,
+        "dailyCap": 5
+      }
+    },
+    "proposed": {
+      "label": "v6.9.9 current",
+      "directTotal": 10875,
+      "vaultRoute": {
+        "trials": 20000,
+        "mean": 8776.21,
+        "p05": 8100,
+        "p10": 8300,
+        "p50": 8900,
+        "p90": 9100,
+        "p95": 9300,
+        "min": 6300,
+        "max": 9300,
+        "meanPulls": {
+          "wood": 26.62,
+          "gold": 20.38
+        }
+      },
+      "vaultDiscountPct": 19.3,
+      "dailyConfig": {
+        "base": 30,
+        "step": 18,
+        "cap": 192
+      },
+      "dailyTotals": {
+        "day7": 588,
+        "day30": 4950,
+        "day180": 33750
+      },
+      "vaultPrices": {
+        "wood": 100,
+        "gold": 300
+      },
+      "rewardedCoin": {
+        "amount": 25,
+        "dailyCap": 5
+      }
+    }
+  },
+  "cohorts": {
+    "baseline": {
+      "direct": {
+        "casual": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 52,
+            "p50": 69,
+            "p90": 82
+          },
+          "milestones": {
+            "1": {
+              "p10": 52,
+              "p50": 69,
+              "p90": 82,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 4,
+              "p50": 6,
+              "p90": 10,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 13,
+              "p50": 20,
+              "p90": 27,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 29,
+              "p50": 40,
+              "p90": 50,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 6070,
+            "p50": 7576,
+            "p90": 9687
+          },
+          "meanSpent": 4580,
+          "meanEarned": 12331.52,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 9154.73,
+            "runs": 2976.79,
+            "ads": 0
+          }
+        },
+        "regular": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 15,
+            "p50": 21,
+            "p90": 26
+          },
+          "milestones": {
+            "1": {
+              "p10": 15,
+              "p50": 21,
+              "p90": 26,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 3,
+              "p50": 3,
+              "p90": 3,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 6,
+              "p50": 7,
+              "p90": 9,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 10,
+              "p50": 13,
+              "p90": 16,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 35130,
+            "p50": 39490,
+            "p90": 44322
+          },
+          "meanSpent": 4580,
+          "meanEarned": 44194.55,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 27979.18,
+            "runs": 7015.37,
+            "ads": 9000
+          }
+        },
+        "grinder": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 11,
+            "p50": 11,
+            "p90": 11
+          },
+          "milestones": {
+            "1": {
+              "p10": 11,
+              "p50": 11,
+              "p90": 11,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 2,
+              "p50": 2,
+              "p90": 2,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 4,
+              "p50": 4,
+              "p90": 4,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 7,
+              "p50": 7,
+              "p90": 7,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 95132,
+            "p50": 95527,
+            "p90": 95901
+          },
+          "meanSpent": 4580,
+          "meanEarned": 100097.48,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 56250,
+            "runs": 21147.48,
+            "ads": 22500
+          }
+        }
+      },
+      "vault": {
+        "casual": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 30,
+            "p50": 43,
+            "p90": 52
+          },
+          "milestones": {
+            "1": {
+              "p10": 30,
+              "p50": 43,
+              "p90": 52,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 3,
+              "p50": 4,
+              "p90": 6,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 7,
+              "p50": 11,
+              "p90": 15,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 17,
+              "p50": 26,
+              "p90": 34,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 7775,
+            "p50": 9300,
+            "p90": 11411
+          },
+          "meanSpent": 2869.57,
+          "meanEarned": 12350.24,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 9154.73,
+            "runs": 2995.51,
+            "ads": 0
+          }
+        },
+        "regular": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 10,
+            "p50": 14,
+            "p90": 17
+          },
+          "milestones": {
+            "1": {
+              "p10": 10,
+              "p50": 14,
+              "p90": 17,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 2,
+              "p50": 2,
+              "p90": 2,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 4,
+              "p50": 4,
+              "p90": 5,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 7,
+              "p50": 9,
+              "p90": 11,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 36726,
+            "p50": 41227,
+            "p90": 46112
+          },
+          "meanSpent": 2860.8,
+          "meanEarned": 44208.9,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 27979.18,
+            "runs": 7029.72,
+            "ads": 9000
+          }
+        },
+        "grinder": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 7,
+            "p50": 8,
+            "p90": 8
+          },
+          "milestones": {
+            "1": {
+              "p10": 7,
+              "p50": 8,
+              "p90": 8,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 1,
+              "p50": 1,
+              "p90": 1,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 2,
+              "p50": 3,
+              "p90": 3,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 5,
+              "p50": 5,
+              "p90": 5,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 96828,
+            "p50": 97257,
+            "p90": 97648
+          },
+          "meanSpent": 2868.73,
+          "meanEarned": 100118.34,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 56250,
+            "runs": 21168.34,
+            "ads": 22500
+          }
+        }
+      }
+    },
+    "proposed": {
+      "direct": {
+        "casual": {
+          "trials": 1000,
+          "completionRatePct": 1.8,
+          "completionDay": {
+            "p10": null,
+            "p50": null,
+            "p90": null
+          },
+          "milestones": {
+            "1": {
+              "p10": null,
+              "p50": null,
+              "p90": null,
+              "reachedPct": 1.8
+            },
+            "0.25": {
+              "p10": 12,
+              "p50": 17,
+              "p90": 22,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 42,
+              "p50": 55,
+              "p90": 64,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 99,
+              "p50": 119,
+              "p90": 136,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 41,
+            "p50": 43,
+            "p90": 45
+          },
+          "balanceDay180": {
+            "p10": 53,
+            "p50": 290,
+            "p90": 488
+          },
+          "meanSpent": 8287.99,
+          "meanEarned": 8570.75,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 5492.84,
+            "runs": 2877.92,
+            "ads": 0
+          }
+        },
+        "regular": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 51,
+            "p50": 60,
+            "p90": 68
+          },
+          "milestones": {
+            "1": {
+              "p10": 51,
+              "p50": 60,
+              "p90": 68,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 5,
+              "p50": 6,
+              "p90": 7,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 12,
+              "p50": 16,
+              "p90": 19,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 26,
+              "p50": 32,
+              "p90": 38,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 19526,
+            "p50": 22187,
+            "p90": 25114
+          },
+          "meanSpent": 10685,
+          "meanEarned": 32945.22,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 16787.51,
+            "runs": 6957.71,
+            "ads": 9000
+          }
+        },
+        "grinder": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 27,
+            "p50": 27,
+            "p90": 27
+          },
+          "milestones": {
+            "1": {
+              "p10": 27,
+              "p50": 27,
+              "p90": 27,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 3,
+              "p50": 3,
+              "p90": 3,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 8,
+              "p50": 8,
+              "p90": 8,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 15,
+              "p50": 15,
+              "p90": 15,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 66452,
+            "p50": 66848,
+            "p90": 67222
+          },
+          "meanSpent": 10685,
+          "meanEarned": 77523.33,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 33750,
+            "runs": 21073.33,
+            "ads": 22500
+          }
+        }
+      },
+      "vault": {
+        "casual": {
+          "trials": 1000,
+          "completionRatePct": 50.8,
+          "completionDay": {
+            "p10": 154,
+            "p50": 180,
+            "p90": null
+          },
+          "milestones": {
+            "1": {
+              "p10": 154,
+              "p50": 180,
+              "p90": null,
+              "reachedPct": 50.8
+            },
+            "0.25": {
+              "p10": 15,
+              "p50": 22,
+              "p90": 28,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 37,
+              "p50": 48,
+              "p90": 57,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 88,
+              "p50": 110,
+              "p90": 129,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 43,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 55,
+            "p50": 257,
+            "p90": 1394
+          },
+          "meanSpent": 8071.8,
+          "meanEarned": 8580.89,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 5492.84,
+            "runs": 2888.05,
+            "ads": 0
+          }
+        },
+        "regular": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 39,
+            "p50": 48,
+            "p90": 55
+          },
+          "milestones": {
+            "1": {
+              "p10": 39,
+              "p50": 48,
+              "p90": 55,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 6,
+              "p50": 7,
+              "p90": 8,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 11,
+              "p50": 14,
+              "p90": 17,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 23,
+              "p50": 30,
+              "p90": 36,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 21663,
+            "p50": 24432,
+            "p90": 27488
+          },
+          "meanSpent": 8448.6,
+          "meanEarned": 32953.92,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 16787.51,
+            "runs": 6966.42,
+            "ads": 9000
+          }
+        },
+        "grinder": {
+          "trials": 1000,
+          "completionRatePct": 100,
+          "completionDay": {
+            "p10": 21,
+            "p50": 22,
+            "p90": 23
+          },
+          "milestones": {
+            "1": {
+              "p10": 21,
+              "p50": 22,
+              "p90": 23,
+              "reachedPct": 100
+            },
+            "0.25": {
+              "p10": 4,
+              "p50": 4,
+              "p90": 4,
+              "reachedPct": 100
+            },
+            "0.5": {
+              "p10": 7,
+              "p50": 7,
+              "p90": 7,
+              "reachedPct": 100
+            },
+            "0.75": {
+              "p10": 13,
+              "p50": 14,
+              "p90": 15,
+              "reachedPct": 100
+            }
+          },
+          "paidOwnedDay180": {
+            "p10": 47,
+            "p50": 47,
+            "p90": 47
+          },
+          "balanceDay180": {
+            "p10": 68486,
+            "p50": 69058,
+            "p90": 69652
+          },
+          "meanSpent": 8473,
+          "meanEarned": 77533.8,
+          "minimumBalance": 0,
+          "meanSources": {
+            "starter": 200,
+            "daily": 33750,
+            "runs": 21083.8,
+            "ads": 22500
+          }
+        }
+      }
+    }
+  },
+  "gates": [
+    {
+      "name": "Joker catalogue",
+      "pass": true,
+      "detail": "10 free / 47 paid"
+    },
+    {
+      "name": "Proposed direct sink band",
+      "pass": true,
+      "detail": "10,875 coins"
+    },
+    {
+      "name": "Proposed direct target",
+      "pass": true,
+      "detail": "10,875 / 10,875 coins"
+    },
+    {
+      "name": "Daily curve",
+      "pass": true,
+      "detail": "30 + 18/day, cap 192"
+    },
+    {
+      "name": "Daily totals",
+      "pass": true,
+      "detail": "588 / 4,950 / 33,750"
+    },
+    {
+      "name": "Vault prices",
+      "pass": true,
+      "detail": "100 Wooden / 300 Golden"
+    },
+    {
+      "name": "Vault discount",
+      "pass": true,
+      "detail": "19.3% mean discount"
+    },
+    {
+      "name": "Non-negative balances",
+      "pass": true,
+      "detail": "minimum simulated wallet >= 0"
+    },
+    {
+      "name": "Trial count",
+      "pass": true,
+      "detail": "1,000 per cohort/route/scenario"
+    }
+  ],
+  "passed": true
+}

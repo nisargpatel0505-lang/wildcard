@@ -1,0 +1,268 @@
+{
+  "model": "scenario-sensitivity-v1",
+  "version": "6.9.10",
+  "generatedAt": "2026-07-17T00:25:19.451Z",
+  "source": "www/index.html",
+  "sourceSha256": "116d1878b733667b2fdb87c28e9ed38b5f8010288894e11bbebe9cf9a4c81521",
+  "script": "tools/revenue-model-v6910.js",
+  "scriptSha256": "121e632aeadacd3707a75d4821cab9d37a3af609dd6b6bc26b2af50395c269aa",
+  "currentConfiguration": {
+    "demoAdMobIds": true,
+    "adTesting": true,
+    "currentProductionAdRevenueGbp": 0,
+    "billingProductsConfiguredInSource": [
+      {
+        "productId": "coins_250",
+        "coins": 250,
+        "gbp": 0.99,
+        "label": "Handful of Chips"
+      },
+      {
+        "productId": "coins_600",
+        "coins": 600,
+        "gbp": 1.99,
+        "label": "Coin Stack"
+      },
+      {
+        "productId": "coins_1600",
+        "coins": 1600,
+        "gbp": 4.99,
+        "label": "Coin Barrel"
+      },
+      {
+        "productId": "coins_3600",
+        "coins": 3600,
+        "gbp": 9.99,
+        "label": "The Vault"
+      },
+      {
+        "productId": "coins_8500",
+        "coins": 8500,
+        "gbp": 19.99,
+        "label": "Jackpot Crate"
+      },
+      {
+        "productId": "remove_ads",
+        "gbp": 2.99
+      }
+    ],
+    "playConsoleProductActivationVerified": false
+  },
+  "caveats": [
+    "Ad eCPMs, fill, view frequency, MAU/DAU, payer conversion and ARPPU are planning assumptions, not WILDCARD telemetry.",
+    "IAP projections apply the scenario Play fee but exclude VAT/tax, refunds, chargebacks and foreign exchange.",
+    "The app currently uses Google demo AdMob IDs with test mode enabled, so current production ad revenue is zero.",
+    "Play Console activation and live pricing of the six billing products cannot be proven from repository source."
+  ],
+  "officialReferences": {
+    "admobTestAds": "https://developers.google.com/admob/android/test-ads",
+    "playFees": "https://support.google.com/googleplay/android-developer/answer/112622",
+    "playClosedTesting": "https://support.google.com/googleplay/android-developer/answer/14151465",
+    "admobThresholds": "https://support.google.com/admob/answer/2772208"
+  },
+  "scenarios": [
+    {
+      "id": "low",
+      "label": "Low",
+      "fillRate": 0.75,
+      "rewardedViewsPerDauDay": 1,
+      "rewardedEcpmGbp": 5,
+      "interstitialViewsPerDauDay": 1.5,
+      "interstitialEcpmGbp": 1.5,
+      "mauPerDau": 2,
+      "monthlyPayerRate": 0.003,
+      "grossMonthlyArppuGbp": 3,
+      "playFeeRate": 0.3
+    },
+    {
+      "id": "base",
+      "label": "Base",
+      "fillRate": 0.9,
+      "rewardedViewsPerDauDay": 1.8,
+      "rewardedEcpmGbp": 10,
+      "interstitialViewsPerDauDay": 2.5,
+      "interstitialEcpmGbp": 4,
+      "mauPerDau": 3,
+      "monthlyPayerRate": 0.008,
+      "grossMonthlyArppuGbp": 5,
+      "playFeeRate": 0.25
+    },
+    {
+      "id": "high",
+      "label": "High",
+      "fillRate": 0.95,
+      "rewardedViewsPerDauDay": 2.5,
+      "rewardedEcpmGbp": 15,
+      "interstitialViewsPerDauDay": 3.5,
+      "interstitialEcpmGbp": 8,
+      "mauPerDau": 4,
+      "monthlyPayerRate": 0.015,
+      "grossMonthlyArppuGbp": 7,
+      "playFeeRate": 0.15
+    }
+  ],
+  "dauLevels": [
+    50,
+    200,
+    1000,
+    10000
+  ],
+  "projections": [
+    {
+      "scenario": "low",
+      "dau": 50,
+      "estimatedMau": 100,
+      "monthlyPayers": 0.3,
+      "monthlyRewardedAdsGbp": 5.63,
+      "monthlyInterstitialAdsGbp": 2.53,
+      "monthlyAdsGbp": 8.16,
+      "grossMonthlyIapGbp": 0.9,
+      "monthlyIapAfterPlayFeeGbp": 0.63,
+      "monthlyTotalBeforeTaxRefundsGbp": 8.79,
+      "monthlyRevenuePerDauGbp": 0.18
+    },
+    {
+      "scenario": "low",
+      "dau": 200,
+      "estimatedMau": 400,
+      "monthlyPayers": 1.2,
+      "monthlyRewardedAdsGbp": 22.5,
+      "monthlyInterstitialAdsGbp": 10.13,
+      "monthlyAdsGbp": 32.63,
+      "grossMonthlyIapGbp": 3.6,
+      "monthlyIapAfterPlayFeeGbp": 2.52,
+      "monthlyTotalBeforeTaxRefundsGbp": 35.14,
+      "monthlyRevenuePerDauGbp": 0.18
+    },
+    {
+      "scenario": "low",
+      "dau": 1000,
+      "estimatedMau": 2000,
+      "monthlyPayers": 6,
+      "monthlyRewardedAdsGbp": 112.5,
+      "monthlyInterstitialAdsGbp": 50.63,
+      "monthlyAdsGbp": 163.13,
+      "grossMonthlyIapGbp": 18,
+      "monthlyIapAfterPlayFeeGbp": 12.6,
+      "monthlyTotalBeforeTaxRefundsGbp": 175.73,
+      "monthlyRevenuePerDauGbp": 0.18
+    },
+    {
+      "scenario": "low",
+      "dau": 10000,
+      "estimatedMau": 20000,
+      "monthlyPayers": 60,
+      "monthlyRewardedAdsGbp": 1125,
+      "monthlyInterstitialAdsGbp": 506.25,
+      "monthlyAdsGbp": 1631.25,
+      "grossMonthlyIapGbp": 180,
+      "monthlyIapAfterPlayFeeGbp": 126,
+      "monthlyTotalBeforeTaxRefundsGbp": 1757.25,
+      "monthlyRevenuePerDauGbp": 0.18
+    },
+    {
+      "scenario": "base",
+      "dau": 50,
+      "estimatedMau": 150,
+      "monthlyPayers": 1.2,
+      "monthlyRewardedAdsGbp": 24.3,
+      "monthlyInterstitialAdsGbp": 13.5,
+      "monthlyAdsGbp": 37.8,
+      "grossMonthlyIapGbp": 6,
+      "monthlyIapAfterPlayFeeGbp": 4.5,
+      "monthlyTotalBeforeTaxRefundsGbp": 42.3,
+      "monthlyRevenuePerDauGbp": 0.85
+    },
+    {
+      "scenario": "base",
+      "dau": 200,
+      "estimatedMau": 600,
+      "monthlyPayers": 4.8,
+      "monthlyRewardedAdsGbp": 97.2,
+      "monthlyInterstitialAdsGbp": 54,
+      "monthlyAdsGbp": 151.2,
+      "grossMonthlyIapGbp": 24,
+      "monthlyIapAfterPlayFeeGbp": 18,
+      "monthlyTotalBeforeTaxRefundsGbp": 169.2,
+      "monthlyRevenuePerDauGbp": 0.85
+    },
+    {
+      "scenario": "base",
+      "dau": 1000,
+      "estimatedMau": 3000,
+      "monthlyPayers": 24,
+      "monthlyRewardedAdsGbp": 486,
+      "monthlyInterstitialAdsGbp": 270,
+      "monthlyAdsGbp": 756,
+      "grossMonthlyIapGbp": 120,
+      "monthlyIapAfterPlayFeeGbp": 90,
+      "monthlyTotalBeforeTaxRefundsGbp": 846,
+      "monthlyRevenuePerDauGbp": 0.85
+    },
+    {
+      "scenario": "base",
+      "dau": 10000,
+      "estimatedMau": 30000,
+      "monthlyPayers": 240,
+      "monthlyRewardedAdsGbp": 4860,
+      "monthlyInterstitialAdsGbp": 2700,
+      "monthlyAdsGbp": 7560,
+      "grossMonthlyIapGbp": 1200,
+      "monthlyIapAfterPlayFeeGbp": 900,
+      "monthlyTotalBeforeTaxRefundsGbp": 8460,
+      "monthlyRevenuePerDauGbp": 0.85
+    },
+    {
+      "scenario": "high",
+      "dau": 50,
+      "estimatedMau": 200,
+      "monthlyPayers": 3,
+      "monthlyRewardedAdsGbp": 53.44,
+      "monthlyInterstitialAdsGbp": 39.9,
+      "monthlyAdsGbp": 93.34,
+      "grossMonthlyIapGbp": 21,
+      "monthlyIapAfterPlayFeeGbp": 17.85,
+      "monthlyTotalBeforeTaxRefundsGbp": 111.19,
+      "monthlyRevenuePerDauGbp": 2.22
+    },
+    {
+      "scenario": "high",
+      "dau": 200,
+      "estimatedMau": 800,
+      "monthlyPayers": 12,
+      "monthlyRewardedAdsGbp": 213.75,
+      "monthlyInterstitialAdsGbp": 159.6,
+      "monthlyAdsGbp": 373.35,
+      "grossMonthlyIapGbp": 84,
+      "monthlyIapAfterPlayFeeGbp": 71.4,
+      "monthlyTotalBeforeTaxRefundsGbp": 444.75,
+      "monthlyRevenuePerDauGbp": 2.22
+    },
+    {
+      "scenario": "high",
+      "dau": 1000,
+      "estimatedMau": 4000,
+      "monthlyPayers": 60,
+      "monthlyRewardedAdsGbp": 1068.75,
+      "monthlyInterstitialAdsGbp": 798,
+      "monthlyAdsGbp": 1866.75,
+      "grossMonthlyIapGbp": 420,
+      "monthlyIapAfterPlayFeeGbp": 357,
+      "monthlyTotalBeforeTaxRefundsGbp": 2223.75,
+      "monthlyRevenuePerDauGbp": 2.22
+    },
+    {
+      "scenario": "high",
+      "dau": 10000,
+      "estimatedMau": 40000,
+      "monthlyPayers": 600,
+      "monthlyRewardedAdsGbp": 10687.5,
+      "monthlyInterstitialAdsGbp": 7980,
+      "monthlyAdsGbp": 18667.5,
+      "grossMonthlyIapGbp": 4200,
+      "monthlyIapAfterPlayFeeGbp": 3570,
+      "monthlyTotalBeforeTaxRefundsGbp": 22237.5,
+      "monthlyRevenuePerDauGbp": 2.22
+    }
+  ]
+}
