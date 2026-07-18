@@ -259,7 +259,8 @@ const simulator = String.raw`
     return base+bonus;
   }
   function buyAtShop(metrics, strategy) {
-    run.boughtThisShop=false; run.shopBuysUsed=0; run.suppliesBought=0; run.pendingShopJoker=null;
+    run.boughtThisShop=false; run.shopBuysUsed=0; run.suppliesBoughtThisShop=[]; run.pendingShopJoker=null;
+    if(!run.supplyPurchaseCounts||typeof run.supplyPurchaseCounts!=='object') run.supplyPurchaseCounts={};
     if(run.__simSeed!==undefined) resetPhase(run.__simSeed,run.stage,20);
     rollJokerOffers(true); rollSupplyOffers();
     let limit = shopBuyLimit();
@@ -312,7 +313,13 @@ const simulator = String.raw`
       } else if (s.id === 'enhance' && Math.random()<.42) {
         const candidates=run.cards.filter(c=>!c.enh); if(candidates.length){ sample(candidates).enh=sample(['gild','neon','glass','wildsuit']); run.enhancedCount++; used=true; }
       }
-      if (used) { run.runCoins -= price; run.suppliesBought++; bought++; metrics.supplies[s.id]=(metrics.supplies[s.id]||0)+1; }
+      if (used) {
+        run.runCoins -= price;
+        run.supplyPurchaseCounts[s.id]=supplyPurchaseCount(s)+1;
+        run.suppliesBoughtThisShop.push(s.id);
+        bought++;
+        metrics.supplies[s.id]=(metrics.supplies[s.id]||0)+1;
+      }
     }
   }
   function playChoice(choice, metrics) {

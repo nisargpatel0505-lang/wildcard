@@ -448,11 +448,15 @@ body.bg-theme-ice .bgfx{filter:hue-rotate(155deg) saturate(.85) brightness(1.05)
   border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:8px;
 }
 .shop-card.supply{background:linear-gradient(160deg,#12343c,#0d2126);border-color:var(--mint)}
+.shop-card.supply.supply-bought{background:linear-gradient(160deg,#173039,#101d23);border-color:#6e948d;box-shadow:inset 0 0 18px rgba(82,240,208,.08)}
 .shop-card .jname{font-family:'Bungee',sans-serif;color:var(--violet);font-size:14px}
 .shop-card.supply .jname{color:var(--mint)}
+.shop-card.supply.supply-bought .jname{color:#9bc7bf}
 .shop-card.rare-uncommon .jname{color:var(--mint)}
 .shop-card.rare-rare .jname{color:var(--rare)}
 .shop-card .jdesc{font-size:12px;color:var(--cream-dim);line-height:1.4;flex:1}
+.supply-next{min-height:12px;color:var(--mint);font-size:9px;line-height:1.25}
+.shop-card.supply.supply-bought .supply-next{color:#9bc7bf}
 .rarity-tag{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim)}
 .price{font-family:'Bungee',sans-serif;color:var(--gold);font-size:14px}
 .shop-card .btn{padding:9px 0;font-size:13px;border-radius:10px}
@@ -1988,7 +1992,7 @@ body:has(#game.active) #wc-toast{
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.12</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.13</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -2227,7 +2231,7 @@ body:has(#game.active) #wc-toast{
     <div class="shop-inspect-hint"><b>JOKER EFFECTS</b><span>Names and effects stay visible. Tap a Joker to see which engine it fits best.</span></div>
     <div class="shop-section-lbl">Jokers — buy at most 1 <button class="btn ghost" id="btn-reroll" onclick="rerollShop()" style="padding:5px 12px;font-size:12px;margin-left:8px">Reroll · 2</button></div>
     <div class="shop-items" id="shop-items"></div>
-    <div class="shop-section-lbl">Supplies — prices rise +2 with each purchase here
+    <div class="shop-section-lbl">Supplies — each offer once · that supply costs +2 for the run
       <button class="btn ghost small" onclick="openDeckView()" style="margin-left:8px;padding:5px 12px;font-size:12px">🃏 View Deck</button></div>
     <div class="shop-items" id="shop-supplies"></div>
     <button class="btn alt" onclick="nextStage()">Next Heat →</button>
@@ -3932,6 +3936,7 @@ function newRunState(){
     stageScore:0, handsLeft:HANDS_PER_STAGE, discardsLeft:DISCARDS_PER_STAGE,
     handsPlayedThisStage:0,
     runCoins:0, jokers:[], jokerState:{}, deck:[], hand:[],
+    supplyPurchaseCounts:{}, suppliesBoughtThisShop:[],
     cards:baseCardSet(),           // the run's sculptable deck list
     handLevels:{},                 // hand type -> boost level
     destroyedCount:0, copiedCount:0,
@@ -5379,7 +5384,26 @@ function showAdBreak(next){
 // ---------- Shop ----------
 let shopOffers=[], supplyOffers=[];
 function shopPrice(base){ return base + (run.inflation?2:0); }
-function supplyPrice(s){ return shopPrice(s.price) + 2*(run.suppliesBought||0); }
+function normalizeSupplyState(){
+  const valid=new Set(SUPPLIES.map(s=>s.id));
+  const source=run&&run.supplyPurchaseCounts&&typeof run.supplyPurchaseCounts==='object' ? run.supplyPurchaseCounts : {};
+  const counts={};
+  for(const id of valid){
+    const n=Math.floor(Number(source[id])||0);
+    if(n>0) counts[id]=n;
+  }
+  run.supplyPurchaseCounts=counts;
+  const bought=Array.isArray(run.suppliesBoughtThisShop) ? run.suppliesBoughtThisShop : [];
+  run.suppliesBoughtThisShop=[...new Set(bought.filter(id=>valid.has(id)))];
+}
+function supplyPurchaseCount(s){
+  const n=run&&run.supplyPurchaseCounts ? Number(run.supplyPurchaseCounts[s.id]) : 0;
+  return Number.isFinite(n)&&n>0 ? Math.floor(n) : 0;
+}
+function supplyBoughtInShop(s){
+  return !!(run&&Array.isArray(run.suppliesBoughtThisShop)&&run.suppliesBoughtThisShop.includes(s.id));
+}
+function supplyPrice(s){ return shopPrice(s.price) + 2*supplyPurchaseCount(s); }
 
 function rarityWeight(j){
   const w=RARITY_WEIGHT[j.rarity];
@@ -5442,11 +5466,12 @@ function rollSupplyOffers(){
 function openShop(){
   document.getElementById('shop-title').textContent =
     (run.endless?'Endless · ':'')+'Heat '+run.stage+' Cleared!';
+  normalizeSupplyState();
   rollJokerOffers(true);
   rollSupplyOffers();
   run.boughtThisShop=false;
   run.shopBuysUsed=0;
-  run.suppliesBought=0;
+  run.suppliesBoughtThisShop=[];
   run.pendingShopJoker=null;
   updateShopSub();
   renderShop();
@@ -5496,6 +5521,7 @@ function rerollShop(){
 }
 
 function renderShop(){
+  normalizeSupplyState();
   const row=document.getElementById('shop-joker-row');
   row.innerHTML='';
   for(let i=0;i<MAX_JOKERS;i++){
@@ -5570,13 +5596,15 @@ function renderShop(){
   sbox.innerHTML='';
   supplyOffers.forEach(s=>{
     const price=supplyPrice(s);
+    const bought=supplyBoughtInShop(s);
     const el=document.createElement('div');
-    el.className='shop-card supply';
+    el.className='shop-card supply'+(bought?' supply-bought':'');
     el.innerHTML=`<div class="jname">${s.name}</div><div class="jdesc">${s.desc}</div>
-      <div class="price">${price} run coins</div>`;
+      <div class="price">${bought?'Next shop: ':''}${price} run coins</div>
+      <div class="supply-next">${bought?'Price increase saved for this run':'Buy once in this shop · next purchase +2'}</div>`;
     const b=document.createElement('button');
-    b.className='btn alt'; b.textContent=run.pendingShopJoker?'Finish swap first':'Buy & use';
-    b.disabled=run.runCoins<price || !!run.pendingShopJoker;
+    b.className='btn alt'; b.textContent=bought?'✓ Bought this shop':(run.pendingShopJoker?'Finish swap first':'Buy & use');
+    b.disabled=bought || run.runCoins<price || !!run.pendingShopJoker;
     b.onclick=()=>useSupply(s);
     el.appendChild(b);
     sbox.appendChild(el);
@@ -5643,11 +5671,13 @@ function cancelSwap(){
 let chestOpening=false;
 let overlayCancelAction=null;
 function useSupply(s){
+  normalizeSupplyState();
   if(run.pendingShopJoker) return;
+  if(supplyBoughtInShop(s)) return;
   const price=supplyPrice(s);
   if(run.runCoins<price) return;
-  if(s.id==='boost') openBoostPicker(s, price);
-  else openCardPicker(s, price);
+  if(s.id==='boost') openBoostPicker(s);
+  else openCardPicker(s);
 }
 function openOverlay(title, sub){
   overlayCancelAction=null;
@@ -5688,7 +5718,7 @@ function miniCardBtn(c){
   return b;
 }
 
-function openCardPicker(s, price){
+function openCardPicker(s){
   const titles={scalpel:'Destroy a card', copier:'Duplicate a card', dye:'Re-suit a card', enhance:'Enhance a card'};
   const body=openOverlay(titles[s.id], s.desc+' Your deck: '+run.cards.length+' cards.');
   const grid=document.createElement('div');
@@ -5699,24 +5729,26 @@ function openCardPicker(s, price){
     if(s.id==='scalpel' && run.cards.length<=HAND_SIZE){ b.disabled=true; b.style.opacity='.35'; b.title='Deck too thin — you need at least '+HAND_SIZE+' cards to deal a hand.'; }
     b.onclick=()=>{
       if(s.id==='scalpel'){
-        run.cards.splice(idx,1);
-        run.destroyedCount++;
-        finishSupply(price, 'Destroyed the '+c.rank+c.suit+'.');
+        finishSupply(s, 'Destroyed the '+c.rank+c.suit+'.', ()=>{
+          run.cards.splice(idx,1);
+          run.destroyedCount++;
+        });
       } else if(s.id==='copier'){
-        run.cards.push({...c});
-        run.copiedCount++;
-        finishSupply(price, 'Added a second '+c.rank+c.suit+'.');
+        finishSupply(s, 'Added a second '+c.rank+c.suit+'.', ()=>{
+          run.cards.push({...c});
+          run.copiedCount++;
+        });
       } else if(s.id==='dye'){
-        openSuitPicker(idx, price);
+        openSuitPicker(s, idx);
       } else if(s.id==='enhance'){
-        openEnhancePicker(idx, price);
+        openEnhancePicker(s, idx);
       }
     };
     grid.appendChild(b);
   }
   body.appendChild(grid);
 }
-function openEnhancePicker(cardIdx, price){
+function openEnhancePicker(s, cardIdx){
   const c=run.cards[cardIdx];
   const body=openOverlay('Enhance the '+c.rank+c.suit, c.enh ? ('Currently '+ENHANCEMENTS[c.enh].name+' \u2014 etching again replaces it.') : 'Pick an enhancement. It is permanent for this run.');
   Object.entries(ENHANCEMENTS).forEach(([key,e])=>{
@@ -5728,15 +5760,16 @@ function openEnhancePicker(cardIdx, price){
     b.textContent = c.enh===key ? 'Etched' : 'Etch';
     b.disabled = c.enh===key;
     b.onclick=()=>{
-      c.enh=key;
-      run.enhancedCount=(run.enhancedCount||0)+1;
-      finishSupply(price, e.icon+' '+e.name+' etched onto the '+c.rank+c.suit+'.');
+      finishSupply(s, e.icon+' '+e.name+' etched onto the '+c.rank+c.suit+'.', ()=>{
+        c.enh=key;
+        run.enhancedCount=(run.enhancedCount||0)+1;
+      });
     };
     rowEl.appendChild(b);
     body.appendChild(rowEl);
   });
 }
-function openSuitPicker(cardIdx, price){
+function openSuitPicker(s, cardIdx){
   const c=run.cards[cardIdx];
   const body=openOverlay('Dye the '+c.rank+c.suit, 'Pick its new suit.');
   const rowEl=document.createElement('div');
@@ -5747,14 +5780,15 @@ function openSuitPicker(cardIdx, price){
     if(su.s===c.suit){ b.disabled=true; b.title='Already this suit.'; }
     if(su.red) b.className='red';
     b.onclick=()=>{
-      c.suit=su.s; c.red=su.red;
-      finishSupply(price, 'Dyed it into the '+c.rank+su.s+'.');
+      finishSupply(s, 'Dyed it into the '+c.rank+su.s+'.', ()=>{
+        c.suit=su.s; c.red=su.red;
+      });
     };
     rowEl.appendChild(b);
   }
   body.appendChild(rowEl);
 }
-function openBoostPicker(s, price){
+function openBoostPicker(s){
   const body=openOverlay('Hand Boost', 'Pick a hand type to level up for the rest of this run. Each type caps at Lv'+MAX_HAND_LEVEL+'.');
   Object.keys(HAND_BASE).forEach(type=>{
     const lvl=run.handLevels[type]||0;
@@ -5768,23 +5802,38 @@ function openBoostPicker(s, price){
     b.disabled=maxed;
     b.onclick=()=>{
       if((run.handLevels[type]||0)>=MAX_HAND_LEVEL) return;
-      run.handLevels[type]=(run.handLevels[type]||0)+1;
-      run.boostsBought++;
-      finishSupply(price, type+' is now Lv'+run.handLevels[type]+((run.handLevels[type]>=MAX_HAND_LEVEL)?' (MAX).':'.'));
+      const nextLevel=(run.handLevels[type]||0)+1;
+      finishSupply(s, type+' is now Lv'+nextLevel+((nextLevel>=MAX_HAND_LEVEL)?' (MAX).':'.'), ()=>{
+        run.handLevels[type]=nextLevel;
+        run.boostsBought++;
+      });
     };
     rowEl.appendChild(b);
     body.appendChild(rowEl);
   });
 }
-function finishSupply(price, msg){
+function finishSupply(s, msg, apply){
+  normalizeSupplyState();
+  const price=supplyPrice(s);
+  if(run.pendingShopJoker || supplyBoughtInShop(s) || run.runCoins<price) return false;
+  // Lock the offer before applying its effect so a double tap cannot mutate
+  // the deck or charge the player twice.
+  run.suppliesBoughtThisShop.push(s.id);
+  try{
+    if(apply) apply();
+  }catch(e){
+    run.suppliesBoughtThisShop=run.suppliesBoughtThisShop.filter(id=>id!==s.id);
+    throw e;
+  }
   run.runCoins-=price;
-  run.suppliesBought=(run.suppliesBought||0)+1;
+  run.supplyPurchaseCounts[s.id]=supplyPurchaseCount(s)+1;
   chord([523,659]);
   closeOverlay();
   updateShopSub();
   renderShop();
   document.getElementById('shop-sub').innerHTML += ' &nbsp;·&nbsp; <b style="color:var(--mint)">'+msg+'</b>';
   checkAchievements();
+  return true;
 }
 
 // ---------- Poker hands reference ----------
@@ -7565,7 +7614,7 @@ const RUN_FIELDS=['runId','telemetryMode','stage','endless','gauntlet','prevGaun
  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
  'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','heat12SequenceStarted','heat12InterstitialAttempted','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
  'stakeNet','enhancedCount','shatteredCount','glassDouble','inflation','sortMode','lastRunReward','lastAcctReward',
- 'lastInterest','suppliesBought','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
+ 'lastInterest','supplyPurchaseCounts','suppliesBoughtThisShop','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
 function currentRunPhase(){
   if(run&&run.terminalPending) return 'revive';
   const active=document.querySelector('.screen.active');
@@ -7608,6 +7657,7 @@ function resumeRun(){
   try{
     run=newRunState();
     for(const k of RUN_FIELDS) if(d[k]!==undefined) run[k]=d[k];
+    normalizeSupplyState();
     run.jokers=(d.jokerIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
     run.modifier = d.modId==='boss_house' ? BOSS_MOD : (MODIFIERS.find(m=>m.id===d.modId)||null);
     run.animating=false; run.abortAfterAnimation=false; run.pendingShopJoker=null;
@@ -7653,7 +7703,7 @@ const API_BASE=resolveDailyApiBase(location.hostname,DAILY_API_NATIVE);
 // ---- Anonymous aggregate analytics (Pi; fail-soft and never awaited) ----
 // Only coarse product counters leave the device. There is no install/session ID,
 // player name, score, card data, save data or Google/Firebase identity in this path.
-const TELEMETRY_VERSION='6.9.12';
+const TELEMETRY_VERSION='6.9.13';
 const TELEMETRY_ENABLED=DAILY_API_NATIVE || location.hostname==='raspberrypi.tail20f574.ts.net';
 const TELEMETRY_PLATFORM=DAILY_API_NATIVE?'android':'web';
 const TELEMETRY_ENDPOINT=API_BASE+'/api/analytics';

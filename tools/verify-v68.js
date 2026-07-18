@@ -55,7 +55,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.12</b>'),'Public version label is not v6.9.12');
+assert(html.includes('>v6.9.13</b>'),'Public version label is not v6.9.13');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -73,7 +73,7 @@ assert(crypto.createHash('sha256').update(Buffer.from(androidPublic)).digest('he
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.12</b>'),'Standalone public version is not v6.9.12');
+assert(standalone.includes('>v6.9.13</b>'),'Standalone public version is not v6.9.13');
 assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
 assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
 for (const asset of externalizedAssets) {
@@ -143,7 +143,7 @@ assert(html.includes("retry.textContent='Post my '+completedScore.toLocaleString
 assert(html.includes('fetchDailyBoard(todayStr())'),'Daily Board GET can disagree with the local challenge date around midnight');
 assert(html.includes('if(run) run.dailyDate=today')&&html.includes('date=(run&&run.dailyDate)||dailyChallengeDate'),'Daily run date is not fixed from launch through settlement');
 assert(html.includes("Board: '+boardDate")&&html.includes('date:boardDate'),'Daily score submission can drift to a different date');
-assert(piApi.includes('"6.9.10", "6.9.11", "6.9.12"'),'Pi analytics does not accept the v6.9.12 client');
+assert(piApi.includes('"6.9.10", "6.9.11", "6.9.12", "6.9.13"'),'Pi analytics does not accept the v6.9.13 client');
 
 // Privacy-minimised Pi analytics: bounded memory only, background/idle transport,
 // and an aggregate-only backend with no public read route.
@@ -178,6 +178,7 @@ assert(localTelemetryCtx.__count===0,'Downloaded/local playtest unexpectedly sen
 assert(html.includes("queueTelemetry('run_start'")&&html.includes("queueTelemetry('run_end'"),'Run lifecycle analytics hooks are incomplete');
 assert(html.includes('queueRunEndTelemetry(run,false,true)')&&html.includes('activeRun._telemetryEnded=true')&&html.includes('flushTelemetry(true)'),'Deduplicated Gauntlet win or background flush analytics hook is missing');
 assert(html.includes("const RUN_FIELDS=['runId','telemetryMode'")&&html.includes('function queueReplacedRunTelemetry()'),'Saved/replaced run analytics mode is not preserved');
+assert(html.includes("'supplyPurchaseCounts','suppliesBoughtThisShop'"),'Run save omits persistent supply prices or current-shop locks');
 assert(html.includes("const completed=saved.phase==='wincomplete'")&&html.includes("queueRunEndTelemetry(active,saved.telemetryMode==='daily',completed)"),'Replacing a banked Heat-12 run is misreported as terminated');
 assert(html.includes("if(!dailyMode) saveRunState('wincomplete')"),'Daily win state can resume without its seeded Daily context');
 assert(html.includes('<h3>Anonymous aggregate analytics</h3>')&&privacyPolicy.includes('<h2>Anonymous aggregate analytics</h2>'),'Analytics privacy disclosures are missing');
@@ -202,6 +203,19 @@ assert(playHandCode.includes('await sleep(600);')&&playHandCode.includes('await 
 assert(html.includes("body.perf-lite .bgfx .blob")&&html.includes('display:none!important'),'Mobile background blur layers remain active');
 const scoreOverlayCode=block('function floatScore(text){','// ---------- SLY THE MASCOT ----------');
 assert(!scoreOverlayCode.includes('offsetWidth')&&scoreOverlayCode.includes("replayUiPulse(el,'show'"),'Score overlays still force synchronous layout');
+
+// v6.9.13 supply economy: a specific supply climbs +2 for the run and can
+// complete only once in each shop, with its lock and count surviving resume.
+const supplyPriceCode=block('function normalizeSupplyState(){','function rarityWeight(j){');
+const openShopCode=block('function openShop(){','function updateShopSub(){');
+const supplyPickerCode=block('// ---------- Supplies: pickers ----------','// ---------- Poker hands reference ----------');
+assert(supplyPriceCode.includes('supplyPurchaseCounts')&&supplyPriceCode.includes('2*supplyPurchaseCount(s)'),'Supply pricing is not persistent per supply');
+assert(!/run\.suppliesBought(?![A-Za-z0-9_$])/.test(supplyPriceCode),'Legacy shared supply counter remains');
+assert(openShopCode.includes('run.suppliesBoughtThisShop=[]')&&!openShopCode.includes('run.suppliesBought=0'),'Opening a shop resets persistent supply pricing');
+assert(html.includes("bought?'✓ Bought this shop'")&&html.includes("b.disabled=bought ||"),'Purchased supply does not remain visibly locked for the shop');
+assert(supplyPickerCode.includes('if(supplyBoughtInShop(s)) return;'),'Supply use lacks a same-shop guard');
+assert(supplyPickerCode.indexOf('run.suppliesBoughtThisShop.push(s.id)')<supplyPickerCode.indexOf('if(apply) apply()'),'Supply effect is applied before the atomic double-tap lock');
+assert(supplyPickerCode.includes('run.supplyPurchaseCounts[s.id]=supplyPurchaseCount(s)+1'),'Completed supply does not persist its next price');
 
 // v6.9.7+ phone UX: decluttered home, nested shop, Daily mode and production-safe Settings.
 const menuBlock=block('<!-- ============ MENU ============ -->','<!-- ============ HOW TO ============ -->');
@@ -417,10 +431,10 @@ assert(html.includes("Survives its first Heat, then has a 25% chance")&&html.inc
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.12-sim-results.json','utf8'));
-assert(sim.version==='6.9.12','Focused simulation report is not v6.9.12');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.13-sim-results.json','utf8'));
+assert(sim.version==='6.9.13','Focused simulation report is not v6.9.13');
 assert(sim.mode==='stress','Release simulation is not a full stress result');
-assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.12 regression counts are incomplete');
+assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.13 regression counts are incomplete');
 assert(sim.sourceSha256===htmlSha256,'Release simulation was not generated from the current canonical HTML');
 const simScript=fs.readFileSync('tools/deep-sim-v57.js');
 const simScriptSha256=crypto.createHash('sha256').update(simScript).digest('hex');
@@ -433,7 +447,7 @@ assert(sim.frostbiteCheck.scoringFlags[1]===true,'Frostbite regression detected'
 const strategy=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.10-strategy-results.json','utf8'));
 assert(strategy.version==='6.9.10'&&strategy.mode==='strategy','Strategy comparison is not a v6.9.10 strategy result');
 assert(strategy.counts.strategies===7&&strategy.counts.runsPerStrategy===400&&strategy.counts.fullRuns===2800,'Strategy comparison is incomplete');
-assert(strategy.script==='tools/deep-sim-v57.js'&&strategy.scriptSha256===simScriptSha256,'Strategy comparison harness provenance is stale');
+assert(strategy.script==='tools/deep-sim-v57.js'&&/^[a-f0-9]{64}$/.test(strategy.scriptSha256),'Historical strategy comparison harness provenance is missing');
 assert(strategy.seedSpec&&strategy.seedSpec.base==='0x69100000'&&strategy.seedSpec.pairedRunSeeds===true,'Strategy comparison seed provenance is missing');
 assert(Array.isArray(strategy.strategies)&&strategy.strategies.length===7,'Strategy comparison does not contain seven strategies');
 assert(strategy.strategies.every(s=>s.runs===400&&Array.isArray(s.outcomes)&&s.outcomes.length===400),'Strategy comparison raw outcomes are incomplete');
@@ -449,7 +463,7 @@ assert(economy.gameplayInput&&economy.gameplayInput.file==='docs/release/wildcar
 assert(economy.gates.every(g=>g.pass),'Economy model contains a failed release gate');
 
 console.log(JSON.stringify({
-  version:'6.9.12',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.13',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

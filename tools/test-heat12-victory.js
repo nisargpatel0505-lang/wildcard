@@ -38,6 +38,7 @@ const CURRENT_FUNCTIONS = [
   'endRunToStats',
   'gameOver',
   'showAdBreak',
+  'normalizeSupplyState',
   'resumeRun'
 ].map(extractFunction).join('\n\n');
 
@@ -274,6 +275,7 @@ function createHarness(options) {
     reducedMotion: false,
     account,
     JOKERS: [],
+    SUPPLIES: [],
     MODIFIERS: [],
     BOSS_MOD: { id: 'boss_house' },
     RUN_FIELDS: Object.keys(makeRun()),

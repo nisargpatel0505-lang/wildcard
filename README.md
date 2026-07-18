@@ -4,16 +4,16 @@ WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Cap
 
 ## Current release
 
-- Game version: **6.9.12**
+- Game version: **6.9.13**
 - Android package: `com.nisarg.wildcard`
-- Android version code: **32** (local developer build: **31**)
+- Android version code: **33** (local developer build: **32**)
 - Firebase project: `wildcard-31d50`
-- Source HTML SHA-256: `6585cb1976fe44bfbaf49a4aca310d512fbca008392dfc83ff89077f7256f75c`
-- Release APK SHA-256: `7eb6c488441e005c4121d356c76944654f72ad85edb69d2d96ad63c40bcdd5d2`
-- Release AAB SHA-256: `0bd24f97628514680726942acd7c5f1370b303a1ecbe1aa2bd3f016e578bc581`
-- Google Play internal track: v6.9.12 AAB is built and signed locally after the release checks; Play Console upload remains a separate explicit step
+- Source HTML SHA-256: `499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9`
+- Release APK SHA-256: `d92e9be8e32f50717b9474dc934b7a4d76ddc2690a050966fdbe665801777958`
+- Release AAB SHA-256: `cc07440391da28e160608534085cbccc83587c8aec48578488164ab423fbc259`
+- Google Play internal track: v6.9.13 AAB is built and signed locally after the release checks; Play Console upload remains a separate explicit step
 
-The v6.9.12 release replaces the hard Joker flash/lift and moving `TRIGGER` chip with a short, stationary rarity glow and effect-only text. Standard modifiers remain at Heats 3, 6 and 9 with THE HOUSE at 12; Endless now deals a modifier only every third Heat. Clearing Heat 12 plays a 2.4-second full-screen Sly single-tear cinematic, attempts one fail-safe interstitial, then presents `Continue → Endless` or `End Run · Bank Score`. The victory checkpoint is saved before media or ads, resume never repeats the cinematic/ad, and Daily/Gauntlet settlement remains isolated.
+The v6.9.13 release makes run-shop supplies a deliberate run-long economy. Each offered supply can be bought only once in that shop, and each specific supply becomes two run coins more expensive every time it is used for the remainder of the run. Prices are independent by supply, survive save/resume, compose with temporary Inflation, and commit atomically so a double tap cannot apply an effect twice or create a free mutation. Purchased cards remain in place with a clear `Bought this shop` state and show their next-shop price.
 
 The build also includes privacy-minimised Pi analytics for internal testing: app opens, run starts and run outcomes are queued only in memory and sent as a tiny non-blocking idle/background batch. The Pi keeps daily aggregate counters only; no player identity, exact score, cards, save data or persistent analytics identifier is sent. See [docs/ANALYTICS.md](docs/ANALYTICS.md).
 
@@ -41,7 +41,7 @@ The APK is written to `android/app/build/outputs/apk/release/app-release.apk`.
 
 ## Verification
 
-The release evidence is under `docs/release/`. v6.9.12 uses a focused 10,000 scoring / 5,000 Cheat / 550-run regression because its primary changes are presentation and orchestration; the larger v6.9.10 balance, strategy and economy evidence remains the latest full balance baseline. Executable tests cover Heat-12 video/ad/choice failure paths, one-interstitial enforcement, Daily and resume routing, native rewarded/interstitial and Billing callbacks, offline MP4 Range responses, economy idempotency, Pi analytics privacy, canonical source, standalone provenance, Android packaging, and Google/Firebase configuration. Firestore Rules previously passed 19 hostile allow/deny checks.
+The release evidence is under `docs/release/`. v6.9.13 uses a focused 10,000 scoring / 5,000 Cheat / 550-run regression because its primary change is shop-supply state and pricing; the larger v6.9.10 balance, strategy and economy evidence remains the latest full balance baseline. Executable tests cover per-supply price progression, once-per-shop locks, atomic double-tap protection, save/resume and legacy migration, Daily/Gauntlet parity, Heat-12 video/ad/choice failure paths, native rewarded/interstitial and Billing callbacks, offline MP4 Range responses, economy idempotency, Pi analytics privacy, canonical source, standalone provenance, Android packaging, and Google/Firebase configuration. Firestore Rules previously passed 19 hostile allow/deny checks.
 
 ## Firebase
 
@@ -49,4 +49,4 @@ The Android package and release SHA-1/SHA-256 certificates are registered with F
 
 ## Raspberry Pi deployment
 
-The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts/video through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.12.apk`, `WILDCARD-v6.9.12-release.apk` and `WILDCARD-latest.apk`.
+The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts/video through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.13.apk`, `WILDCARD-v6.9.13-release.apk` and `WILDCARD-latest.apk`.
