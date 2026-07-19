@@ -1,0 +1,1248 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "WILDCARD: Best Openings, Builds and Fun",
+    "generatedAt": "2026-07-18T15:54:34.224446Z",
+    "description": "Decision report from paired v6.9.13 simulations.",
+    "charts": [
+      {
+        "id": "opening_score",
+        "title": "Best immediate opening score",
+        "subtitle": "The guided two-Joker lesson is strongest; Opening Act leads the single-starter first deal.",
+        "type": "bar",
+        "dataset": "opening",
+        "sourceId": "decision_lab",
+        "source": {
+          "id": "decision_lab",
+          "label": "Paired opening lab",
+          "path": "snapshot.datasets.opening",
+          "query": {
+            "language": "sql",
+            "engine": "bounded artifact snapshot",
+            "description": "Rank the paired opening configurations by mean best immediate score.",
+            "sql": "SELECT configuration, avg_best_score, median_best_score, p90_best_score, one_play_clear_rate FROM opening ORDER BY avg_best_score DESC",
+            "tables_used": [
+              "opening"
+            ]
+          }
+        },
+        "valueFormat": "number",
+        "encodings": {
+          "x": {
+            "field": "configuration",
+            "type": "nominal",
+            "label": "Start configuration"
+          },
+          "y": {
+            "field": "avg_best_score",
+            "type": "quantitative",
+            "label": "Mean best immediate score"
+          },
+          "tooltip": [
+            {
+              "field": "one_play_clear_rate",
+              "type": "quantitative",
+              "label": "One-play Heat-1 clear",
+              "unit": "%"
+            },
+            {
+              "field": "median_best_score",
+              "type": "quantitative",
+              "label": "Median best score"
+            },
+            {
+              "field": "p90_best_score",
+              "type": "quantitative",
+              "label": "P90 best score"
+            }
+          ]
+        },
+        "referenceLines": [
+          {
+            "value": 90,
+            "label": "Heat 1 target"
+          }
+        ],
+        "layout": "full"
+      },
+      {
+        "id": "starter_depth",
+        "title": "Average Heats cleared by starter boost",
+        "subtitle": "Run depth is more stable than rare Heat-12 wins in the starter-only pool.",
+        "type": "bar",
+        "dataset": "starters",
+        "sourceId": "decision_lab",
+        "source": {
+          "id": "decision_lab",
+          "label": "Paired starter lab",
+          "path": "snapshot.datasets.starters",
+          "query": {
+            "language": "sql",
+            "engine": "bounded artifact snapshot",
+            "description": "Rank starter boosts by average complete-run depth with outcome context.",
+            "sql": "SELECT starter, avg_heats_cleared, win_rate, reach_heat_12, boss_hazard FROM starters ORDER BY avg_heats_cleared DESC",
+            "tables_used": [
+              "starters"
+            ]
+          }
+        },
+        "valueFormat": "number",
+        "encodings": {
+          "x": {
+            "field": "starter",
+            "type": "nominal",
+            "label": "Starter boost"
+          },
+          "y": {
+            "field": "avg_heats_cleared",
+            "type": "quantitative",
+            "label": "Average Heats cleared"
+          },
+          "tooltip": [
+            {
+              "field": "win_rate",
+              "type": "quantitative",
+              "label": "Clear Heat 12",
+              "unit": "%"
+            },
+            {
+              "field": "reach_heat_12",
+              "type": "quantitative",
+              "label": "Reach Heat 12",
+              "unit": "%"
+            },
+            {
+              "field": "boss_hazard",
+              "type": "quantitative",
+              "label": "Boss hazard",
+              "unit": "%"
+            }
+          ]
+        },
+        "layout": "full"
+      },
+      {
+        "id": "strategy_strength",
+        "title": "Heat-12 clear rate by build policy",
+        "subtitle": "Every strategy uses the same paired seeds and no free start boost.",
+        "type": "bar",
+        "dataset": "strategies",
+        "sourceId": "strategy_lab",
+        "source": {
+          "id": "strategy_lab",
+          "label": "Paired strategy lab",
+          "path": "snapshot.datasets.strategies",
+          "query": {
+            "language": "sql",
+            "engine": "bounded artifact snapshot",
+            "description": "Compare Heat-12 clear rates for paired fixed-start build policies.",
+            "sql": "SELECT strategy, win_rate, ci_low, ci_high, avg_heats_cleared FROM strategies ORDER BY win_rate DESC",
+            "tables_used": [
+              "strategies"
+            ]
+          }
+        },
+        "valueFormat": "number",
+        "unit": "%",
+        "encodings": {
+          "x": {
+            "field": "strategy",
+            "type": "nominal",
+            "label": "Build policy"
+          },
+          "y": {
+            "field": "win_rate",
+            "type": "quantitative",
+            "label": "Clear Heat 12",
+            "unit": "%"
+          },
+          "tooltip": [
+            {
+              "field": "ci_low",
+              "type": "quantitative",
+              "label": "Wilson CI low",
+              "unit": "%"
+            },
+            {
+              "field": "ci_high",
+              "type": "quantitative",
+              "label": "Wilson CI high",
+              "unit": "%"
+            },
+            {
+              "field": "avg_heats_cleared",
+              "type": "quantitative",
+              "label": "Average Heats cleared"
+            }
+          ]
+        },
+        "layout": "full"
+      },
+      {
+        "id": "strategy_variety",
+        "title": "Clear rate and hand diversity",
+        "subtitle": "The best experience should sit between incoherent variety and one-hand repetition.",
+        "type": "scatter",
+        "dataset": "strategies",
+        "sourceId": "strategy_lab",
+        "source": {
+          "id": "strategy_lab",
+          "label": "Paired strategy lab",
+          "path": "snapshot.datasets.strategies",
+          "query": {
+            "language": "sql",
+            "engine": "bounded artifact snapshot",
+            "description": "Compare strategy strength with hand diversity and build identity.",
+            "sql": "SELECT strategy, hand_entropy, win_rate, joker_active_play_rate, dominant_hand, dominant_hand_share, build_identity_rate, build_jaccard_distance FROM strategies",
+            "tables_used": [
+              "strategies"
+            ]
+          }
+        },
+        "encodings": {
+          "x": {
+            "field": "hand_entropy",
+            "type": "quantitative",
+            "label": "Normalized hand entropy"
+          },
+          "y": {
+            "field": "win_rate",
+            "type": "quantitative",
+            "label": "Clear Heat 12",
+            "unit": "%"
+          },
+          "label": {
+            "field": "strategy",
+            "type": "text",
+            "label": "Strategy"
+          },
+          "size": {
+            "field": "joker_active_play_rate",
+            "type": "quantitative",
+            "label": "Joker-active plays",
+            "unit": "%"
+          },
+          "tooltip": [
+            {
+              "field": "dominant_hand",
+              "type": "text",
+              "label": "Dominant hand"
+            },
+            {
+              "field": "dominant_hand_share",
+              "type": "quantitative",
+              "label": "Dominant hand share",
+              "unit": "%"
+            },
+            {
+              "field": "build_identity_rate",
+              "type": "quantitative",
+              "label": "Build identity",
+              "unit": "%"
+            },
+            {
+              "field": "build_jaccard_distance",
+              "type": "quantitative",
+              "label": "Build distance"
+            }
+          ]
+        },
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "strategy_fun_table",
+        "title": "Strategy strength and fun proxies",
+        "subtitle": "Paired fixed-start runs; percentages are shown as percentage points.",
+        "dataset": "strategies",
+        "sourceId": "strategy_lab",
+        "source": {
+          "id": "strategy_lab",
+          "label": "Paired strategy lab",
+          "path": "snapshot.datasets.strategies",
+          "query": {
+            "language": "sql",
+            "engine": "bounded artifact snapshot",
+            "description": "Review strategy strength and fun-proxy measures together.",
+            "sql": "SELECT strategy, win_rate, avg_heats_cleared, hand_entropy, dominant_hand, dominant_hand_share, joker_active_play_rate, any_callout_play_rate, final_play_clear_rate, close_clear_rate, build_identity_rate, build_jaccard_distance, boss_hazard FROM strategies ORDER BY win_rate DESC",
+            "tables_used": [
+              "strategies"
+            ]
+          }
+        },
+        "density": "comfortable",
+        "defaultSort": {
+          "field": "win_rate",
+          "direction": "desc"
+        },
+        "columns": [
+          {
+            "field": "strategy",
+            "label": "Strategy",
+            "type": "text"
+          },
+          {
+            "field": "win_rate",
+            "label": "Clear H12",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "avg_heats_cleared",
+            "label": "Avg Heats",
+            "format": "number"
+          },
+          {
+            "field": "hand_entropy",
+            "label": "Entropy",
+            "format": "number"
+          },
+          {
+            "field": "dominant_hand",
+            "label": "Dominant hand",
+            "type": "text"
+          },
+          {
+            "field": "dominant_hand_share",
+            "label": "Dominant share",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "joker_active_play_rate",
+            "label": "Joker-active plays",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "any_callout_play_rate",
+            "label": "Any callout",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "final_play_clear_rate",
+            "label": "Final-play clears",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "close_clear_rate",
+            "label": "Close clears",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "build_identity_rate",
+            "label": "Build identity",
+            "format": "number",
+            "unit": "%"
+          },
+          {
+            "field": "build_jaccard_distance",
+            "label": "Build distance",
+            "format": "number"
+          },
+          {
+            "field": "boss_hazard",
+            "label": "Boss hazard",
+            "format": "number",
+            "unit": "%"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "game_source",
+        "label": "Canonical WILDCARD v6.9.13 game source",
+        "path": "www/index.html"
+      },
+      {
+        "id": "decision_lab",
+        "label": "v6.9.13 paired opening and starter lab",
+        "path": "docs/release/wildcard-v6.9.13-decision-lab-results.json"
+      },
+      {
+        "id": "strategy_lab",
+        "label": "v6.9.13 paired fixed-start strategy lab",
+        "path": "docs/release/wildcard-v6.9.13-strategy-results.json"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# WILDCARD: Best Openings, Builds and Fun"
+      },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **Play made hands; discard weak High Card.** The guided Copper Chip + Pair Polisher start finds a one-play Heat-1 clear on **80.4%** of initial deals, versus **41.0%** with no boost. The opening frontier shows the decisive step is Pair-or-better, not simply the highest ranks.\n- **Guided first run: Copper Chip + Pair Polisher is the most reliable starter-depth screen.** It averaged **9.87 Heats cleared** in the starter-only pool. **Royal Retainer** had the highest observed win rate at **1.7%**, but rare wins and overlapping intervals make run depth the safer recommendation.\n- **Adaptive greedy and Flush engine are statistically tied at the top.** Their observed Heat-12 clear rates were **23.3%** and **22.5%**; the paired exact comparison is p=0.646. The result now holds the start at no free Joker; the older comparison did not.\n- **Fun comes from coherent variety, readable triggers and recoverable danger.** Keep strong sensible strategies within roughly 5\u201315 win-rate points, hand entropy around 0.65\u20130.85, and boss hazard around 35\u201355%; verify pace, fairness and Joker recall with people."
+      },
+      {
+        "id": "opening_finding",
+        "type": "markdown",
+        "sourceId": "decision_lab",
+        "body": "## Made hands beat raw ranks from the first deal\n\n**The practical opening rule is simple: bank Pair-or-better; discard weak High Card.** On 50,000 paired initial deals, the tutorial's Copper Chip + Pair Polisher start averaged **165.5** for the best immediate play and cleared the 90-point target immediately on **80.4%**. With no boost those figures fell to **100.1** and **41.0%**.\n\nAmong normal single starters, **Opening Act** produced the largest first-deal burst at **145.6**. That is an opening result, not yet the long-run recommendation."
+      },
+      {
+        "id": "opening_chart_block",
+        "type": "chart",
+        "chartId": "opening_score"
+      },
+      {
+        "id": "starter_finding",
+        "type": "markdown",
+        "sourceId": "decision_lab",
+        "body": "## Guided first run: Copper Chip + Pair Polisher gives the deepest starter-pool runs\n\n**Use average run depth as the primary starter screen.** Heat-12 wins are rare in the ten-Joker starter shop pool, so the stable result is **Guided first run: Copper Chip + Pair Polisher at 9.87 average Heats cleared**. The highest observed win rate was Royal Retainer at 1.7%; small gaps should not be called decisive when Wilson intervals overlap.\n\nThe tutorial-only two-Joker start remains useful as a teaching safety net, but it should not be compared as a normal 6-coin choice."
+      },
+      {
+        "id": "starter_chart_block",
+        "type": "chart",
+        "chartId": "starter_depth"
+      },
+      {
+        "id": "strategy_finding",
+        "type": "markdown",
+        "sourceId": "strategy_lab",
+        "body": "## Adaptive greedy and Flush engine are effectively tied\n\n**Adaptive greedy cleared Heat 12 in 23.3% of 1,000 paired runs; Flush engine reached 22.5%.** The 0.8-point difference is not meaningful in the paired comparison (exact p=0.646). This comparison is cleaner than the earlier strategy report because all policies begin with no free Joker.\n\nPolicy changed the win/loss outcome on **52.1%** of paired seeds, while **47.9%** were lost by every tested policy. Strategy therefore matters, but a meaningful share of runs remains seed-constrained."
+      },
+      {
+        "id": "strategy_chart_block",
+        "type": "chart",
+        "chartId": "strategy_strength"
+      },
+      {
+        "id": "fun_finding",
+        "type": "markdown",
+        "sourceId": "strategy_lab",
+        "body": "## Fun sits between random soup and one-hand repetition\n\n**Do not optimise only for win rate.** The working target is a recognisable engine with enough hand variety to keep decisions alive: normalized entropy around **0.65\u20130.85**, dominant-hand share around **25\u201345%** overall (up to 60% for a deliberate specialist), final-build Jaccard distance around **0.55\u20130.80**, and boss hazard around **35\u201355%**.\n\nThe observed sensible-strategy win-rate spread is **14.1 points**, but xMult stacking sits **21.5 points** behind the leader and behaves like a trap. Major GREAT-or-higher callouts occur on roughly half of bot plays and any callout on more than four in five, so celebration is too common to feel special. Joker activity counts scoring-event triggers only, so economy and Heat-clear effects are understated."
+      },
+      {
+        "id": "variety_chart_block",
+        "type": "chart",
+        "chartId": "strategy_variety"
+      },
+      {
+        "id": "strategy_table_block",
+        "type": "table",
+        "tableId": "strategy_fun_table"
+      },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## Recommended next steps\n\n1. **Teach the opening rule explicitly:** \u201cPair-or-better: play it. Weak High Card: discard and improve.\u201d Keep the guided Copper + Polisher safety net.\n2. **Default the starter recommendation to run depth, not one lucky clear.** Keep start prices separate from run power; review cost efficiency only after the strongest starter is statistically stable.\n3. **Pull sensible build policies into a 5\u201315 point band.** Buff trap-like policies through better support and shop availability before nerfing the strongest readable engine.\n4. **Keep scoring readable and make peaks rare:** normally 1\u20134 visible Joker beats per play, with p95 no higher than six. Major callouts should not appear on roughly half of all plays.\n5. **Run a closed-test fun check:** ask pace, fairness and \u201cwhich Joker just triggered?\u201d after sampled hands. Target at least 80% correct Joker recall."
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n- Does the starter ranking hold when veteran shops include all 57 Jokers?\n- Does a one-step lookahead card policy outperform immediate score without slowing player decisions?\n- Which strategy gaps come from Joker balance versus the bot's supply and discard heuristics?\n- Do real players understand 1\u20134 Joker beats, and where does comprehension collapse?"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## Caveats and assumptions\n\n- The results are deterministic bot simulations from source SHA-256 `499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9`, not player telemetry.\n- \u201cBest opening score\u201d is immediate score. It does not prove that playing immediately beats discarding for future value.\n- Strategy bots share an exhaustive immediate-score selector; they differ mostly in shop/build priorities and Pair/Flush discard weighting.\n- Starter account-coin prices are not deducted from run coins, matching the game's separate account/run currencies.\n- Affordable-choice shops mean at least two new offers could be afforded; the measure does not prove both were upgrades.\n- Simulations can identify likely fun conditions but cannot prove enjoyment, comprehension or animation quality."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-18T15:54:34.224446Z",
+    "status": "ready",
+    "datasets": {
+      "opening": [
+        {
+          "configuration": "No start boost",
+          "configuration_id": "none",
+          "starter_cost": 0,
+          "deals": 50000,
+          "avg_best_score": 100.14,
+          "median_best_score": 73,
+          "p90_best_score": 196,
+          "one_play_clear_rate": 41.02,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Copper Chip",
+          "configuration_id": "copper",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 118.34,
+          "median_best_score": 86,
+          "p90_best_score": 231,
+          "one_play_clear_rate": 47.77,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Suit Presser",
+          "configuration_id": "presser",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 102.85,
+          "median_best_score": 77,
+          "p90_best_score": 199,
+          "one_play_clear_rate": 41.23,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Royal Retainer",
+          "configuration_id": "retainer",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 103.4,
+          "median_best_score": 78,
+          "p90_best_score": 197,
+          "one_play_clear_rate": 41.88,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Even Odds",
+          "configuration_id": "even",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 103.72,
+          "median_best_score": 76,
+          "p90_best_score": 200,
+          "one_play_clear_rate": 41.59,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Low Ball",
+          "configuration_id": "lowball",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 103.97,
+          "median_best_score": 76,
+          "p90_best_score": 204,
+          "one_play_clear_rate": 41.89,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Suit Uniform",
+          "configuration_id": "uniform",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 112.25,
+          "median_best_score": 76,
+          "p90_best_score": 227,
+          "one_play_clear_rate": 43.39,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Triple Threat",
+          "configuration_id": "triple3",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 101.26,
+          "median_best_score": 75,
+          "p90_best_score": 198,
+          "one_play_clear_rate": 41.34,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Full Table",
+          "configuration_id": "fulltable",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 136.73,
+          "median_best_score": 99,
+          "p90_best_score": 267,
+          "one_play_clear_rate": 64.83,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Pair Polisher",
+          "configuration_id": "polish",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 140.03,
+          "median_best_score": 102,
+          "p90_best_score": 274,
+          "one_play_clear_rate": 67.15,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Opening Act",
+          "configuration_id": "opening_act",
+          "starter_cost": 6,
+          "deals": 50000,
+          "avg_best_score": 145.6,
+          "median_best_score": 106,
+          "p90_best_score": 285,
+          "one_play_clear_rate": 74.12,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": false
+        },
+        {
+          "configuration": "Guided first run: Copper Chip + Pair Polisher",
+          "configuration_id": "guided_copper_polish",
+          "starter_cost": 0,
+          "deals": 50000,
+          "avg_best_score": 165.48,
+          "median_best_score": 120,
+          "p90_best_score": 324,
+          "one_play_clear_rate": 80.4,
+          "dominant_best_hand": "Two Pair",
+          "dominant_best_hand_share": 39.25,
+          "tutorial_only": true
+        }
+      ],
+      "starters": [
+        {
+          "starter": "No start boost",
+          "starter_id": "none",
+          "starter_cost": 0,
+          "runs": 1000,
+          "wins": 14,
+          "win_rate": 1.4,
+          "ci_low": 0.84,
+          "ci_high": 2.34,
+          "avg_heats_cleared": 9.49,
+          "reach_heat_9": 92.9,
+          "reach_heat_12": 33.8,
+          "boss_hazard": 95.86,
+          "hand_entropy": 0.729,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 37.03,
+          "joker_active_play_rate": 92.24,
+          "joker_events_per_play": 4.05,
+          "notable_play_rate": 49.82,
+          "any_callout_play_rate": 87.28,
+          "final_play_clear_rate": 23.4,
+          "close_clear_rate": 26.41,
+          "build_jaccard_distance": 0.196,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Copper Chip",
+          "starter_id": "copper",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 11,
+          "win_rate": 1.1,
+          "ci_low": 0.62,
+          "ci_high": 1.96,
+          "avg_heats_cleared": 9.64,
+          "reach_heat_9": 94.8,
+          "reach_heat_12": 35.9,
+          "boss_hazard": 96.94,
+          "hand_entropy": 0.736,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.5,
+          "joker_active_play_rate": 100,
+          "joker_events_per_play": 4.37,
+          "notable_play_rate": 51.45,
+          "any_callout_play_rate": 87,
+          "final_play_clear_rate": 21.71,
+          "close_clear_rate": 25.25,
+          "build_jaccard_distance": 0.127,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Suit Presser",
+          "starter_id": "presser",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 14,
+          "win_rate": 1.4,
+          "ci_low": 0.84,
+          "ci_high": 2.34,
+          "avg_heats_cleared": 9.61,
+          "reach_heat_9": 94.3,
+          "reach_heat_12": 34.7,
+          "boss_hazard": 95.97,
+          "hand_entropy": 0.732,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.79,
+          "joker_active_play_rate": 97.4,
+          "joker_events_per_play": 4.38,
+          "notable_play_rate": 50.97,
+          "any_callout_play_rate": 87.11,
+          "final_play_clear_rate": 22.28,
+          "close_clear_rate": 26.09,
+          "build_jaccard_distance": 0.149,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Royal Retainer",
+          "starter_id": "retainer",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 17,
+          "win_rate": 1.7,
+          "ci_low": 1.06,
+          "ci_high": 2.71,
+          "avg_heats_cleared": 9.58,
+          "reach_heat_9": 93.6,
+          "reach_heat_12": 34.8,
+          "boss_hazard": 95.11,
+          "hand_entropy": 0.732,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.85,
+          "joker_active_play_rate": 96.09,
+          "joker_events_per_play": 4.34,
+          "notable_play_rate": 51.03,
+          "any_callout_play_rate": 87.07,
+          "final_play_clear_rate": 22.08,
+          "close_clear_rate": 25.74,
+          "build_jaccard_distance": 0.153,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Even Odds",
+          "starter_id": "even",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 13,
+          "win_rate": 1.3,
+          "ci_low": 0.76,
+          "ci_high": 2.21,
+          "avg_heats_cleared": 9.6,
+          "reach_heat_9": 94.3,
+          "reach_heat_12": 34.4,
+          "boss_hazard": 96.22,
+          "hand_entropy": 0.731,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.92,
+          "joker_active_play_rate": 97.87,
+          "joker_events_per_play": 4.65,
+          "notable_play_rate": 51,
+          "any_callout_play_rate": 87.17,
+          "final_play_clear_rate": 22.01,
+          "close_clear_rate": 26.26,
+          "build_jaccard_distance": 0.15,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Low Ball",
+          "starter_id": "lowball",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 13,
+          "win_rate": 1.3,
+          "ci_low": 0.76,
+          "ci_high": 2.21,
+          "avg_heats_cleared": 9.59,
+          "reach_heat_9": 94.1,
+          "reach_heat_12": 33.5,
+          "boss_hazard": 96.12,
+          "hand_entropy": 0.73,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 37.18,
+          "joker_active_play_rate": 97.07,
+          "joker_events_per_play": 4.53,
+          "notable_play_rate": 51.4,
+          "any_callout_play_rate": 87.35,
+          "final_play_clear_rate": 21.8,
+          "close_clear_rate": 25.8,
+          "build_jaccard_distance": 0.128,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Suit Uniform",
+          "starter_id": "uniform",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 13,
+          "win_rate": 1.3,
+          "ci_low": 0.76,
+          "ci_high": 2.21,
+          "avg_heats_cleared": 9.55,
+          "reach_heat_9": 93.4,
+          "reach_heat_12": 33.3,
+          "boss_hazard": 96.1,
+          "hand_entropy": 0.737,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.14,
+          "joker_active_play_rate": 94.49,
+          "joker_events_per_play": 4.16,
+          "notable_play_rate": 50.32,
+          "any_callout_play_rate": 87.35,
+          "final_play_clear_rate": 22.48,
+          "close_clear_rate": 26.08,
+          "build_jaccard_distance": 0.159,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Triple Threat",
+          "starter_id": "triple3",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 13,
+          "win_rate": 1.3,
+          "ci_low": 0.76,
+          "ci_high": 2.21,
+          "avg_heats_cleared": 9.59,
+          "reach_heat_9": 93.9,
+          "reach_heat_12": 33.6,
+          "boss_hazard": 96.13,
+          "hand_entropy": 0.731,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 37.09,
+          "joker_active_play_rate": 93.98,
+          "joker_events_per_play": 4.16,
+          "notable_play_rate": 50.68,
+          "any_callout_play_rate": 87.54,
+          "final_play_clear_rate": 22.26,
+          "close_clear_rate": 26.19,
+          "build_jaccard_distance": 0.15,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Full Table",
+          "starter_id": "fulltable",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 15,
+          "win_rate": 1.5,
+          "ci_low": 0.91,
+          "ci_high": 2.46,
+          "avg_heats_cleared": 9.75,
+          "reach_heat_9": 94.8,
+          "reach_heat_12": 38.5,
+          "boss_hazard": 96.1,
+          "hand_entropy": 0.732,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.61,
+          "joker_active_play_rate": 99.98,
+          "joker_events_per_play": 4.42,
+          "notable_play_rate": 52.04,
+          "any_callout_play_rate": 87.41,
+          "final_play_clear_rate": 21.21,
+          "close_clear_rate": 25.23,
+          "build_jaccard_distance": 0.108,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Pair Polisher",
+          "starter_id": "polish",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 10,
+          "win_rate": 1,
+          "ci_low": 0.54,
+          "ci_high": 1.83,
+          "avg_heats_cleared": 9.72,
+          "reach_heat_9": 96,
+          "reach_heat_12": 36.5,
+          "boss_hazard": 97.26,
+          "hand_entropy": 0.737,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.2,
+          "joker_active_play_rate": 99.86,
+          "joker_events_per_play": 4.39,
+          "notable_play_rate": 52.32,
+          "any_callout_play_rate": 87,
+          "final_play_clear_rate": 20.37,
+          "close_clear_rate": 25.3,
+          "build_jaccard_distance": 0.121,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Opening Act",
+          "starter_id": "opening_act",
+          "starter_cost": 6,
+          "runs": 1000,
+          "wins": 10,
+          "win_rate": 1,
+          "ci_low": 0.54,
+          "ci_high": 1.83,
+          "avg_heats_cleared": 9.68,
+          "reach_heat_9": 94.4,
+          "reach_heat_12": 36.5,
+          "boss_hazard": 97.26,
+          "hand_entropy": 0.736,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 36.28,
+          "joker_active_play_rate": 98.14,
+          "joker_events_per_play": 4.27,
+          "notable_play_rate": 50.67,
+          "any_callout_play_rate": 86.83,
+          "final_play_clear_rate": 21.46,
+          "close_clear_rate": 26.27,
+          "build_jaccard_distance": 0.116,
+          "tutorial_only": false
+        },
+        {
+          "starter": "Guided first run: Copper Chip + Pair Polisher",
+          "starter_id": "guided_copper_polish",
+          "starter_cost": 0,
+          "runs": 1000,
+          "wins": 13,
+          "win_rate": 1.3,
+          "ci_low": 0.76,
+          "ci_high": 2.21,
+          "avg_heats_cleared": 9.87,
+          "reach_heat_9": 96.5,
+          "reach_heat_12": 42.3,
+          "boss_hazard": 96.93,
+          "hand_entropy": 0.74,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 35.92,
+          "joker_active_play_rate": 100,
+          "joker_events_per_play": 4.59,
+          "notable_play_rate": 51.38,
+          "any_callout_play_rate": 86.69,
+          "final_play_clear_rate": 20.69,
+          "close_clear_rate": 24.6,
+          "build_jaccard_distance": 0.078,
+          "tutorial_only": true
+        }
+      ],
+      "strategies": [
+        {
+          "strategy": "Adaptive greedy",
+          "strategy_id": "adaptive_greedy",
+          "runs": 1000,
+          "wins": 233,
+          "win_rate": 23.3,
+          "ci_low": 20.79,
+          "ci_high": 26.02,
+          "avg_heats_cleared": 9.8,
+          "reach_heat_9": 84.4,
+          "reach_heat_11": 63.1,
+          "hand_entropy": 0.773,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 30.85,
+          "joker_active_play_rate": 80.12,
+          "joker_events_per_play": 2.13,
+          "final_play_clear_rate": 25.26,
+          "close_clear_rate": 22.28,
+          "comeback_clear_rate": 5.21,
+          "affordable_choice_shop_rate": 88.6,
+          "dead_shop_rate": 2.03,
+          "build_jaccard_distance": 0.906,
+          "build_identity_rate": 65.7,
+          "boss_hazard": 55.95
+        },
+        {
+          "strategy": "Cheat + hand synergy",
+          "strategy_id": "cheat_synergy",
+          "runs": 1000,
+          "wins": 161,
+          "win_rate": 16.1,
+          "ci_low": 13.95,
+          "ci_high": 18.51,
+          "avg_heats_cleared": 9.49,
+          "reach_heat_9": 80.8,
+          "reach_heat_11": 56.7,
+          "hand_entropy": 0.776,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 31.09,
+          "joker_active_play_rate": 77.81,
+          "joker_events_per_play": 1.99,
+          "final_play_clear_rate": 24.56,
+          "close_clear_rate": 23.29,
+          "comeback_clear_rate": 4.88,
+          "affordable_choice_shop_rate": 88.19,
+          "dead_shop_rate": 2.09,
+          "build_jaccard_distance": 0.893,
+          "build_identity_rate": 63.7,
+          "boss_hazard": 66.11
+        },
+        {
+          "strategy": "Pair and rank boosting",
+          "strategy_id": "pair_rank",
+          "runs": 1000,
+          "wins": 92,
+          "win_rate": 9.2,
+          "ci_low": 7.56,
+          "ci_high": 11.15,
+          "avg_heats_cleared": 8.89,
+          "reach_heat_9": 76.2,
+          "reach_heat_11": 41.7,
+          "hand_entropy": 0.76,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 32.38,
+          "joker_active_play_rate": 82.41,
+          "joker_events_per_play": 3.05,
+          "final_play_clear_rate": 25.9,
+          "close_clear_rate": 24.99,
+          "comeback_clear_rate": 4.27,
+          "affordable_choice_shop_rate": 87.99,
+          "dead_shop_rate": 2.24,
+          "build_jaccard_distance": 0.853,
+          "build_identity_rate": 91.4,
+          "boss_hazard": 68.81
+        },
+        {
+          "strategy": "Utility and niche",
+          "strategy_id": "utility_niche",
+          "runs": 1000,
+          "wins": 146,
+          "win_rate": 14.6,
+          "ci_low": 12.55,
+          "ci_high": 16.92,
+          "avg_heats_cleared": 9.22,
+          "reach_heat_9": 77.7,
+          "reach_heat_11": 50.5,
+          "hand_entropy": 0.78,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 29.96,
+          "joker_active_play_rate": 75.88,
+          "joker_events_per_play": 1.81,
+          "final_play_clear_rate": 26.51,
+          "close_clear_rate": 23.35,
+          "comeback_clear_rate": 5.58,
+          "affordable_choice_shop_rate": 87.89,
+          "dead_shop_rate": 2.14,
+          "build_jaccard_distance": 0.895,
+          "build_identity_rate": 75.0,
+          "boss_hazard": 63.32
+        },
+        {
+          "strategy": "Flush engine",
+          "strategy_id": "flush_engine",
+          "runs": 1000,
+          "wins": 225,
+          "win_rate": 22.5,
+          "ci_low": 20.02,
+          "ci_high": 25.19,
+          "avg_heats_cleared": 9.81,
+          "reach_heat_9": 83.9,
+          "reach_heat_11": 65.4,
+          "hand_entropy": 0.742,
+          "dominant_hand": "Flush",
+          "dominant_hand_share": 33.02,
+          "joker_active_play_rate": 80.97,
+          "joker_events_per_play": 2.49,
+          "final_play_clear_rate": 23.42,
+          "close_clear_rate": 23.35,
+          "comeback_clear_rate": 3.82,
+          "affordable_choice_shop_rate": 88.83,
+          "dead_shop_rate": 2.02,
+          "build_jaccard_distance": 0.878,
+          "build_identity_rate": 67.0,
+          "boss_hazard": 61.27
+        },
+        {
+          "strategy": "Economy hoarding",
+          "strategy_id": "economy_hoarding",
+          "runs": 1000,
+          "wins": 198,
+          "win_rate": 19.8,
+          "ci_low": 17.45,
+          "ci_high": 22.38,
+          "avg_heats_cleared": 8.82,
+          "reach_heat_9": 66.3,
+          "reach_heat_11": 48.4,
+          "hand_entropy": 0.765,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 30.26,
+          "joker_active_play_rate": 56.39,
+          "joker_events_per_play": 1.32,
+          "final_play_clear_rate": 29.71,
+          "close_clear_rate": 25.93,
+          "comeback_clear_rate": 4.97,
+          "affordable_choice_shop_rate": 93.71,
+          "dead_shop_rate": 1.57,
+          "build_jaccard_distance": 0.935,
+          "build_identity_rate": 52.6,
+          "boss_hazard": 55.1
+        },
+        {
+          "strategy": "xMult stacking",
+          "strategy_id": "xmult_stacking",
+          "runs": 1000,
+          "wins": 18,
+          "win_rate": 1.8,
+          "ci_low": 1.14,
+          "ci_high": 2.83,
+          "avg_heats_cleared": 8.81,
+          "reach_heat_9": 76.7,
+          "reach_heat_11": 40.9,
+          "hand_entropy": 0.774,
+          "dominant_hand": "Two Pair",
+          "dominant_hand_share": 31.79,
+          "joker_active_play_rate": 70.78,
+          "joker_events_per_play": 1.59,
+          "final_play_clear_rate": 25.68,
+          "close_clear_rate": 22.73,
+          "comeback_clear_rate": 5.22,
+          "affordable_choice_shop_rate": 87.13,
+          "dead_shop_rate": 2.26,
+          "build_jaccard_distance": 0.899,
+          "build_identity_rate": 82.5,
+          "boss_hazard": 93.45
+        }
+      ],
+      "guided_frontier": [
+        {
+          "hand_type": "High Card",
+          "availability_rate": 100,
+          "conditional_avg_score": 17.3,
+          "conditional_median_score": 18,
+          "conditional_p90_score": 18
+        },
+        {
+          "hand_type": "Pair",
+          "availability_rate": 94.9,
+          "conditional_avg_score": 58,
+          "conditional_median_score": 58,
+          "conditional_p90_score": 69
+        },
+        {
+          "hand_type": "Two Pair",
+          "availability_rate": 62.05,
+          "conditional_avg_score": 110.3,
+          "conditional_median_score": 109,
+          "conditional_p90_score": 126
+        },
+        {
+          "hand_type": "Three of a Kind",
+          "availability_rate": 17.48,
+          "conditional_avg_score": 154.23,
+          "conditional_median_score": 153,
+          "conditional_p90_score": 169
+        },
+        {
+          "hand_type": "Straight",
+          "availability_rate": 16.9,
+          "conditional_avg_score": 226.26,
+          "conditional_median_score": 226,
+          "conditional_p90_score": 249
+        },
+        {
+          "hand_type": "Flush",
+          "availability_rate": 13.29,
+          "conditional_avg_score": 263.34,
+          "conditional_median_score": 264,
+          "conditional_p90_score": 275
+        },
+        {
+          "hand_type": "Full House",
+          "availability_rate": 12.01,
+          "conditional_avg_score": 336.88,
+          "conditional_median_score": 337,
+          "conditional_p90_score": 357
+        },
+        {
+          "hand_type": "Four of a Kind",
+          "availability_rate": 0.61,
+          "conditional_avg_score": 435.89,
+          "conditional_median_score": 435,
+          "conditional_p90_score": 457
+        },
+        {
+          "hand_type": "Straight Flush",
+          "availability_rate": 0.17,
+          "conditional_avg_score": 622.04,
+          "conditional_median_score": 621,
+          "conditional_p90_score": 637
+        },
+        {
+          "hand_type": "Royal Flush",
+          "availability_rate": 0.02,
+          "conditional_avg_score": 795,
+          "conditional_median_score": 795,
+          "conditional_p90_score": 795
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "game_source",
+      "label": "Canonical WILDCARD v6.9.13 game source",
+      "path": "www/index.html",
+      "query": {
+        "language": "javascript",
+        "engine": "WILDCARD live source",
+        "description": "Scoring, Joker, Heat, shop and run rules evaluated by the simulation VM.",
+        "tables_used": [
+          "www/index.html"
+        ],
+        "filters": [
+          "SHA-256 499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9"
+        ],
+        "metric_definitions": [
+          "Heat 12 clear is the standard-run win outcome.",
+          "Heat 1 target is 90; hand size is nine; up to five cards can be played."
+        ]
+      }
+    },
+    {
+      "id": "decision_lab",
+      "label": "v6.9.13 paired opening and starter lab",
+      "path": "docs/release/wildcard-v6.9.13-decision-lab-results.json",
+      "query": {
+        "language": "javascript",
+        "engine": "Node.js VM simulation",
+        "executed_at": "2026-07-18T15:50:23.370Z",
+        "description": "Exhaustive immediate opening enumeration plus paired complete starter-pool runs.",
+        "tables_used": [
+          "docs/release/wildcard-v6.9.13-decision-lab-results.json"
+        ],
+        "filters": [
+          "50000 initial nine-card deals per opening arm",
+          "1000 complete runs per starter arm",
+          "Starter-only ten-Joker shop pool",
+          "Adaptive greedy shop policy held constant"
+        ],
+        "metric_definitions": [
+          "Best opening score = maximum immediate score among legal useful one-to-five-card plays.",
+          "Win rate = runs clearing Heat 12 / complete runs in the arm.",
+          "Average Heats cleared = arithmetic mean of cleared Heats per complete run.",
+          "Boss hazard = Heat-12 failures / runs reaching Heat 12."
+        ]
+      }
+    },
+    {
+      "id": "strategy_lab",
+      "label": "v6.9.13 paired fixed-start strategy lab",
+      "path": "docs/release/wildcard-v6.9.13-strategy-results.json",
+      "query": {
+        "language": "javascript",
+        "engine": "Node.js VM simulation",
+        "executed_at": "2026-07-18T15:34:51.345Z",
+        "description": "Paired 12-Heat simulations comparing seven build/shop policies with no free start boost.",
+        "tables_used": [
+          "docs/release/wildcard-v6.9.13-strategy-results.json"
+        ],
+        "filters": [
+          "1000 paired seeds per strategy",
+          "All 57 Jokers available in Heat shops",
+          "No free start boost",
+          "Immediate-score card selector shared across strategies"
+        ],
+        "metric_definitions": [
+          "Win rate = runs clearing Heat 12 / complete runs in the strategy.",
+          "Hand entropy = normalized Shannon entropy across the ten poker hand types.",
+          "Build Jaccard distance = mean one minus set overlap across sampled final builds.",
+          "Joker-active play rate = plays with at least one scoring-event Joker / all scoring plays.",
+          "Close clear rate = cleared Heats with winning margin at or below 10% of target."
+        ]
+      }
+    }
+  ],
+  "package_info": {
+    "artifact_name": "wildcard-v6.9.13-strategy-fun-report",
+    "source_sha256": "499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9",
+    "snapshot_note": "Paired deterministic simulation snapshot; not a live connector."
+  }
+}

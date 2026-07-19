@@ -73,17 +73,53 @@ service cloud.firestore {
     }
 
     match /users/{uid}/saves/{saveId} {
-      allow read: if saveId == 'main' && isOwner(uid);
-      allow create: if saveId == 'main'
-        && isOwner(uid)
-        && uidUnchanged()
-        && isValidSave(request.resource.data);
-      allow update: if saveId == 'main'
-        && isOwner(uid)
-        && uidNotModified()
-        && uidUnchanged()
-        && isValidSave(request.resource.data);
-      allow delete: if false;
+      // Saves are read and written only by App Check protected Cloud
+      // Functions. That server boundary strips paid-only fields and applies
+      // durable refund adjustments before returning accountJson. Allowing the
+      // owner to write this document directly would let a crafted cloud blob
+      // assert noAds or bypass a refunded coin adjustment.
+      allow read, write: if false;
+    }
+
+    // Daily score entries, name ownership, rate windows and idempotency
+    // ledgers are server-owned. Authenticated clients access them only through
+    // App Check protected callable functions.
+    match /dailyScores/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /dailyScoreSubmissions/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /dailyScoreRate/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /boardNames/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Google Play purchase tokens, delivery ledgers and RTDN receipts are
+    // verified and reconciled only by Cloud Functions using the Admin SDK.
+    match /billingPurchases/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /billingRtdnEvents/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /billingAccounts/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /billingAdjustments/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /boardDeletionQueue/{document=**} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

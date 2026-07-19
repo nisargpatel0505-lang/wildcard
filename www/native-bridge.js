@@ -18,11 +18,21 @@
 
   /* =============== FIREBASE ACCOUNT + PLAY GAMES =============== */
   var Cloud = P.WildcardCloud;
+  var currentCloudUid = '';
   WN.cloudAvailable = !!Cloud;
+  function rememberCloudAuth(state) {
+    currentCloudUid = state && state.signedIn && state.uid ? String(state.uid) : '';
+    return state;
+  }
   if (Cloud) {
-    WN.cloudAuthState = function () { return Cloud.authState(); };
-    WN.cloudSignInGoogle = function () { return Cloud.signInWithGoogle(); };
-    WN.cloudSignOut = function () { return Cloud.signOut(); };
+    WN.cloudAuthState = function () { return Cloud.authState().then(rememberCloudAuth); };
+    WN.cloudSignInGoogle = function () { return Cloud.signInWithGoogle().then(rememberCloudAuth); };
+    WN.cloudSignOut = function () {
+      return Cloud.signOut().then(function (state) {
+        currentCloudUid = '';
+        return state;
+      });
+    };
     WN.cloudReadSave = function () { return Cloud.readCloudSave(); };
     WN.cloudWriteSave = function (accountJson, runJson, clientSavedAt) {
       return Cloud.writeCloudSave({
@@ -31,6 +41,14 @@
         clientSavedAt: Math.max(0, Number(clientSavedAt) || Date.now())
       });
     };
+    if (typeof Cloud.deleteAccount === 'function') {
+      WN.cloudDeleteAccount = function () {
+        return Cloud.deleteAccount().then(function (result) {
+          currentCloudUid = '';
+          return result;
+        });
+      };
+    }
     WN.playGamesState = function () { return Cloud.playGamesState(); };
     WN.playGamesSignIn = function () { return Cloud.signInPlayGames(); };
     WN.submitPlayGamesScore = function (score) {
@@ -40,11 +58,21 @@
       return Cloud.loadLeaderboardScores({ span: span || 'all' });
     };
     WN.showPlayGamesLeaderboard = function () { return Cloud.showLeaderboard(); };
+    if (typeof Cloud.submitDailyScore === 'function') {
+      WN.cloudSubmitDailyScore = function (submission) {
+        submission = submission || {};
+        return Cloud.submitDailyScore({
+          name: String(submission.name || '').trim().toUpperCase(),
+          score: Math.max(0, Math.floor(Number(submission.score) || 0)),
+          idempotencyKey: String(submission.idempotencyKey || '')
+        });
+      };
+    }
   }
 
   /* ======================= PHONE PERSISTENCE ======================= */
   var Preferences = P.Preferences;
-  var SAVE_KEYS = ['wildcard_save_v1', 'wildcard_run_v1'];
+  var SAVE_KEYS = ['wildcard_save_v1', 'wildcard_run_v1', 'wildcard_privacy_accept_v1', 'wildcard_cloud_owner_v2'];
   var PREF_PREFIX = 'wildcard.phone.';
 
   WN.storageReady = Promise.resolve({});
@@ -83,10 +111,14 @@
 
   /* ============================== ADS ============================= */
   var AdMob = P.AdMob;
-  var REWARDED_AD_ID = 'ca-app-pub-3940256099942544/5224354917';
-  var INTERSTITIAL_AD_ID = 'ca-app-pub-3940256099942544/1033173712';
-  var AD_TESTING = true;
+  var REWARDED_AD_ID = '';
+  var INTERSTITIAL_AD_ID = '';
+  var AD_TESTING = false;
+  var serviceConfigReady = Cloud && typeof Cloud.serviceConfig === 'function'
+    ? Cloud.serviceConfig().catch(function () { return {}; })
+    : Promise.resolve({});
   var ad = {
+    configured: false,
     allowed: false,
     consentStatus: 'UNKNOWN',
     privacyRequired: false,
@@ -102,6 +134,7 @@
 
   WN.getPrivacyState = function () {
     return {
+      configured: ad.configured,
       allowed: ad.allowed,
       status: ad.consentStatus,
       privacyRequired: ad.privacyRequired,
@@ -110,14 +143,14 @@
   };
 
   function prepareRewarded() {
-    if (!AdMob || !ad.allowed || ad.rewardedPreparing || ad.rewardedReady) return;
+    if (!AdMob || !ad.configured || !ad.allowed || ad.rewardedPreparing || ad.rewardedReady) return;
     ad.rewardedPreparing = true;
     AdMob.prepareRewardVideoAd({ adId: REWARDED_AD_ID, isTesting: AD_TESTING, immersiveMode: true })
       .catch(function () { ad.rewardedPreparing = false; });
   }
 
   function prepareInterstitial() {
-    if (!AdMob || !ad.allowed || ad.interstitialPreparing || ad.interstitialReady) return;
+    if (!AdMob || !ad.configured || !ad.allowed || ad.interstitialPreparing || ad.interstitialReady) return;
     ad.interstitialPreparing = true;
     AdMob.prepareInterstitial({ adId: INTERSTITIAL_AD_ID, isTesting: AD_TESTING, immersiveMode: true })
       .catch(function () { ad.interstitialPreparing = false; });
@@ -154,8 +187,17 @@
     return info;
   }
 
-  function initialiseAds() {
-    if (!AdMob) return;
+  var adsInitialised = false;
+  function initialiseAds(config) {
+    config = config || {};
+    REWARDED_AD_ID = typeof config.rewardedAdId === 'string' ? config.rewardedAdId : '';
+    INTERSTITIAL_AD_ID = typeof config.interstitialAdId === 'string' ? config.interstitialAdId : '';
+    AD_TESTING = !!config.adTesting;
+    ad.configured = !!config.adsEnabled
+      && /^ca-app-pub-\d{16}\/\d{10}$/.test(REWARDED_AD_ID)
+      && /^ca-app-pub-\d{16}\/\d{10}$/.test(INTERSTITIAL_AD_ID);
+    if (!AdMob || !ad.configured || adsInitialised) return false;
+    adsInitialised = true;
 
     AdMob.addListener('onRewardedVideoAdLoaded', function () {
       ad.rewardedReady = true;
@@ -217,13 +259,14 @@
       }
       return info;
     }).then(applyConsentInfo).catch(function () {
-      // Test builds remain usable when no AdMob message has been configured yet.
+      // Developer builds may continue with Google's demonstration ads. A
+      // release build always remains disabled after any consent/config error.
       ad.allowed = AD_TESTING;
       if (ad.allowed) prepareAds();
     });
 
     WN.showRewardedAd = function (cb) {
-      if (!ad.allowed || !ad.rewardedReady || ad.rewardedInFlight) {
+      if (!ad.configured || !ad.allowed || !ad.rewardedReady || ad.rewardedInFlight) {
         prepareRewarded();
         callback(cb, false);
         return;
@@ -263,9 +306,22 @@
     WN.setAdMuted = function (muted) {
       AdMob.setApplicationMuted({ muted: !!muted }).catch(function () {});
     };
+    return true;
   }
 
-  initialiseAds();
+  // Fail-closed methods exist before configuration so the Android shell never
+  // falls through to browser-preview rewards.
+  WN.showRewardedAd = function (cb) { callback(cb, false); };
+  WN.showInterstitial = function (cb) { callback(cb, false); };
+  WN.showPrivacyOptions = function (cb) { callback(cb, false); };
+  WN.setAdMuted = function () {};
+
+  // The game calls this only after the player has explicitly accepted the
+  // current privacy policy. No SDK initialization, consent request or ad load
+  // happens behind the mandatory first-launch policy gate.
+  WN.enableAdsAfterPolicyAcceptance = function () {
+    return serviceConfigReady.then(initialiseAds);
+  };
 
   /* ============================ BILLING ============================ */
   var PRODUCTS = [
@@ -276,11 +332,34 @@
     { id: 'coins_8500', consumable: true },
     { id: 'remove_ads', consumable: false }
   ];
-  var billing = { ready: false, waiting: {}, activeProductId: null };
+  var billing = {
+    enabled: false,
+    ready: false,
+    initialising: false,
+    initialization: null,
+    orderStarting: false,
+    waiting: {},
+    activeProductId: null,
+    accountUid: '',
+    receipts: {},
+    deliveryQueue: [],
+    deliveryHandler: null,
+    store: null
+  };
 
   // Fail-closed defaults prevent native builds from granting demo purchases.
-  WN.purchase = function (productId, cb) { callback(cb, false); };
-  WN.restorePurchases = function (cb) { callback(cb, []); };
+  WN.purchase = function (productId, cb) {
+    callback(cb, { ok: false, productId: productId || '', reason: 'billing_unavailable' });
+  };
+  WN.restorePurchases = function (cb) { callback(cb, { owned: [], entitlements: null }); };
+  WN.getBillingProducts = function () { return Promise.resolve([]); };
+  WN.completePurchase = function (tokenHash, cb) { callback(cb, false); };
+  WN.refreshPurchases = function () {
+    return Promise.resolve({ signedIn: false, owned: [], entitlements: null, products: [] });
+  };
+  WN.setPurchaseDeliveryHandler = function (handler) {
+    billing.deliveryHandler = typeof handler === 'function' ? handler : null;
+  };
 
   function verifiedProductIds(receipt) {
     var ids = [];
@@ -294,37 +373,222 @@
           .forEach(function (product) { add(product && product.id); });
       });
     }
-
-    // cordova-plugin-purchase v13 VerifiedReceipt shape.
     (receipt && Array.isArray(receipt.collection) ? receipt.collection : [])
       .forEach(function (purchase) { add(purchase && purchase.id); });
     addTransactions(receipt && receipt.sourceReceipt && receipt.sourceReceipt.transactions);
-
-    // Retain compatibility with receipt shapes used by older plugin releases.
     addTransactions(receipt && receipt.transactions);
     if (receipt && receipt.transaction) addTransactions([receipt.transaction]);
     return ids;
   }
-
-  function settlePurchase(productId, success) {
+  function transactionProductIds(transaction) {
+    return (transaction && Array.isArray(transaction.products) ? transaction.products : [])
+      .map(function (product) { return product && product.id; })
+      .filter(Boolean);
+  }
+  function settlePurchase(productId, result) {
     var cb = billing.waiting[productId];
     if (!cb) return false;
     delete billing.waiting[productId];
     if (billing.activeProductId === productId) billing.activeProductId = null;
-    callback(cb, !!success);
+    billing.orderStarting = false;
+    callback(cb, result);
     return true;
   }
+  function validationFailure(done, reason) {
+    var Purchase = window.CdvPurchase;
+    var code = Purchase && Purchase.ErrorCode && Purchase.ErrorCode.VERIFICATION_FAILED;
+    done({
+      ok: false,
+      code: code || 6778003,
+      message: reason || 'Google Play verification failed'
+    });
+  }
+  function validatorResponse(body, result) {
+    return {
+      ok: true,
+      data: {
+        id: result.tokenHash,
+        latest_receipt: true,
+        transaction: {
+          type: body.transaction.type,
+          kind: 'androidpublisher#productPurchase',
+          purchaseToken: body.transaction.purchaseToken,
+          tokenHash: result.tokenHash,
+          delivered: !!result.delivered
+        },
+        collection: [{
+          id: result.productId,
+          // Match the native transaction so the plugin can safely skip a
+          // redundant consume/acknowledge after Play reports it finished.
+          transactionId: body.transaction.id,
+          isConsumed: !!result.consumed
+        }]
+      }
+    };
+  }
+  function receiptDelivery(receipt) {
+    var ids = verifiedProductIds(receipt);
+    var productId = ids.length === 1 ? ids[0] : '';
+    var source = receipt && receipt.sourceReceipt;
+    var transaction = source && Array.isArray(source.transactions) ? source.transactions[0] : null;
+    var raw = receipt && receipt.raw || {};
+    var rawTransaction = raw.transaction || {};
+    var purchaseToken = source && source.purchaseToken
+      || transaction && transaction.purchaseId
+      || rawTransaction.purchaseToken
+      || '';
+    var tokenHash = typeof raw.id === 'string' ? raw.id : rawTransaction.tokenHash || '';
+    if (!PRODUCTS.some(function (item) { return item.id === productId; })
+      || typeof purchaseToken !== 'string' || purchaseToken.length < 16
+      || !/^[a-f0-9]{64}$/.test(tokenHash)) return null;
+    return {
+      ok: true,
+      verified: true,
+      productId: productId,
+      purchaseToken: purchaseToken,
+      tokenHash: tokenHash,
+      delivered: !!rawTransaction.delivered,
+      recovered: billing.activeProductId !== productId
+    };
+  }
+  function flushPurchaseDeliveries() {
+    if (!billing.deliveryHandler) return;
+    billing.deliveryQueue.forEach(function (delivery) {
+      if (delivery.sentToHandler) return;
+      delivery.sentToHandler = true;
+      callback(billing.deliveryHandler, delivery);
+    });
+  }
+  function queueVerifiedReceipt(receipt) {
+    var delivery = receiptDelivery(receipt);
+    if (!delivery) return;
+    if (billing.receipts[delivery.tokenHash]) return;
+    billing.receipts[delivery.tokenHash] = {
+      receipt: receipt,
+      delivery: delivery,
+      completing: false
+    };
+    billing.deliveryQueue.push(delivery);
+    flushPurchaseDeliveries();
+    settlePurchase(delivery.productId, {
+      ok: true,
+      verified: true,
+      productId: delivery.productId,
+      tokenHash: delivery.tokenHash
+    });
+  }
+  function priceRows() {
+    if (!billing.store) return [];
+    var Purchase = window.CdvPurchase;
+    return PRODUCTS.map(function (registered) {
+      var item = billing.store.get(registered.id, Purchase.Platform.GOOGLE_PLAY);
+      var pricing = item && item.pricing;
+      return {
+        id: registered.id,
+        available: !!(item && item.getOffer && item.getOffer() && pricing && pricing.price),
+        price: pricing && pricing.price || '',
+        currency: pricing && pricing.currency || '',
+        priceMicros: pricing && Number(pricing.priceMicros) || 0,
+        title: item && item.title || '',
+        description: item && item.description || ''
+      };
+    });
+  }
 
-  function finishDeliveredReceipt(receipt) {
+  function notifyBillingProducts() {
     try {
-      Promise.resolve(receipt.finish()).catch(function () {});
+      if (typeof window.CustomEvent === 'function' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new window.CustomEvent('wildcardbillingproducts'));
+      }
     } catch (e) {}
+  }
+
+  function waitForBillingReady(attempt) {
+    attempt = Number(attempt) || 0;
+    if (billing.ready) return Promise.resolve(true);
+    if (!billing.enabled || attempt >= 24) return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        waitForBillingReady(attempt + 1).then(resolve);
+      }, 250);
+    });
+  }
+
+  function ownedProductIds() {
+    var owned = [];
+    var Purchase = window.CdvPurchase;
+    if (!billing.store || !Purchase) return owned;
+    try {
+      PRODUCTS.forEach(function (product) {
+        var item = billing.store.get(product.id, Purchase.Platform.GOOGLE_PLAY);
+        if (item && item.owned) owned.push(product.id);
+      });
+    } catch (e) {}
+    return owned;
+  }
+
+  function recoverPurchases() {
+    if (!billing.enabled || !Cloud || typeof Cloud.authState !== 'function') {
+      return Promise.resolve({
+        signedIn: false,
+        owned: ownedProductIds(),
+        entitlements: null,
+        products: priceRows()
+      });
+    }
+    return Cloud.authState().then(rememberCloudAuth).then(function (state) {
+      if (!state || !state.signedIn || !state.uid) {
+        billing.accountUid = '';
+        return {
+          signedIn: false,
+          owned: ownedProductIds(),
+          entitlements: null,
+          products: priceRows()
+        };
+      }
+      billing.accountUid = String(state.uid);
+      return waitForBillingReady(0).then(function (ready) {
+        var restored = ready && billing.store && typeof billing.store.restorePurchases === 'function'
+          ? billing.store.restorePurchases().catch(function () {})
+          : Promise.resolve();
+        return restored.then(function () {
+          // Approved receipts are verified asynchronously. Re-open the
+          // delivery queue whenever recovery is requested so a previous
+          // transient save/backend failure can be retried.
+          billing.deliveryQueue.forEach(function (delivery) {
+            delivery.sentToHandler = false;
+          });
+          flushPurchaseDeliveries();
+          if (typeof Cloud.getPlayEntitlements !== 'function') return null;
+          return Cloud.getPlayEntitlements().catch(function () { return null; });
+        }).then(function (entitlements) {
+          return {
+            signedIn: true,
+            owned: ownedProductIds(),
+            entitlements: entitlements,
+            products: priceRows()
+          };
+        });
+      });
+    }).catch(function () {
+      return {
+        signedIn: false,
+        owned: ownedProductIds(),
+        entitlements: null,
+        products: priceRows()
+      };
+    });
   }
 
   function initBilling() {
     var Purchase = window.CdvPurchase;
-    if (!Purchase || !Purchase.store || billing.ready) return;
+    billing.enabled = true;
+    if (!Purchase || !Purchase.store || billing.ready || billing.initialising) {
+      return billing.initialization || Promise.resolve(billing.ready);
+    }
     var store = Purchase.store;
+    billing.initialising = true;
+    billing.store = store;
 
     try {
       store.register(PRODUCTS.map(function (product) {
@@ -335,53 +599,167 @@
         };
       }));
 
-      store.when()
-        .approved(function (transaction) { transaction.verify(); })
-        .verified(function (receipt) {
-          var productId = billing.activeProductId;
-          if (!productId || verifiedProductIds(receipt).indexOf(productId) === -1) return;
+      // Attach every order to the signed-in Firebase UID. The plugin's UUID
+      // obfuscator passes a deterministic hash to setObfuscatedAccountId.
+      store.applicationUsername = function () { return billing.accountUid || currentCloudUid || undefined; };
+      store.obfuscator = 'uuid';
+      store.validator_privacy_policy = ['fraud'];
+      store.validator = function (body, done) {
+        var productId = body && body.id;
+        var purchaseToken = body && body.transaction && body.transaction.purchaseToken;
+        if (!Cloud || typeof Cloud.verifyPlayPurchase !== 'function'
+          || !PRODUCTS.some(function (item) { return item.id === productId; })
+          || typeof purchaseToken !== 'string' || purchaseToken.length < 16) {
+          validationFailure(done, 'Secure purchase verification is unavailable');
+          return;
+        }
+        Cloud.verifyPlayPurchase({
+          packageName: 'com.nisarg.wildcard',
+          productId: productId,
+          purchaseToken: purchaseToken
+        }).then(function (result) {
+          if (!result || !result.valid || result.productId !== productId
+            || !/^[a-f0-9]{64}$/.test(String(result.tokenHash || ''))) {
+            validationFailure(done, 'Google Play did not verify this purchase');
+            return;
+          }
+          done(validatorResponse(body, result));
+        }).catch(function () {
+          validationFailure(done, 'Google Play verification is unavailable');
+        });
+      };
 
-          // Delivery must happen before acknowledgement/consumption. Deleting the
-          // waiting callback first also makes duplicate verified events idempotent
-          // for the lifetime of this bridge instance.
-          if (settlePurchase(productId, true)) finishDeliveredReceipt(receipt);
+      store.when()
+        .productUpdated(notifyBillingProducts)
+        .approved(function (transaction) { transaction.verify(); })
+        .pending(function (transaction) {
+          var ids = transactionProductIds(transaction);
+          var productId = billing.activeProductId;
+          if (productId && ids.indexOf(productId) !== -1) {
+            settlePurchase(productId, {
+              ok: false,
+              pending: true,
+              productId: productId,
+              reason: 'pending'
+            });
+          }
+        })
+        .verified(queueVerifiedReceipt)
+        .unverified(function (failure) {
+          var ids = verifiedProductIds(failure && failure.receipt);
+          var productId = billing.activeProductId;
+          if (productId && ids.indexOf(productId) !== -1) {
+            settlePurchase(productId, {
+              ok: false,
+              productId: productId,
+              reason: 'verification_failed'
+            });
+          }
+        })
+        .receiptsVerified(function () {
+          flushPurchaseDeliveries();
         });
 
-      store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
+      billing.initialization = store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
         billing.ready = true;
-      }).catch(function () {});
+        billing.initialising = false;
+        notifyBillingProducts();
+        return true;
+      }).catch(function () {
+        billing.initialising = false;
+        return false;
+      });
 
       WN.purchase = function (productId, cb) {
-        if (!billing.ready || billing.activeProductId) { callback(cb, false); return; }
+        if (!billing.ready || billing.activeProductId || billing.orderStarting) {
+          callback(cb, { ok: false, productId: productId || '', reason: 'billing_busy' });
+          return;
+        }
         var product = store.get(productId, Purchase.Platform.GOOGLE_PLAY);
         var offer = product && product.getOffer && product.getOffer();
-        if (!offer) { callback(cb, false); return; }
-        billing.activeProductId = productId;
-        billing.waiting[productId] = cb;
-        store.order(offer).then(function (err) {
-          if (err) {
-            settlePurchase(productId, false);
+        if (!offer || !Cloud || typeof Cloud.authState !== 'function') {
+          callback(cb, { ok: false, productId: productId || '', reason: 'product_unavailable' });
+          return;
+        }
+        billing.orderStarting = true;
+        Cloud.authState().then(rememberCloudAuth).then(function (state) {
+          if (!state || !state.signedIn || !state.uid) {
+            billing.orderStarting = false;
+            callback(cb, { ok: false, productId: productId, reason: 'sign_in_required' });
+            return;
           }
-        }).catch(function () { settlePurchase(productId, false); });
+          billing.accountUid = String(state.uid);
+          billing.activeProductId = productId;
+          billing.waiting[productId] = cb;
+          return store.order(offer).then(function (err) {
+            if (err) {
+              settlePurchase(productId, {
+                ok: false,
+                productId: productId,
+                reason: 'cancelled_or_unavailable'
+              });
+            }
+          }).catch(function () {
+            settlePurchase(productId, {
+              ok: false,
+              productId: productId,
+              reason: 'cancelled_or_unavailable'
+            });
+          });
+        }).catch(function () {
+          billing.orderStarting = false;
+          callback(cb, { ok: false, productId: productId, reason: 'sign_in_required' });
+        });
+      };
+
+      WN.getBillingProducts = function () { return Promise.resolve(priceRows()); };
+
+      WN.setPurchaseDeliveryHandler = function (handler) {
+        billing.deliveryHandler = typeof handler === 'function' ? handler : null;
+        flushPurchaseDeliveries();
+      };
+
+      WN.completePurchase = function (tokenHash, cb) {
+        var entry = billing.receipts[tokenHash];
+        if (!entry || entry.completing || !Cloud
+          || typeof Cloud.markPlayPurchaseDelivered !== 'function') {
+          callback(cb, false);
+          return;
+        }
+        entry.completing = true;
+        Cloud.markPlayPurchaseDelivered({
+          packageName: 'com.nisarg.wildcard',
+          productId: entry.delivery.productId,
+          purchaseToken: entry.delivery.purchaseToken
+        }).then(function (result) {
+          if (!result || !result.delivered) throw new Error('Delivery was not recorded');
+          return entry.receipt.finish();
+        }).then(function () {
+          delete billing.receipts[tokenHash];
+          billing.deliveryQueue = billing.deliveryQueue.filter(function (item) {
+            return item.tokenHash !== tokenHash;
+          });
+          callback(cb, true);
+        }).catch(function () {
+          entry.completing = false;
+          callback(cb, false);
+        });
       };
 
       WN.restorePurchases = function (cb) {
-        var report = function () {
-          var owned = [];
-          try {
-            PRODUCTS.forEach(function (product) {
-              var item = store.get(product.id, Purchase.Platform.GOOGLE_PLAY);
-              if (item && item.owned) owned.push(product.id);
-            });
-          } catch (e) {}
-          callback(cb, owned);
-        };
-        if (billing.ready) store.restorePurchases().then(report).catch(report);
-        else setTimeout(function () { WN.restorePurchases(cb); }, 2000);
+        recoverPurchases().then(function (report) { callback(cb, report); });
       };
-    } catch (e) {}
+      WN.refreshPurchases = recoverPurchases;
+    } catch (e) {
+      billing.initialising = false;
+      billing.initialization = Promise.resolve(false);
+    }
+    return billing.initialization || Promise.resolve(false);
   }
 
-  document.addEventListener('deviceready', initBilling, false);
-  setTimeout(initBilling, 2500);
+  // Billing can query Play and Firebase, so it starts only after the mandatory
+  // first-launch privacy gate has been accepted.
+  WN.enableBillingAfterPolicyAcceptance = function () {
+    return initBilling();
+  };
 })();

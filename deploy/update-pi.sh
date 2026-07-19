@@ -28,9 +28,9 @@ if embedded != source:
 PY
 }
 
-verify_package_source "$repo_dir/releases/WILDCARD-v6.9.13.apk" 'assets/public/index.html'
-if [[ -f "$repo_dir/releases/WILDCARD-v6.9.13.aab" ]]; then
-  verify_package_source "$repo_dir/releases/WILDCARD-v6.9.13.aab" 'base/assets/public/index.html'
+verify_package_source "$repo_dir/releases/WILDCARD-v6.9.14.apk" 'assets/public/index.html'
+if [[ -f "$repo_dir/releases/WILDCARD-v6.9.14.aab" ]]; then
+  verify_package_source "$repo_dir/releases/WILDCARD-v6.9.14.aab" 'base/assets/public/index.html'
 fi
 
 find_api_pid() {
@@ -44,13 +44,15 @@ find_api_pid() {
 }
 
 wait_for_api() {
-  local previous_pid="$1" expected_marker="$2" pid="" health="" date=""
+  local previous_pid="$1" expected_marker="$2" require_board="${3:-false}" pid="" health="" date=""
   date="$(date -u +%F)"
   for _ in {1..40}; do
     pid="$(find_api_pid || true)"
     if [[ -n "$pid" && "$pid" != "$previous_pid" ]]; then
       health="$(curl -fsS http://127.0.0.1:8090/api/health 2>/dev/null || true)"
-      if [[ "$health" == *"$expected_marker"* ]] && curl -fsS "http://127.0.0.1:8090/api/daily?date=$date" >/dev/null 2>&1; then
+      if [[ "$health" == *"$expected_marker"* ]] &&
+         { [[ "$require_board" != "true" ]] || [[ "$health" == *'"boardWritesReady":true'* ]]; } &&
+         curl -fsS "http://127.0.0.1:8090/api/daily?date=$date" >/dev/null 2>&1; then
         return 0
       fi
     fi
@@ -92,7 +94,7 @@ deploy_api() {
   python3 -c 'import ast,sys; ast.parse(open(sys.argv[1],encoding="utf-8").read())' "$next"
   mv -f "$next" "$target"
 
-  if ! kill "$old_pid" || ! wait_for_api "$old_pid" '"analytics":"aggregate-v1"'; then
+  if ! kill "$old_pid" || ! wait_for_api "$old_pid" '"board":"authenticated-v2"' true; then
     echo "New WILDCARD API failed validation; restoring $backup" >&2
     install -m 0755 "$backup" "$target"
     failed_pid="$(find_api_pid || true)"
@@ -132,9 +134,9 @@ done
 install -d -m 0755 "$webroot/assets/video"
 install -m 0644 "$repo_dir/www/assets/video/sly-single-tear.mp4" "$webroot/assets/video/sly-single-tear.mp4"
 
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.13.apk" "$webroot/WILDCARD-v6.9.13.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.13.apk" "$webroot/WILDCARD-v6.9.13-release.apk"
-install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.13.apk" "$webroot/WILDCARD-latest.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.14.apk" "$webroot/WILDCARD-v6.9.14.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.14.apk" "$webroot/WILDCARD-v6.9.14-release.apk"
+install -m 0644 "$repo_dir/releases/WILDCARD-v6.9.14.apk" "$webroot/WILDCARD-latest.apk"
 
-sha256sum "$webroot/WILDCARD-v6.9.13.apk" "$webroot/WILDCARD-latest.apk"
+sha256sum "$webroot/WILDCARD-v6.9.14.apk" "$webroot/WILDCARD-latest.apk"
 echo "WILDCARD updated from GitHub: https://raspberrypi.tail20f574.ts.net"

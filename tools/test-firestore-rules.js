@@ -51,8 +51,8 @@ function save(uid, overrides = {}) {
     const aliceSave = doc(alice, 'users/alice/saves/main');
 
     await denied('unauthenticated create', setDoc(doc(anon, 'users/alice/saves/main'), save('alice')));
-    await allowed('owner create', setDoc(aliceSave, save('alice')));
-    await allowed('owner fixed-document read', getDoc(aliceSave));
+    await denied('owner direct create (callable only)', setDoc(aliceSave, save('alice')));
+    await denied('owner direct read (callable only)', getDoc(aliceSave));
     await denied('unauthenticated read', getDoc(doc(anon, 'users/alice/saves/main')));
     await denied('cross-user read', getDoc(doc(bob, 'users/alice/saves/main')));
     await denied('cross-user overwrite', setDoc(doc(bob, 'users/alice/saves/main'), save('bob')));
@@ -67,8 +67,18 @@ function save(uid, overrides = {}) {
     await denied('negative client timestamp', setDoc(aliceSave, save('alice', { clientSavedAt: -1 })));
     await denied('client-authored updatedAt', setDoc(aliceSave, save('alice', { updatedAt: Timestamp.fromMillis(1) })));
     await denied('collection enumeration', getDocs(collection(alice, 'users/alice/saves')));
-    await allowed('valid owner update', setDoc(aliceSave, save('alice', { accountJson: '{"coins":30}' })));
-    await denied('owner delete', deleteDoc(aliceSave));
+    await denied('owner direct update (callable only)', setDoc(aliceSave, save('alice', { accountJson: '{"coins":30}' })));
+    await denied('owner direct delete (callable only)', deleteDoc(aliceSave));
+    await denied('owner direct recreate (callable only)', setDoc(aliceSave, save('alice')));
+    await denied('cross-user delete', deleteDoc(doc(bob, 'users/alice/saves/main')));
+    await denied('direct daily score write', setDoc(doc(alice, 'dailyScores/2026-07-19/entries/alice'), { uid: 'alice', score: 999 }));
+    await denied('direct board-name claim', setDoc(doc(alice, 'boardNames/ALICE'), { uid: 'alice' }));
+    await denied('direct rate-ledger write', setDoc(doc(alice, 'dailyScoreRate/alice'), { count: 0 }));
+    await denied('direct board-deletion queue write', setDoc(doc(alice, 'boardDeletionQueue/hash'), { pending: true }));
+    await denied('direct billing-ledger read', getDoc(doc(alice, 'billingPurchases/tokenhash')));
+    await denied('direct billing-ledger write', setDoc(doc(alice, 'billingPurchases/tokenhash'), { uid: 'alice', status: 'delivered' }));
+    await denied('direct billing-account read', getDoc(doc(alice, 'billingAccounts/alice')));
+    await denied('direct billing-adjustment write', setDoc(doc(alice, 'billingAdjustments/tokenhash'), { uid: 'alice', amount: 250 }));
 
     console.log(JSON.stringify({ tests: passed, failures: 0 }, null, 2));
   } finally {

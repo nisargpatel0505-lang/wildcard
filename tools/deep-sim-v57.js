@@ -8,10 +8,24 @@ const htmlPath = path.join(root, 'www', 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 const detectedVersion = (html.match(/>v(\d+\.\d+(?:\.\d+)?)<\/b>/) || [])[1] || 'unknown';
 const strategyMode = process.argv.includes('--strategy');
+const decisionMode = process.argv.includes('--decision-lab');
+if (strategyMode && decisionMode) throw new Error('Choose either --strategy or --decision-lab');
 const runsArg = process.argv.find(arg => /^--runs=\d+$/.test(arg));
 const strategyRuns = runsArg ? Number(runsArg.split('=')[1]) : 400;
+const starterRunsArg = process.argv.find(arg => /^--starter-runs=\d+$/.test(arg));
+const starterRuns = starterRunsArg ? Number(starterRunsArg.split('=')[1]) : 500;
+const openingDealsArg = process.argv.find(arg => /^--opening-deals=\d+$/.test(arg));
+const openingDeals = openingDealsArg ? Number(openingDealsArg.split('=')[1]) : 20000;
+const fixedStarterArg = process.argv.find(arg => /^--fixed-starter=[a-z0-9_-]+$/.test(arg));
+const fixedStarter = fixedStarterArg ? fixedStarterArg.split('=')[1] : 'auto';
 if (strategyMode && (!Number.isInteger(strategyRuns) || strategyRuns < 50 || strategyRuns > 5000)) {
   throw new Error('Strategy runs must be an integer from 50 to 5000');
+}
+if (decisionMode && (!Number.isInteger(starterRuns) || starterRuns < 100 || starterRuns > 5000)) {
+  throw new Error('Starter runs must be an integer from 100 to 5000');
+}
+if (decisionMode && (!Number.isInteger(openingDeals) || openingDeals < 1000 || openingDeals > 100000)) {
+  throw new Error('Opening deals must be an integer from 1000 to 100000');
 }
 const sourceSha256 = crypto.createHash('sha256').update(Buffer.from(html)).digest('hex');
 const scriptSha256 = crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex');
@@ -85,9 +99,12 @@ const context = {
   getComputedStyle: () => ({}), confirm: () => true, alert() {}, fetch: async () => ({ ok: false, json: async () => ({}) }),
   setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
   requestAnimationFrame: fn => { fn(0); return 0; }, cancelAnimationFrame() {},
+  addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; },
   performance: { now: () => Date.now() }, structuredClone: global.structuredClone,
   SIM_QUICK: process.env.SIM_QUICK === '1', SIM_VERSION: detectedVersion,
-  SIM_MODE: strategyMode ? 'strategy' : 'stress', SIM_STRATEGY_RUNS: strategyRuns,
+  SIM_MODE: decisionMode ? 'decision' : (strategyMode ? 'strategy' : 'stress'),
+  SIM_STRATEGY_RUNS: strategyRuns, SIM_STARTER_RUNS: starterRuns, SIM_OPENING_DEALS: openingDeals,
+  SIM_FIXED_STARTER: fixedStarter,
   SIM_SOURCE_SHA256: sourceSha256, SIM_SCRIPT_SHA256: scriptSha256,
   SIM_RESET_RANDOM: resetSimRandom,
   btoa: value => Buffer.from(value, 'binary').toString('base64'),
@@ -103,7 +120,11 @@ const simulator = String.raw`
   const startedAt = Date.now();
   const quick = !!globalThis.SIM_QUICK;
   const strategyMode = globalThis.SIM_MODE === 'strategy';
+  const decisionMode = globalThis.SIM_MODE === 'decision';
   const strategyRuns = Number(globalThis.SIM_STRATEGY_RUNS) || 400;
+  const decisionStarterRuns = Number(globalThis.SIM_STARTER_RUNS) || 500;
+  const openingDeals = Number(globalThis.SIM_OPENING_DEALS) || 20000;
+  const fixedStarter = String(globalThis.SIM_FIXED_STARTER || 'auto');
   const failures = [];
   const hookErrors = [];
   const invariantFailures = [];
@@ -144,8 +165,9 @@ const simulator = String.raw`
     }
     walk(0); return out;
   }
-  function bestChoice() {
+  function bestChoice(captureByType) {
     let best = null;
+    const byType = captureByType ? {} : null;
     const max = Math.min(effMaxSelect(), run.hand.length);
     for (let n = 1; n <= max; n++) {
       for (const cards of combos(run.hand, n)) {
@@ -155,9 +177,16 @@ const simulator = String.raw`
           if (!useful) continue;
         }
         const res = scoreHand(cards, false);
+        if (byType) {
+          const current = byType[res.handType];
+          if (!current || res.total > current.res.total || (res.total === current.res.total && res.scoringCount > current.res.scoringCount)) {
+            byType[res.handType] = { cards, res };
+          }
+        }
         if (!best || res.total > best.res.total || (res.total === best.res.total && res.scoringCount > best.res.scoringCount)) best = { cards, res };
       }
     }
+    if (best && byType) best.byType = byType;
     return best;
   }
   function dominantSuit(cards) {
@@ -263,6 +292,18 @@ const simulator = String.raw`
     if(!run.supplyPurchaseCounts||typeof run.supplyPurchaseCounts!=='object') run.supplyPurchaseCounts={};
     if(run.__simSeed!==undefined) resetPhase(run.__simSeed,run.stage,20);
     rollJokerOffers(true); rollSupplyOffers();
+    if(run.__simStats){
+      const maxRefund=run.jokers.length>=MAX_JOKERS && run.jokers.length
+        ? Math.max(...run.jokers.map(j=>Math.max(1,Math.floor(j.price/2))))
+        : 0;
+      const available=shopOffers.filter(j=>!run.jokers.some(x=>x.id===j.id));
+      const affordable=available.filter(j=>shopPrice(j.price)<=run.runCoins+maxRefund);
+      run.__simStats.shopVisits++;
+      run.__simStats.shopOffers+=available.length;
+      run.__simStats.affordableShopOffers+=affordable.length;
+      if(affordable.length>=2) run.__simStats.choiceShops++;
+      if(affordable.length===0) run.__simStats.deadShops++;
+    }
     let limit = shopBuyLimit();
     for (let purchase = 0; purchase < limit; purchase++) {
       const ranked = shopOffers.filter(j => !run.jokers.some(x => x.id === j.id)).map(j => ({j, value:strategyValue(j,strategy)})).sort((a,b) => b.value - a.value);
@@ -323,12 +364,31 @@ const simulator = String.raw`
     }
   }
   function playChoice(choice, metrics) {
+    const scoreBefore=run.stageScore, handsBefore=run.handsLeft, targetBefore=stageTarget();
     const cards=choice.cards, res=scoreHand(cards,true);
     if (!Number.isFinite(res.total) || !Number.isFinite(res.mult) || res.total < 0 || res.mult < 0) record(failures,{kind:'invalid-score',res,jokers:run.jokers.map(j=>j.id)},100);
     run.stageScore += res.total; run.totalScore += res.total;
     run.bestPlay=Math.max(run.bestPlay,res.total); if(run.bestPlay===res.total) run.bestPlayType=res.handType;
     run.handTypeCounts[res.handType]=(run.handTypeCounts[res.handType]||0)+1;
     metrics.handTypes[res.handType]=(metrics.handTypes[res.handType]||0)+1;
+    if(run.__simStats){
+      const activeJokers=new Set(res.events.filter(e=>Number.isInteger(e.jokerIdx)&&e.jokerIdx>=0).map(e=>e.jokerIdx));
+      run.__simStats.plays++;
+      run.__simStats.playedCards+=cards.length;
+      run.__simStats.jokerTriggerEvents+=res.events.filter(e=>Number.isInteger(e.jokerIdx)&&e.jokerIdx>=0).length;
+      run.__simStats.activeJokerSlots+=activeJokers.size;
+      run.__simStats.equippedJokerSlots+=run.jokers.length;
+      if(activeJokers.size>0) run.__simStats.activeJokerPlays++;
+      if(res.total>=targetBefore) run.__simStats.wildMoments++;
+      else if(res.total>=targetBefore*.6) run.__simStats.megaMoments++;
+      else if(res.total>=targetBefore*.35) run.__simStats.greatMoments++;
+      else if(res.total>=targetBefore*.2) run.__simStats.niceMoments++;
+      if(scoreBefore<targetBefore && run.stageScore>=targetBefore){
+        if(handsBefore===1) run.__simStats.finalPlayClears++;
+        if(handsBefore===1 && scoreBefore<targetBefore*.75) run.__simStats.comebackClears++;
+      }
+      run.__simStats.playScores.push(res.total);
+    }
     run.handsLeft--; run.handsPlayedThisStage++;
     run.prevHandType=res.handType;
     for(const j of run.jokers) if(j.onScored) j.onScored(res.ctx);
@@ -340,6 +400,11 @@ const simulator = String.raw`
   }
   function clearHeat(metrics) {
     run.stagesCleared++;
+    if(run.__simStats){
+      const target=stageTarget();
+      run.__simStats.clearMargins.push((run.stageScore-target)/Math.max(1,target));
+      run.__simStats.clearPlays.push(run.handsPlayedThisStage);
+    }
     const grade=GRADES[Math.min(4,Math.max(1,run.handsPlayedThisStage))];
     const interest=Math.min(INTEREST_CAP,Math.floor(run.runCoins/INTEREST_PER));
     run.runCoins += runReward(run.stage)+interest+grade.bonus;
@@ -360,9 +425,22 @@ const simulator = String.raw`
     run=newRunState(); pendingGauntlet=false;
     run.gauntlet=!!config.gauntlet; run.cards=baseCardSet(); run.jokers=[]; run.jokerState={};
     run.__simSeed=config.seed;
+    run.__simStats={
+      plays:0,playedCards:0,jokerTriggerEvents:0,activeJokerSlots:0,equippedJokerSlots:0,activeJokerPlays:0,
+      wildMoments:0,megaMoments:0,greatMoments:0,niceMoments:0,finalPlayClears:0,comebackClears:0,
+      shopVisits:0,shopOffers:0,affordableShopOffers:0,choiceShops:0,deadShops:0,
+      playScores:[],clearMargins:[],clearPlays:[]
+    };
     account.unlocked=new Set(config.unlocked);
+    const forcedStarterIds=Array.isArray(config.starterIds)
+      ? config.starterIds
+      : (config.starterId ? [config.starterId] : []);
+    for(const id of forcedStarterIds){
+      const starter=JOKERS.find(j=>j.id===id);
+      if(starter && !run.jokers.some(j=>j.id===id)) run.jokers.push(starter);
+    }
     setupHeat(1);
-    if(config.starter){
+    if(config.starter && !forcedStarterIds.length){
       const candidates=JOKERS.filter(j=>account.unlocked.has(j.id));
       if(candidates.length) run.jokers.push(candidates.map(j=>({j,v:strategyValue(j,config.strategy)})).sort((a,b)=>b.v-a.v)[0].j);
     }
@@ -387,7 +465,22 @@ const simulator = String.raw`
     metrics.runs++; if(won) metrics.wins++; else metrics.failAt[failAt]=(metrics.failAt[failAt]||0)+1;
     metrics.cleared.push(run.stagesCleared); metrics.scores.push(run.totalScore); metrics.bestPlays.push(run.bestPlay);
     for(const j of run.jokers) metrics.finalJokers[j.id]=(metrics.finalJokers[j.id]||0)+1;
-    const outcome={seed:config.seed,won,failAt,cleared:run.stagesCleared,totalScore:run.totalScore,bestPlay:run.bestPlay,finalJokers:run.jokers.map(j=>j.id)};
+    const outcome={
+      seed:config.seed,won,failAt,cleared:run.stagesCleared,totalScore:run.totalScore,bestPlay:run.bestPlay,
+      starterIds:forcedStarterIds.slice(),finalJokers:run.jokers.map(j=>j.id),
+      handTypeCounts:Object.assign({},run.handTypeCounts),simStats:{
+        plays:run.__simStats.plays,playedCards:run.__simStats.playedCards,
+        jokerTriggerEvents:run.__simStats.jokerTriggerEvents,activeJokerSlots:run.__simStats.activeJokerSlots,
+        equippedJokerSlots:run.__simStats.equippedJokerSlots,activeJokerPlays:run.__simStats.activeJokerPlays,
+        wildMoments:run.__simStats.wildMoments,megaMoments:run.__simStats.megaMoments,
+        greatMoments:run.__simStats.greatMoments,niceMoments:run.__simStats.niceMoments,
+        finalPlayClears:run.__simStats.finalPlayClears,comebackClears:run.__simStats.comebackClears,
+        shopVisits:run.__simStats.shopVisits,shopOffers:run.__simStats.shopOffers,
+        affordableShopOffers:run.__simStats.affordableShopOffers,choiceShops:run.__simStats.choiceShops,
+        deadShops:run.__simStats.deadShops,playScores:run.__simStats.playScores.slice(),
+        clearMargins:run.__simStats.clearMargins.slice(),clearPlays:run.__simStats.clearPlays.slice()
+      }
+    };
     if(metrics.outcomes) metrics.outcomes.push(outcome);
     return outcome;
   }
@@ -398,6 +491,82 @@ const simulator = String.raw`
     const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([id,n])=>({id,n}));
     return {name:m.name,runs:m.runs,wins:m.wins,winRate:+(100*m.wins/Math.max(1,m.runs)).toFixed(2),avgCleared:+avg(m.cleared).toFixed(2),median:pct(.5),p90:pct(.9),avgScore:+avg(m.scores).toFixed(1),avgBestPlay:+avg(m.bestPlays).toFixed(1),failAt:m.failAt,handTypes:m.handTypes,topBuys:top(m.jokerBuys),topFinal:top(m.finalJokers),supplies:m.supplies,rerolls:m.rerolls};
   }
+  function average(values){ return values.reduce((sum,value)=>sum+value,0)/Math.max(1,values.length); }
+  function normalizedEntropy(counts){
+    const values=Object.values(counts||{}).filter(value=>value>0), total=values.reduce((sum,value)=>sum+value,0);
+    if(!total||values.length<2) return 0;
+    const entropy=-values.reduce((sum,value)=>{const p=value/total;return sum+p*Math.log(p);},0);
+    return entropy/Math.log(handTypes.length);
+  }
+  function percentile(values,p){
+    if(!values.length) return 0;
+    const sorted=values.slice().sort((a,b)=>a-b);
+    return sorted[Math.min(sorted.length-1,Math.max(0,Math.floor((sorted.length-1)*p)))];
+  }
+  function funSummary(outcomes){
+    const aggregateHands={}, totals={
+      plays:0,playedCards:0,jokerTriggerEvents:0,activeJokerSlots:0,equippedJokerSlots:0,activeJokerPlays:0,
+      wildMoments:0,megaMoments:0,greatMoments:0,niceMoments:0,finalPlayClears:0,comebackClears:0,
+      shopVisits:0,shopOffers:0,affordableShopOffers:0,choiceShops:0,deadShops:0,clears:0
+    };
+    const clearMargins=[], clearPlays=[], playScores=[], runEntropies=[], builds=new Set();
+    for(const outcome of outcomes){
+      for(const [type,count] of Object.entries(outcome.handTypeCounts||{})) aggregateHands[type]=(aggregateHands[type]||0)+count;
+      runEntropies.push(normalizedEntropy(outcome.handTypeCounts||{}));
+      const stats=outcome.simStats||{};
+      for(const key of Object.keys(totals)) if(key!=='clears') totals[key]+=Number(stats[key]||0);
+      totals.clears+=outcome.cleared||0;
+      clearMargins.push(...(stats.clearMargins||[])); clearPlays.push(...(stats.clearPlays||[])); playScores.push(...(stats.playScores||[]));
+      builds.add((outcome.finalJokers||[]).slice().sort().join('|'));
+    }
+    const handEntries=Object.entries(aggregateHands).sort((a,b)=>b[1]-a[1]);
+    const totalHandPlays=handEntries.reduce((sum,row)=>sum+row[1],0);
+    let jaccardTotal=0,jaccardPairs=0;
+    const pairLimit=Math.min(1000,Math.max(0,outcomes.length-1));
+    for(let i=0;i<pairLimit;i++){
+      const a=new Set(outcomes[i].finalJokers||[]);
+      const b=new Set(outcomes[(i*37+17)%outcomes.length].finalJokers||[]);
+      const union=new Set([...a,...b]), intersection=[...a].filter(id=>b.has(id)).length;
+      if(union.size){ jaccardTotal+=1-intersection/union.size; jaccardPairs++; }
+    }
+    const meanScore=average(outcomes.map(o=>o.totalScore));
+    const variance=average(outcomes.map(o=>Math.pow(o.totalScore-meanScore,2)));
+    const gradeCounts={S:0,A:0,B:0,C:0};
+    for(const plays of clearPlays) gradeCounts[plays<=1?'S':plays===2?'A':plays===3?'B':'C']++;
+    const reachedBoss=outcomes.filter(o=>o.cleared>=11).length;
+    const bossFails=outcomes.filter(o=>o.failAt===12).length;
+    return {
+      handEntropy:+normalizedEntropy(aggregateHands).toFixed(3),
+      meanRunHandEntropy:+average(runEntropies).toFixed(3),
+      dominantHand:handEntries.length?handEntries[0][0]:null,
+      dominantHandShare:+(100*(handEntries.length?handEntries[0][1]:0)/Math.max(1,totalHandPlays)).toFixed(2),
+      handShares:Object.fromEntries(handEntries.map(([type,count])=>[type,+(100*count/Math.max(1,totalHandPlays)).toFixed(2)])),
+      avgPlaysPerRun:+(totals.plays/Math.max(1,outcomes.length)).toFixed(2),
+      avgPlaysPerClear:+(totals.plays/Math.max(1,totals.clears)).toFixed(2),
+      avgCardsPerPlay:+(totals.playedCards/Math.max(1,totals.plays)).toFixed(2),
+      jokerTriggerEventsPerPlay:+(totals.jokerTriggerEvents/Math.max(1,totals.plays)).toFixed(2),
+      jokerActivePlayRate:+(100*totals.activeJokerPlays/Math.max(1,totals.plays)).toFixed(2),
+      activeEquippedSlotRate:+(100*totals.activeJokerSlots/Math.max(1,totals.equippedJokerSlots)).toFixed(2),
+      notablePlayRate:+(100*(totals.wildMoments+totals.megaMoments+totals.greatMoments)/Math.max(1,totals.plays)).toFixed(2),
+      anyCalloutPlayRate:+(100*(totals.wildMoments+totals.megaMoments+totals.greatMoments+totals.niceMoments)/Math.max(1,totals.plays)).toFixed(2),
+      finalPlayClearRate:+(100*totals.finalPlayClears/Math.max(1,totals.clears)).toFixed(2),
+      comebackClearRate:+(100*totals.comebackClears/Math.max(1,totals.clears)).toFixed(2),
+      closeClearRate:+(100*clearMargins.filter(value=>value<=.10).length/Math.max(1,clearMargins.length)).toFixed(2),
+      avgClearMarginPct:+(100*average(clearMargins)).toFixed(2),
+      p90ClearMarginPct:+(100*percentile(clearMargins,.9)).toFixed(2),
+      meaningfulShopRate:+(100*totals.choiceShops/Math.max(1,totals.shopVisits)).toFixed(2),
+      deadShopRate:+(100*totals.deadShops/Math.max(1,totals.shopVisits)).toFixed(2),
+      avgAffordableOffersPerShop:+(totals.affordableShopOffers/Math.max(1,totals.shopVisits)).toFixed(2),
+      uniqueFinalBuilds:builds.size,
+      uniqueFinalBuildRate:+(100*builds.size/Math.max(1,outcomes.length)).toFixed(2),
+      meanBuildJaccardDistance:+(jaccardTotal/Math.max(1,jaccardPairs)).toFixed(3),
+      scoreCoefficientOfVariation:+(Math.sqrt(variance)/Math.max(1,meanScore)).toFixed(3),
+      earlyLossRate:+(100*outcomes.filter(o=>!o.won&&o.failAt>0&&o.failAt<=6).length/Math.max(1,outcomes.length)).toFixed(2),
+      bossHazard:+(100*bossFails/Math.max(1,reachedBoss)).toFixed(2),
+      gradeShares:Object.fromEntries(Object.entries(gradeCounts).map(([grade,count])=>[grade,+(100*count/Math.max(1,clearPlays.length)).toFixed(2)])),
+      playScoreMedian:+percentile(playScores,.5).toFixed(1),playScoreP90:+percentile(playScores,.9).toFixed(1)
+    };
+  }
 
   function wilson(successes,total){
     if(!total) return {low:0,high:0};
@@ -407,14 +576,166 @@ const simulator = String.raw`
     return {low:+(100*Math.max(0,center-margin)).toFixed(2),high:+(100*Math.min(1,center+margin)).toFixed(2)};
   }
 
+  if(decisionMode){
+    const allIds=JOKERS.map(j=>j.id), starterPool=STARTER_JOKER_IDS.slice();
+    const adaptive=STRATEGIES.find(strategy=>strategy.id==='adaptive_greedy');
+    const starterArms=[
+      {id:'none',name:'No start boost',ids:[],cost:0},
+      ...starterPool.map(id=>{const joker=JOKERS.find(j=>j.id===id);return {id,name:joker.name,ids:[id],cost:starterJokerPrice(joker)};}),
+      {id:'guided_copper_polish',name:'Guided first run: Copper Chip + Pair Polisher',ids:['copper','polish'],cost:0,tutorialOnly:true}
+    ];
+    const openingSeedBase=0x69131000, starterSeedBase=0x69132000;
+    const openingMetrics=Object.fromEntries(starterArms.map(arm=>[arm.id,{
+      id:arm.id,name:arm.name,ids:arm.ids.slice(),cost:arm.cost,tutorialOnly:!!arm.tutorialOnly,
+      scores:[],handTypes:{},cardCounts:{},onePlayClears:0
+    }]));
+    const guidedFrontier=Object.fromEntries(handTypes.map(type=>[type,{available:0,scores:[]}]));
+
+    function openingCandidateScore(candidate,jokers){
+      const ctx=baseContext(candidate.cards,candidate.handType);
+      let rankSum=0;
+      for(const card of candidate.cards){
+        if(!candidate.scoring.has(card)) continue;
+        let value=card.value;
+        for(const joker of jokers) if(joker.rankMod) value+=Number(joker.rankMod(card))||0;
+        rankSum+=value;
+      }
+      const rankScore=Math.round(rankSum*RANK_SCALE);
+      const valuePoints=HAND_BASE[candidate.handType]+rankScore;
+      let mult=BASE_MULT;
+      for(const joker of jokers) if(joker.addMult) mult+=Number(joker.addMult(ctx))||0;
+      for(const joker of jokers) if(joker.xMult) mult*=Number(joker.xMult(ctx))||1;
+      return Math.round(valuePoints*mult);
+    }
+    function openingCandidates(){
+      const out=[], max=Math.min(effMaxSelect(),run.hand.length);
+      for(let size=1;size<=max;size++){
+        for(const cards of combos(run.hand,size)){
+          const handType=evaluateHand(cards);
+          if(size>1&&size<5){
+            const useful=handType!=='High Card'||allSameColor(cards);
+            if(!useful) continue;
+          }
+          out.push({cards,handType,scoring:scoringCards(cards,handType)});
+        }
+      }
+      return out;
+    }
+    for(let index=0;index<openingDeals;index++){
+      const seed=(openingSeedBase+index)>>>0;
+      globalThis.SIM_RESET_RANDOM(seed);
+      pendingGauntlet=false; run=newRunState(); run.cards=baseCardSet(); run.jokers=[]; run.jokerState={}; run.__simSeed=seed;
+      account.unlocked=new Set(allIds);
+      setupHeat(1);
+      const candidates=openingCandidates();
+      for(const arm of starterArms){
+        const jokers=arm.ids.map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
+        run.jokers=jokers;
+        let best=null;
+        const bestByType=arm.id==='guided_copper_polish'?{}:null;
+        for(const candidate of candidates){
+          const score=openingCandidateScore(candidate,jokers);
+          const option={candidate,score};
+          if(!best||score>best.score||(score===best.score&&candidate.scoring.size>best.candidate.scoring.size)) best=option;
+          if(bestByType){
+            const current=bestByType[candidate.handType];
+            if(!current||score>current.score||(score===current.score&&candidate.scoring.size>current.candidate.scoring.size)) bestByType[candidate.handType]=option;
+          }
+        }
+        const metrics=openingMetrics[arm.id];
+        metrics.scores.push(best.score);
+        metrics.handTypes[best.candidate.handType]=(metrics.handTypes[best.candidate.handType]||0)+1;
+        metrics.cardCounts[best.candidate.cards.length]=(metrics.cardCounts[best.candidate.cards.length]||0)+1;
+        if(best.score>=HEAT_TARGETS[0]) metrics.onePlayClears++;
+        if(bestByType){
+          for(const [type,option] of Object.entries(bestByType)){
+            guidedFrontier[type].available++;
+            guidedFrontier[type].scores.push(option.score);
+          }
+        }
+      }
+      if((index+1)%5000===0) console.log('Opening deals complete:',index+1+'/'+openingDeals);
+    }
+    const openingSummaries=starterArms.map(arm=>{
+      const metrics=openingMetrics[arm.id], total=metrics.scores.length;
+      const typeEntries=Object.entries(metrics.handTypes).sort((a,b)=>b[1]-a[1]);
+      return {
+        id:arm.id,name:arm.name,starterIds:arm.ids.slice(),cost:arm.cost,tutorialOnly:!!arm.tutorialOnly,deals:total,
+        avgBestScore:+average(metrics.scores).toFixed(2),medianBestScore:+percentile(metrics.scores,.5).toFixed(1),
+        p10BestScore:+percentile(metrics.scores,.1).toFixed(1),p90BestScore:+percentile(metrics.scores,.9).toFixed(1),
+        onePlayClearRate:+(100*metrics.onePlayClears/Math.max(1,total)).toFixed(2),
+        dominantBestHand:typeEntries.length?typeEntries[0][0]:null,
+        dominantBestHandShare:+(100*(typeEntries.length?typeEntries[0][1]:0)/Math.max(1,total)).toFixed(2),
+        bestHandTypeShares:Object.fromEntries(typeEntries.map(([type,count])=>[type,+(100*count/Math.max(1,total)).toFixed(2)])),
+        selectedCardCountShares:Object.fromEntries(Object.entries(metrics.cardCounts).map(([count,n])=>[count,+(100*n/Math.max(1,total)).toFixed(2)]))
+      };
+    });
+    const guidedHandFrontier=Object.fromEntries(Object.entries(guidedFrontier).map(([type,metrics])=>[type,{
+      availabilityRate:+(100*metrics.available/openingDeals).toFixed(2),
+      conditionalAvgBestScore:+average(metrics.scores).toFixed(2),
+      conditionalMedianBestScore:+percentile(metrics.scores,.5).toFixed(1),
+      conditionalP90BestScore:+percentile(metrics.scores,.9).toFixed(1)
+    }]));
+
+    const starterSummaries=[];
+    for(const arm of starterArms){
+      const metrics=blankMetrics(arm.id); metrics.outcomes=[];
+      for(let index=0;index<decisionStarterRuns;index++){
+        const seed=(starterSeedBase+index)>>>0;
+        globalThis.SIM_RESET_RANDOM(seed);
+        simulateOne({unlocked:starterPool,starterIds:arm.ids,gauntlet:false,strategy:adaptive,seed},metrics);
+      }
+      const base=summarize(metrics), reachByHeat={};
+      for(let heat=1;heat<=12;heat++) reachByHeat[heat]=+(100*metrics.outcomes.filter(outcome=>outcome.cleared>=heat-1).length/decisionStarterRuns).toFixed(2);
+      starterSummaries.push({
+        id:arm.id,name:arm.name,starterIds:arm.ids.slice(),cost:arm.cost,tutorialOnly:!!arm.tutorialOnly,
+        runs:decisionStarterRuns,wins:metrics.wins,winRate:base.winRate,winRate95:wilson(metrics.wins,decisionStarterRuns),
+        avgCleared:base.avgCleared,median:base.median,p90:base.p90,avgScore:base.avgScore,avgBestPlay:base.avgBestPlay,
+        reachByHeat,failAt:base.failAt,handTypes:base.handTypes,topBuys:base.topBuys,topFinal:base.topFinal,
+        fun:funSummary(metrics.outcomes),outcomes:metrics.outcomes
+      });
+      console.log('Starter arm complete:',arm.id,metrics.wins+'/'+decisionStarterRuns,'wins');
+    }
+    const bestStarter=starterSummaries.slice().sort((a,b)=>b.winRate-a.winRate||b.avgCleared-a.avgCleared)[0];
+    const pairedAgainstBest=starterSummaries.map(arm=>{
+      let bestOnly=0,armOnly=0,bothWin=0,bothLose=0;
+      for(let index=0;index<decisionStarterRuns;index++){
+        const bestWon=!!bestStarter.outcomes[index].won,armWon=!!arm.outcomes[index].won;
+        if(bestWon&&armWon) bothWin++; else if(bestWon) bestOnly++; else if(armWon) armOnly++; else bothLose++;
+      }
+      return {id:arm.id,bestId:bestStarter.id,deltaWinRatePp:+(arm.winRate-bestStarter.winRate).toFixed(2),bestOnly,armOnly,bothWin,bothLose};
+    });
+    return {
+      mode:'decision',source:'www/index.html',version:globalThis.SIM_VERSION,
+      sourceSha256:globalThis.SIM_SOURCE_SHA256,script:'tools/deep-sim-v57.js',scriptSha256:globalThis.SIM_SCRIPT_SHA256,
+      generatedAt:new Date().toISOString(),durationMs:Date.now()-startedAt,
+      methodology:{
+        opening:'Paired initial nine-card deals. Every legal useful one-to-five-card play is enumerated. The displayed best score is immediate score, not a claim that immediate greed maximises the full run.',
+        starters:'Paired complete 12-Heat runs with the same adaptive shop policy and the real ten-Joker starter shop pool. Start-boost account coin costs are reported but not deducted from run coins.',
+        fun:'Descriptive simulation proxies only: choice variety, build diversity, Joker activity, dramatic clears, shop agency and failure walls. Human enjoyment requires closed-test ratings.'
+      },
+      seedSpec:{openingBase:'0x69131000',starterBase:'0x69132000',paired:true,phaseStreams:['modifier','deck-and-draw','shop']},
+      counts:{jokers:JOKERS.length,openingDeals,openingArms:starterArms.length,starterRunsPerArm:decisionStarterRuns,starterArms:starterArms.length,fullRuns:decisionStarterRuns*starterArms.length},
+      opening:{summaries:openingSummaries,guidedHandFrontier},
+      starters:{shopPool:'starter_collection',policy:adaptive.id,bestId:bestStarter.id,summaries:starterSummaries,pairedAgainstBest},
+      dataFailures:failures,hookErrors,invariantFailures
+    };
+  }
+
   if(strategyMode){
     const allIds=JOKERS.map(j=>j.id), summaries=[];
+    const forcedStarterIds=fixedStarter==='guided' ? ['copper','polish']
+      : (fixedStarter==='none'||fixedStarter==='auto' ? [] : [fixedStarter]);
+    if(forcedStarterIds.some(id=>!allIds.includes(id))) throw new Error('Unknown fixed starter: '+fixedStarter);
     for(const strategy of STRATEGIES){
       const metrics=blankMetrics(strategy.id); metrics.outcomes=[];
       for(let i=0;i<strategyRuns;i++){
         const seed=(strategySeedBase+i)>>>0;
         globalThis.SIM_RESET_RANDOM(seed);
-        simulateOne({unlocked:allIds,starter:true,gauntlet:false,strategy,seed},metrics);
+        simulateOne({
+          unlocked:allIds,starter:fixedStarter==='auto',starterIds:forcedStarterIds,
+          gauntlet:false,strategy,seed
+        },metrics);
       }
       const base=summarize(metrics);
       const reached9=metrics.outcomes.filter(x=>x.cleared>=8).length;
@@ -431,6 +752,7 @@ const simulator = String.raw`
         reachH11:+(100*reached11/strategyRuns).toFixed(2),reachH11_95:wilson(reached11,strategyRuns),
         avgCleared:base.avgCleared,median:base.median,p90:base.p90,avgScore:base.avgScore,avgBestPlay:base.avgBestPlay,
         failAt:base.failAt,handTypes:base.handTypes,topBuys:base.topBuys,topFinal:base.topFinal,
+        fun:funSummary(metrics.outcomes),
         outcomes:metrics.outcomes
       });
       console.log('Strategy complete:',strategy.id,cleared12+'/'+strategyRuns,'wins');
@@ -444,12 +766,22 @@ const simulator = String.raw`
       }
       return {id:strategy.id,bestId:best.id,deltaWinRatePp:+(strategy.winRate-best.winRate).toFixed(2),bestOnly,strategyOnly,bothWin,bothLose};
     });
+    let mixedOutcomeSeeds=0,universalWinSeeds=0,universalLossSeeds=0;
+    for(let i=0;i<strategyRuns;i++){
+      const wins=summaries.map(strategy=>!!strategy.outcomes[i].won);
+      const count=wins.filter(Boolean).length;
+      if(count===0) universalLossSeeds++;
+      else if(count===wins.length) universalWinSeeds++;
+      else mixedOutcomeSeeds++;
+    }
     return {
       mode:'strategy',source:'www/index.html',version:globalThis.SIM_VERSION,
       sourceSha256:globalThis.SIM_SOURCE_SHA256,script:'tools/deep-sim-v57.js',scriptSha256:globalThis.SIM_SCRIPT_SHA256,
       generatedAt:new Date().toISOString(),durationMs:Date.now()-startedAt,
+      starterMode:fixedStarter,
       seedSpec:{base:'0x69100000',runsPerStrategy:strategyRuns,pairedRunSeeds:true,phaseStreams:['modifier','deck-and-draw','shop'],note:'Each strategy reuses the same per-run seed. Heat setup and shop phases reset deterministic substreams; paths can still diverge after different decisions.'},
       counts:{jokers:JOKERS.length,strategies:STRATEGIES.length,runsPerStrategy:strategyRuns,fullRuns:STRATEGIES.length*strategyRuns},
+      agency:{mixedOutcomeSeeds,universalWinSeeds,universalLossSeeds,mixedOutcomeRate:+(100*mixedOutcomeSeeds/strategyRuns).toFixed(2),universalLossRate:+(100*universalLossSeeds/strategyRuns).toFixed(2)},
       dataFailures:failures,hookErrors,invariantFailures,strategies:summaries,pairedAgainstBest
     };
   }
@@ -542,19 +874,98 @@ const simulator = String.raw`
 })();
 `;
 
-// The expanded v6.9.1 suite runs 50k scoring cases, 15k Cheat checks and
-// 2,600 complete runs. Slower Windows laptops can legitimately need more than
-// the old 15-minute ceiling, so keep the guard while allowing the full audit.
-vm.runInContext(live + simulator, context, { filename: 'wildcard-v5.7-live-sim.js', timeout: 1800000 });
+// Deep paired decision/strategy runs can take well over the original stress
+// suite's 30-minute ceiling on Windows laptops. Keep a finite guard while
+// allowing an explicitly requested long simulation to finish.
+vm.runInContext(live + simulator, context, { filename: 'wildcard-v5.7-live-sim.js', timeout: 7200000 });
 const result = context.__SIM_RESULT__;
 if (!result) throw new Error('Simulator returned no result');
 
-const downloads = path.join(process.env.USERPROFILE || path.dirname(root), 'Downloads');
+const downloads = process.env.SIM_OUTPUT_DIR
+  ? path.resolve(process.env.SIM_OUTPUT_DIR)
+  : path.join(process.env.USERPROFILE || path.dirname(root), 'Downloads');
+if (result.mode === 'decision') {
+  const jsonName=`wildcard-v${detectedVersion}-decision-lab-results.json`;
+  const reportName=`wildcard-v${detectedVersion}-decision-lab-report.md`;
+  const jsonPath=path.join(downloads,jsonName), reportPath=path.join(downloads,reportName);
+  const openingRows=result.opening.summaries.map(row=>`| ${row.name} | ${row.deals.toLocaleString()} | ${row.avgBestScore} | ${row.medianBestScore} | ${row.p90BestScore} | ${row.onePlayClearRate}% | ${row.dominantBestHand} (${row.dominantBestHandShare}%) |`).join('\n');
+  const starterRows=result.starters.summaries.map(row=>`| ${row.name} | ${row.runs.toLocaleString()} | ${row.winRate}% | ${row.winRate95.low}%–${row.winRate95.high}% | ${row.avgCleared} | ${row.reachByHeat[9]}% | ${row.reachByHeat[12]}% | ${row.fun.bossHazard}% |`).join('\n');
+  const frontierRows=Object.entries(result.opening.guidedHandFrontier)
+    .sort((a,b)=>b[1].conditionalAvgBestScore-a[1].conditionalAvgBestScore)
+    .map(([type,row])=>`| ${type} | ${row.availabilityRate}% | ${row.conditionalAvgBestScore} | ${row.conditionalMedianBestScore} | ${row.conditionalP90BestScore} |`).join('\n');
+  const best=result.starters.summaries.find(row=>row.id===result.starters.bestId);
+  const report=`# WILDCARD v${detectedVersion} Opening and Starter Decision Lab
+
+Generated from the canonical game source with paired deterministic seeds.
+
+## Provenance
+
+- Source: \`www/index.html\`
+- Source SHA-256: \`${result.sourceSha256}\`
+- Simulator: \`${result.script}\`
+- Simulator SHA-256: \`${result.scriptSha256}\`
+- Opening deals: ${result.counts.openingDeals.toLocaleString()} paired deals across ${result.counts.openingArms} configurations
+- Full runs: ${result.counts.starterArms} starter configurations × ${result.counts.starterRunsPerArm.toLocaleString()} paired seeds = ${result.counts.fullRuns.toLocaleString()}
+
+## Best Immediate Opening Play
+
+| Start configuration | Deals | Mean best score | Median | P90 | Clears Heat 1 in one play | Most common best hand |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+${openingRows}
+
+Immediate score is not the same as full-run value. These results enumerate the best legal useful play on the initial nine-card deal and do not assume a player should always play instead of discarding.
+
+## Guided First-Run Hand Frontier
+
+| Hand type | Available in initial deal | Mean best score when available | Median | P90 |
+| --- | ---: | ---: | ---: | ---: |
+${frontierRows}
+
+## Starter Joker Full Runs
+
+Every arm uses the same adaptive shop policy, the same paired run seeds and the real ten-Joker starter shop pool.
+
+| Starter | Runs | Clear Heat 12 | Wilson 95% CI | Avg Heats cleared | Reach Heat 9 | Reach Heat 12 | Heat 12 hazard |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+${starterRows}
+
+Observed leader: **${best.name}** at **${best.winRate}%**. Confidence intervals and paired outcomes must be considered before treating small gaps as real.
+
+## Fun-Proxy Readout for the Observed Leader
+
+- Hand diversity entropy: ${best.fun.handEntropy}
+- Dominant hand: ${best.fun.dominantHand} (${best.fun.dominantHandShare}% of plays)
+- Joker-active plays: ${best.fun.jokerActivePlayRate}%; trigger events per play: ${best.fun.jokerTriggerEventsPerPlay}
+- Final-play clears: ${best.fun.finalPlayClearRate}%; close clears: ${best.fun.closeClearRate}%; comeback clears: ${best.fun.comebackClearRate}%
+- Meaningful shops: ${best.fun.meaningfulShopRate}%; dead shops: ${best.fun.deadShopRate}%
+- Mean final-build Jaccard distance: ${best.fun.meanBuildJaccardDistance}
+
+## Validation and Limits
+
+- Data/scoring failures: ${result.dataFailures.length}
+- Hook errors: ${result.hookErrors.length}
+- Run invariant failures: ${result.invariantFailures.length}
+- Starter account-coin costs are reported but not deducted from run coins.
+- Simulation proxies cannot prove enjoyment. Closed testing still needs player pace, fairness and Joker-recall questions.
+`;
+  fs.writeFileSync(jsonPath,JSON.stringify(result,null,2));
+  fs.writeFileSync(reportPath,report);
+  const releaseDir=path.join(root,'docs','release');
+  fs.writeFileSync(path.join(releaseDir,jsonName),JSON.stringify(result,null,2));
+  fs.writeFileSync(path.join(releaseDir,reportName),report);
+  console.log(JSON.stringify({
+    jsonPath,reportPath,durationMs:result.durationMs,counts:result.counts,
+    bestStarter:{id:best.id,winRate:best.winRate,ci:best.winRate95,avgCleared:best.avgCleared},
+    failures:{data:result.dataFailures.length,hooks:result.hookErrors.length,invariants:result.invariantFailures.length}
+  },null,2));
+  process.exit(0);
+}
 if (result.mode === 'strategy') {
   const jsonName=`wildcard-v${detectedVersion}-strategy-results.json`;
   const reportName=`wildcard-v${detectedVersion}-strategy-report.md`;
   const jsonPath=path.join(downloads,jsonName), reportPath=path.join(downloads,reportName);
   const rows=result.strategies.map(s=>`| ${s.name} | ${s.runs} | ${s.winRate}% | ${s.winRate95.low}%–${s.winRate95.high}% | ${s.reachH9}% | ${s.reachH11}% | ${s.avgCleared} |`).join('\n');
+  const funRows=result.strategies.map(s=>`| ${s.name} | ${s.fun.handEntropy} | ${s.fun.dominantHand} (${s.fun.dominantHandShare}%) | ${s.fun.jokerActivePlayRate}% | ${s.fun.jokerTriggerEventsPerPlay} | ${s.fun.finalPlayClearRate}% | ${s.fun.meaningfulShopRate}% | ${s.fun.deadShopRate}% | ${s.fun.meanBuildJaccardDistance} |`).join('\n');
   const best=result.strategies.slice().sort((a,b)=>b.winRate-a.winRate)[0];
   const report=`# WILDCARD v${detectedVersion} Strategy Lab
 
@@ -568,6 +979,7 @@ Generated from the canonical game source with paired deterministic run seeds.
 - Simulator SHA-256: \`${result.scriptSha256}\`
 - Runs: ${result.counts.strategies} strategies × ${result.counts.runsPerStrategy} paired seeds = ${result.counts.fullRuns.toLocaleString()} complete runs
 - Seed base: ${result.seedSpec.base}; phase streams: ${result.seedSpec.phaseStreams.join(', ')}
+- Fixed start mode: ${result.starterMode}
 
 ## Results
 
@@ -576,6 +988,14 @@ Generated from the canonical game source with paired deterministic run seeds.
 ${rows}
 
 The observed leader is **${best.name}** at **${best.winRate}%**, but rankings should not be treated as conclusive when confidence intervals overlap. These are deterministic bot policies, not player telemetry.
+
+## Fun Proxies
+
+| Strategy | Hand entropy | Dominant hand | Joker-active plays | Trigger events/play | Final-play clears | Meaningful shops | Dead shops | Build Jaccard distance |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+${funRows}
+
+Across paired seeds, ${result.agency.mixedOutcomeRate}% produced different win/loss outcomes across strategies; ${result.agency.universalLossRate}% were lost by every tested strategy.
 
 ## Strategy Definitions
 
@@ -591,6 +1011,7 @@ ${result.strategies.map(s=>`- **${s.name}:** ${s.description}${s.reserve?` It ke
 ## Method Caveat
 
 Each strategy receives the same run seed, with deterministic substreams reset for modifier, deck/draw and shop phases. Different decisions can still consume different amounts of randomness after a phase begins, so this is a paired, reproducible comparison rather than a claim that every downstream draw is identical.
+The card-play selector still maximises immediate score for every strategy. Strategy differences primarily measure shop/build preferences and Pair/Flush discard priorities, not fully independent human play styles.
 `;
   fs.writeFileSync(jsonPath,JSON.stringify(result,null,2));
   fs.writeFileSync(reportPath,report);

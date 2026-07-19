@@ -17,8 +17,8 @@ The matching SHA-1 used by Google sign-in and Play Games is:
 - Firebase Authentication: Google provider enabled; sign-in remains optional.
 - Cloud Firestore: Standard edition `(default)` database in `europe-west2` (London), deletion protection enabled.
 - Cloud save path: `users/{auth.uid}/saves/main`.
-- Security Rules: owner-only fixed-document reads/writes, strict field allowlist/types/sizes, server timestamp, no deletes, recursive default deny.
-- App Check: the Android SDK uses Play Integrity. Enforcement should be enabled only after the Play-distributed internal test build has been verified; a Pi-sideloaded build may not receive a valid Play Integrity verdict.
+- Security Rules: all direct client save reads, writes and deletes are denied. Cloud saves use App-Check-protected callable Functions, with recursive default deny for every other path.
+- App Check: the Android app is registered with the Play Integrity provider. Firebase App Check and Google Play Integrity APIs are enabled, Play Console is linked to Cloud project number `420107184674`, and Cloud Firestore enforcement is active. Callable Functions independently require valid App Check tokens.
 - Google Play Games project/application ID: `420107184674`.
 - Official high-score leaderboard ID: `CgkIotTbgp0MEAIQAQ`.
 
@@ -33,4 +33,65 @@ Firebase AI Logic is deliberately not enabled yet. Before adding any Gemini-powe
 5. Configure quotas, spend alerts, monitoring, and Remote Config for model selection.
 6. Review prompts, safety behavior, privacy disclosure, and failure fallbacks.
 
-Firebase AI Logic, SQL/Data Connect, Firebase Analytics, Crashlytics and Hosting remain disabled. WILDCARD's separate privacy-minimised Pi counters are documented in `docs/ANALYTICS.md`; they do not use a Firebase SDK. The project is on Blaze because Firestore was provisioned; use budget alerts and console monitoring before broad distribution.
+## Launch-hardening backend
+
+The source tree now contains second-generation callable Functions in
+`functions/index.js`:
+
+- `submitDailyScore` requires Firebase Authentication and an enforced,
+  limited-use App Check token. It fixes the date to the current UTC day,
+  reserves each board name to one account, applies a per-account rate window,
+  records idempotency keys, keeps only the best score, then sends a
+  server-signed write to the Pi.
+- `deleteMyAccount` requires the same protections and an explicit `DELETE`
+  confirmation. It removes the user's custom-board entries, Firestore records
+  and Firebase Authentication identity. A temporary Pi outage does not block
+  deletion: the pseudonymous board reference is queued and
+  `retryBoardDeletions` retries every 15 minutes until the Pi confirms removal.
+- `readSecureCloudSave` and `writeSecureCloudSave` keep save ownership and
+  entitlement fields server-controlled.
+- `verifyPlayPurchase`, `markPlayPurchaseDelivered` and
+  `getPlayEntitlements` provide an idempotent trusted purchase ledger.
+- `playBillingNotification` consumes Google Play real-time developer
+  notifications and records refunds/revocations as server-owned adjustments.
+
+App Check proves that a request came from an attested build/device and
+Authentication identifies the account. The score itself is still reported by
+the client; it is not a server replay of the run. Daily Board coin prizes must
+therefore remain disabled.
+
+The HMAC used between Functions and the Pi is never stored in Git. Generate at
+least 32 random bytes and configure the same value in both places:
+
+```bash
+openssl rand -hex 32
+npx firebase-tools functions:secrets:set WILDCARD_BOARD_HMAC_SECRET
+```
+
+Set `WILDCARD_BOARD_HMAC_SECRET` in the `wildcard-api.service` environment on
+the Pi, then restart that service. The old public `POST /api/daily` path is
+deliberately rejected; only signed `POST /api/internal/daily` writes are
+accepted. Exact browser origins can be overridden with the comma-separated Pi
+environment variable `WILDCARD_ALLOWED_ORIGINS`.
+
+The deployed backend was verified with:
+
+```bash
+npm --prefix functions install
+npm --prefix functions test
+npm run test:rules
+npx firebase-tools deploy --only firestore:rules,functions,hosting
+```
+
+All nine second-generation Functions are active in `europe-west2`; the
+Firestore Rules emulator suite passes 29/29 and the Functions suite passes
+11/11. Configure Firestore TTL for the collection-group field `expiresAt` to
+prune score-request idempotency records after 15 days if it is not already
+enabled.
+
+The external deletion page deploys to
+`https://wildcard-31d50.web.app/account-deletion.html`. Put that exact URL in
+Play Console's account-deletion field. The live Android Settings screen exposes
+the authenticated `deleteMyAccount` route.
+
+Firebase AI Logic, SQL/Data Connect, Firebase Analytics and Crashlytics remain disabled. Firebase Hosting is now configured solely for the public account-deletion resource. WILDCARD's separate privacy-minimised Pi counters are documented in `docs/ANALYTICS.md`; they do not use a Firebase SDK. The project is on Blaze because Firestore was provisioned; use budget alerts and console monitoring before broad distribution.

@@ -34,22 +34,16 @@ const sumDays = n => Array.from({ length:n }, (_, i) => dailyReward(i + 1)).redu
 assert(dailyReward(1) === 30 && dailyReward(7) === 138 && dailyReward(10) === 192 && dailyReward(200) === 192, 'Daily curve values drifted');
 assert(sumDays(7) === 588 && sumDays(30) === 4950 && sumDays(180) === 33750, 'Daily curve totals drifted');
 
-// A full stale cloud ledger must not displace a reward just paid on this
-// phone when the bounded claim history is reconciled.
-const mergeCode = block('function parseJsonObject(raw){', 'function installCloudReconciledSave(');
-const mergeCtx = {
-  Date:{ now:()=>123456 },
-  validRewardClaims:ids=>[...new Set((Array.isArray(ids)?ids:[]).filter(id=>typeof id==='string'&&id.length<=96))].slice(-256),
-  savedStamp:raw=>{ try{return Number(JSON.parse(raw)._savedAt)||0;}catch(e){return 0;} }
-};
-vm.createContext(mergeCtx);
-vm.runInContext(`${mergeCode};globalThis.__merge={mergeAccountSaves};`, mergeCtx);
-const staleClaims=Array.from({length:256},(_,i)=>`cloud:${i}`);
-const merged=JSON.parse(mergeCtx.__merge.mergeAccountSaves(
-  JSON.stringify({_savedAt:20,coins:10,rewardClaims:['run-live:double']}),
-  JSON.stringify({_savedAt:10,coins:9,rewardClaims:staleClaims})
-));
-assert(merged.rewardClaims.length===256 && merged.rewardClaims.includes('run-live:double'), 'Cloud reconciliation evicted the newest local reward claim');
+// Cloud reconciliation must never union two client economies. Same-account
+// conflicts preserve a diagnostic copy and choose one complete server state;
+// different-account phone saves stay in separate UID slots.
+const cloudCode = block('function parseJsonObject(raw){', 'const account = {');
+assert(!cloudCode.includes('mergeAccountSaves'), 'Cloud reconciliation can duplicate reward ledgers');
+assert(
+  cloudCode.includes('if(owner && owner!==uid)')
+    && cloudCode.includes('preserveCloudConflict(uid,localAccount,localRun)'),
+  'Cloud reconciliation does not isolate accounts and concurrent saves'
+);
 
 // Account reward claims are the atomic, bounded idempotency ledger used by
 // Heat rewards and run-end doubles.

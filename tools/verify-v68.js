@@ -55,7 +55,7 @@ scripts.forEach(m=>{ if(m[1].trim()) new Function(m[1]); });
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 assert(new Set(ids).size===ids.length,'Duplicate HTML ids');
 assert(!/<script[^>]+src=/i.test(html),'External script dependency remains');
-assert(html.includes('>v6.9.13</b>'),'Public version label is not v6.9.13');
+assert(html.includes('>v6.9.14</b>'),'Public version label is not v6.9.14');
 assert(html.includes('WN.loadPlayGamesLeaderboard = function (span)'),'Play Games leaderboard bridge is not wired');
 
 // Artwork remains small in the APK, while the optional desktop playtest embeds
@@ -73,7 +73,7 @@ assert(crypto.createHash('sha256').update(Buffer.from(androidPublic)).digest('he
 assert(standalone.includes(`Canonical source: www/index.html - SHA-256 ${htmlSha256}`),'Standalone provenance does not match current HTML');
 assert((standalone.match(/data:image\/webp;base64,/g)||[]).length>=backgrounds.length,'Standalone artwork is not embedded');
 assert(Buffer.byteLength(standalone)<16_000_000,'Standalone playtest exceeds 16 MB');
-assert(standalone.includes('>v6.9.13</b>'),'Standalone public version is not v6.9.13');
+assert(standalone.includes('>v6.9.14</b>'),'Standalone public version is not v6.9.14');
 assert(!html.includes(';base64,'),'Canonical HTML still contains Base64 binary assets');
 assert(Buffer.byteLength(html)<600_000,'Canonical HTML was not reduced below 600 KB');
 for (const asset of externalizedAssets) {
@@ -113,7 +113,12 @@ const generalRangeAt=serviceWorker.indexOf('if (range) return;');
 assert(videoRangeAt>=0&&videoRangeAt<generalRangeAt&&serviceWorker.includes("status: 206")&&serviceWorker.includes("'Content-Range'"),'Offline PWA cannot serve the cinematic through media Range requests');
 const releaseCode=Number((androidGradle.match(/defaultConfig\s*\{[\s\S]*?versionCode\s+(\d+)/)||[])[1]);
 const developerCode=Number((androidGradle.match(/withBuildType\("developer"\)[\s\S]*?versionCode\.set\((\d+)\)/)||[])[1]);
-assert(Number.isInteger(releaseCode)&&Number.isInteger(developerCode)&&developerCode<releaseCode,'Developer APK versionCode must remain below the Play release versionCode');
+assert(releaseCode===34&&developerCode===33,'Android version codes must be release 34 and developer 33 for v6.9.14');
+assert(
+  cloudPlugin.includes('getHttpsCallable("readSecureCloudSave")')
+    && cloudPlugin.includes('getHttpsCallable("writeSecureCloudSave")'),
+  'Native cloud saves do not use the protected callable boundary'
+);
 assert(html.includes('function replayTutorial()'),'Safe tutorial replay is missing');
 assert(html.includes("handLabel(res.handType)+' · '+res.scoringCount+' OF '+sel.length+' SCORES'"),'Compact score label is missing');
 assert(!html.includes('Play scores these '+"'+selCount+'"),'Persistent play/discard hint remains');
@@ -141,9 +146,20 @@ assert(apiCtx.resolve('raspberrypi.tail20f574.ts.net',false)==='','Pi-hosted gam
 assert(apiCtx.resolve('example.com',false)===liveBoard,'External web hosts do not resolve to the live Daily Board');
 assert(html.includes("retry.textContent='Post my '+completedScore.toLocaleString()+' score'"),'Completed Daily scores cannot be retried from the board');
 assert(html.includes('fetchDailyBoard(todayStr())'),'Daily Board GET can disagree with the local challenge date around midnight');
-assert(html.includes('if(run) run.dailyDate=today')&&html.includes('date=(run&&run.dailyDate)||dailyChallengeDate'),'Daily run date is not fixed from launch through settlement');
-assert(html.includes("Board: '+boardDate")&&html.includes('date:boardDate'),'Daily score submission can drift to a different date');
-assert(piApi.includes('"6.9.10", "6.9.11", "6.9.12", "6.9.13"'),'Pi analytics does not accept the v6.9.13 client');
+assert(
+  html.includes("dailyChallengeDate=today")
+    && html.includes("run.dailyDate=today")
+    && html.includes("const date=(run&&run.dailyDate)||dailyChallengeDate||account.dailyRunDate||todayStr()"),
+  'Daily run date is not fixed from launch through settlement'
+);
+assert(
+  html.includes("Board: '+boardDate")
+    && html.includes("const idempotencyKey='daily-'+boardDate")
+    && html.includes('WN.cloudSubmitDailyScore({')
+    && !html.includes("fetchDailyRequest('/api/daily',{method:'POST'"),
+  'Daily score submission must use the authenticated, server-dated callable'
+);
+assert(piApi.includes('"6.9.10", "6.9.11", "6.9.12", "6.9.13", "6.9.14"'),'Pi analytics does not accept the v6.9.14 client');
 
 // Privacy-minimised Pi analytics: bounded memory only, background/idle transport,
 // and an aggregate-only backend with no public read route.
@@ -180,9 +196,13 @@ assert(html.includes('queueRunEndTelemetry(run,false,true)')&&html.includes('act
 assert(html.includes("const RUN_FIELDS=['runId','telemetryMode'")&&html.includes('function queueReplacedRunTelemetry()'),'Saved/replaced run analytics mode is not preserved');
 assert(html.includes("'supplyPurchaseCounts','suppliesBoughtThisShop'"),'Run save omits persistent supply prices or current-shop locks');
 assert(html.includes("const completed=saved.phase==='wincomplete'")&&html.includes("queueRunEndTelemetry(active,saved.telemetryMode==='daily',completed)"),'Replacing a banked Heat-12 run is misreported as terminated');
-assert(html.includes("if(!dailyMode) saveRunState('wincomplete')"),'Daily win state can resume without its seeded Daily context');
+assert(
+  html.includes("'dailyDate','rngSeed','rngCounters','pendingTransition'")
+    && html.includes("saveRunState('wincomplete')"),
+  'Daily win state is not resumable with its seeded Daily context'
+);
 assert(html.includes('<h3>Anonymous aggregate analytics</h3>')&&privacyPolicy.includes('<h2>Anonymous aggregate analytics</h2>'),'Analytics privacy disclosures are missing');
-assert(privacyPolicy.includes('Last updated: 17 July 2026'),'Hosted privacy policy date was not updated');
+assert(privacyPolicy.includes('Last updated: 19 July 2026'),'Hosted privacy policy date was not updated');
 assert(piApi.includes('ANALYTICS_KEEP_DAYS = 90')&&piApi.includes('MAX_ANALYTICS_REQUESTS_PER_MINUTE = 60')&&piApi.includes('MAX_ANALYTICS_EVENTS_PER_DAY = 20_000'),'Pi analytics retention/rate guard is missing');
 assert(piApi.includes('Analytics deliberately has no public read endpoint'),'Pi analytics accidentally gained a public read surface');
 assert(piDeploy.includes('privacy.html')&&piDeploy.includes('deploy/wildcard-api.py')&&piDeploy.includes('$HOME/deploy-game.sh'),'Pi deploy no longer preserves privacy/API/GoatCounter-aware deployment');
@@ -234,7 +254,7 @@ assert(!startBoostBlock.includes('onclick="openSettings()"'),'Start Boost back c
 
 const dailyLaunchBlock=block('function launchDailyRun(){','function endDailyRun(){');
 assert(dailyLaunchBlock.indexOf('account.dailyRunDate=today')<dailyLaunchBlock.indexOf('beginRun()'),'Daily attempt is not locked before play begins');
-assert(html.includes('function jokerAvailableForRun(joker)')&&html.includes('dailyMode||account.unlocked.has(joker.id)'),'Daily shop does not use the full shared Joker catalogue');
+assert(html.includes('function jokerAvailableForRun(joker)')&&html.includes('isDailyRun(run)||account.unlocked.has(joker.id)'),'Daily shop does not use the full shared Joker catalogue');
 assert(html.includes('Daily shops may offer Jokers you have not permanently unlocked'),'Daily full-catalogue rule is not explained');
 assert(html.includes("desc:'★ BOSS ★ The House takes a 10% bigger cut")&&!html.includes('House takes a 20% bigger cut'),'THE HOUSE copy does not match its target calculation');
 const nextStageBlock=block('function nextStage(){','function continueEndless(){');
@@ -243,7 +263,7 @@ const assignModifierCode=block('function assignModifier(){','function beginRun('
 const modifierCtx={run:null};
 vm.createContext(modifierCtx);
 vm.runInContext(
-  "const GAUNTLET_HEATS=8;const BOSS_MOD={id:'boss',name:'Boss'};const MODIFIERS=[{id:'regular',name:'Regular'}];function rnd(){return 0;}"+
+  "const GAUNTLET_HEATS=8;const BOSS_MOD={id:'boss',name:'Boss'};const MODIFIERS=[{id:'regular',name:'Regular'}];function rnd(){return 0;}function ensureBossBlocks(){}"+
   assignModifierCode+";globalThis.__assign=assignModifier;",
   modifierCtx
 );
@@ -268,7 +288,7 @@ assert(standardThemes.every(id=>cosmetics.find(c=>c.id===id).price===1000),'A st
 assert(slyThemes.every(id=>cosmetics.find(c=>c.id===id).price>=3500),'A premium Sly UI theme is not priced well above standard themes');
 const cosmeticVaultBlock=block('function cosmeticVaultOddsText(pool){','function revealCosmetic(cos, done){');
 assert(cosmeticVaultBlock.includes("UI Theme 0.8% · Table/Sly 99.2%"),'Cosmetic Vault kind gate is ambiguous');
-assert(html.includes("Guaranteed new cosmetic · duplicate-free · '+pool.length+' locked"),'Cosmetic Vault shelf still shows overlapping probability series');
+assert(html.includes("cosmeticVaultOddsText(pool)+' · duplicate-free · '+pool.length+' locked"),'Cosmetic Vault shelf does not show its current effective odds');
 assert(!cosmetics.some(c=>c.kind==='win'),'Retired Win FX cosmetics remain in the live catalogue');
 
 const introCode=block('function showRoundIntro(){','function playSlyStageFX');
@@ -286,7 +306,11 @@ const adFlag=tearSequence.indexOf('run.heat12InterstitialAttempted=true',sequenc
 const adSave=tearSequence.indexOf("saveRunState('wincomplete')",adFlag);
 const adShow=tearSequence.indexOf('showAdBreak(()=>dailyVictory?gameOver(true):showHeat12Choice())',adSave);
 assert(sequenceStart>=0&&sequenceStart<sequenceSave&&sequenceSave<sequencePlay&&sequencePlay<adFlag&&adFlag<adSave&&adSave<adShow,'Heat 12 save/cinematic/ad/choice order is unsafe');
-assert(tearSequence.includes("if(!dailyVictory) saveRunState('wincomplete')")&&tearSequence.includes('dailyVictory?gameOver(true):showHeat12Choice()'),'Daily victory can be resumed as a standard run or enter Endless');
+assert(
+  tearSequence.includes("saveRunState('wincomplete')")
+    && tearSequence.includes('dailyVictory?gameOver(true):showHeat12Choice()'),
+  'Daily victory is not checkpointed or can enter the standard Endless choice'
+);
 const showScreenCode=block('function showScreen(id){','function showRoundIntro(){');
 assert(!showScreenCode.includes("id==='wincomplete'")&&!showScreenCode.includes("playSlyStageFX('victory')"),'Legacy Sly victory animation still fires on the standard win choice');
 const gameOverCode=block('function gameOver(won){','// ---------- Ad placeholder ----------');
@@ -301,7 +325,7 @@ for(const phrase of ['security!','illegal.','grandma','pathetic. lol','prayed ha
 assert(slyCode.includes("'high card'")&&slyCode.includes("'royal flush'"),'Hand-specific Sly reactions are incomplete');
 
 const deckCode=block('function openDeckView(){','// ---------- Win screen ----------');
-assert(deckCode.includes("classList.add('deck-view-active')")&&deckCode.includes("const VALUES=[2,3,4,5,6,7,8,9,10,11,12,13,14]"),'Compact deck matrix is not wired');
+assert(deckCode.includes("classList.add('deck-view-active')")&&deckCode.includes("const VALUES=[2,3,4,5,6,7,8,9,10,11,12,13,15]"),'Compact deck matrix is not wired to the Ace value 15');
 assert(deckCode.includes('const liveCounts=new Map()')&&!deckCode.includes('new Set(run.deck)'),'Deck matrix live counts are not save/resume safe');
 assert(html.includes('repeat(13,minmax(0,1fr))'),'Deck matrix does not fit all 13 ranks at a glance');
 assert(!html.includes('.deck-row{'),'Legacy horizontally scrolling deck rows remain');
@@ -325,31 +349,39 @@ assert(cloudPlugin.includes('rejectPlayGames'),'Native Play Games diagnostic bri
 assert(cloudPlugin.includes('GamesClientStatusCodes.getStatusCodeString'),'Documented Play Games status mapping missing');
 assert(mainActivity.includes('WindowInsetsCompat.Type.systemBars()'),'Immersive Android system-bar hiding missing');
 assert(mainActivity.includes('BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE'),'Transient system-bar gesture behavior missing');
-const billingCode=block('/* ============================ BILLING ============================ */',"document.addEventListener('deviceready', initBilling, false);");
+const billingCode=block(
+  '/* ============================ BILLING ============================ */',
+  '  // Billing can query Play and Firebase'
+);
 assert(billingCode.includes('receipt.collection')&&billingCode.includes('receipt.sourceReceipt && receipt.sourceReceipt.transactions'),'Billing bridge does not understand v13 VerifiedReceipt');
-const verifiedBillingCode=billingCode.slice(billingCode.indexOf('.verified(function (receipt)'),billingCode.indexOf('store.initialize'));
-assert(verifiedBillingCode.indexOf('settlePurchase(productId, true)')<verifiedBillingCode.indexOf('finishDeliveredReceipt(receipt)'),'Billing receipt is finished before durable app delivery');
-assert(rules.includes("request.auth.uid == uid"),'Firestore owner check missing');
-assert(rules.includes("allow delete: if false"),'Firestore cloud-save deletion is not denied');
-assert(rules.includes("hasOnlyAllowedFields"),'Firestore field allowlist missing');
+assert(billingCode.includes('Cloud.verifyPlayPurchase({')&&billingCode.includes('.verified(queueVerifiedReceipt)'),'Billing receipt is not verified by the protected backend');
+const completeBillingStart=billingCode.lastIndexOf('WN.completePurchase = function');
+const completeBillingCode=billingCode.slice(completeBillingStart,billingCode.indexOf('WN.restorePurchases = function',completeBillingStart));
+assert(
+  completeBillingCode.indexOf('Cloud.markPlayPurchaseDelivered({')<completeBillingCode.indexOf('entry.receipt.finish()'),
+  'Billing receipt is finished before durable app delivery'
+);
+assert(
+  /match \/users\/\{uid\}\/saves\/\{saveId\}[\s\S]*?allow read, write: if false;/.test(rules),
+  'Direct client cloud-save access is not denied'
+);
+assert(
+  rules.includes('match /billingAccounts/{document=**}')
+    && rules.includes('match /billingAdjustments/{document=**}'),
+  'Protected billing adjustment collections are missing from Firestore rules'
+);
 
 const cloudCode=block('/* ===================== v6.9.1 optional Google cloud save ===================== */','const account = {');
-const cloudCtx={
-  console, Date, Set, JSON, Number, String, Object, Array, Math, Promise,
-  savedStamp(raw){try{return Number(JSON.parse(raw||'')._savedAt)||0;}catch(e){return 0;}},
-  validRewardClaims(ids){return [...new Set((Array.isArray(ids)?ids:[]).filter(id=>typeof id==='string'&&id.length<=96))].slice(-256);},
-  setTimeout(){return 0;},clearTimeout(){},window:{},document:{getElementById(){return null;}},localStorage:{getItem(){return null;},setItem(){},removeItem(){}}
-};
-vm.createContext(cloudCtx);
-vm.runInContext(cloudCode+';globalThis.__merge=mergeAccountSaves;',cloudCtx);
-const merged=JSON.parse(cloudCtx.__merge(
-  JSON.stringify({_savedAt:20,coins:40,bestScore:100,unlocked:['phone'],cosmeticsOwned:['felt_neon'],noAds:false,playerName:'PHONE'}),
-  JSON.stringify({_savedAt:10,coins:25,bestScore:500,unlocked:['cloud'],cosmeticsOwned:['felt_royal'],noAds:true,playerName:'CLOUD'})
-));
-assert(merged.coins===40&&merged.bestScore===500,'First-link merge lost numeric progress');
-assert(merged.unlocked.includes('phone')&&merged.unlocked.includes('cloud'),'First-link merge lost unlocks');
-assert(merged.cosmeticsOwned.includes('felt_neon')&&merged.cosmeticsOwned.includes('felt_royal'),'First-link merge lost cosmetics');
-assert(merged.noAds===true&&merged.playerName==='PHONE','First-link merge lost purchase or phone preference');
+assert(!cloudCode.includes('mergeAccountSaves'),'Cloud reconciliation still unions client-controlled economies');
+assert(
+  cloudCode.includes('if(owner && owner!==uid)')&&cloudCode.includes('Different Google account'),
+  'Cross-account phone saves are not isolated'
+);
+assert(
+  cloudCode.includes('preserveCloudConflict(uid,localAccount,localRun)')
+    && cloudCode.includes('Cloud conflict resolved with server copy'),
+  'Same-account cloud conflicts are not resolved without duplicating progression'
+);
 
 // Mission refresh and persistence.
 assert(html.includes('id="mission-refresh-ad"'),'Mission refresh button missing');
@@ -427,14 +459,14 @@ const spin=block('function spinChest(tier){','/* removed dead duplicate revealJo
 assert(spin.indexOf('account.unlocked.add(win.id)')<spin.indexOf('revealJoker(win'),'Unlock is not saved before reveal');
 assert(html.includes('class="vault-actions"')&&html.includes("stage.querySelector('.vault-actions').appendChild(claim)"),'Vault Claim action is still outside the illuminated frame');
 assert(!block('function revealJoker(win, done','// ---------- Daily streak reward').includes("+ '<div class=\"vault-reward-effect\"><b>'+win.name"),'Joker reveal still repeats its name and effect');
-assert(html.includes("Survives its first Heat, then has a 25% chance")&&html.includes("const key='glass_joystick_armed'"),'Glass Joystick protection/25% rule is missing');
+assert(html.includes("Survives its first Heat, then has a 1 in 6 chance")&&html.includes("rnd('luck')<1/6")&&html.includes("const key='glass_joystick_armed'"),'Glass Joystick protection/one-in-six rule is missing');
 assert(html.includes("body.perf-lite .vault-stage"),'Android performance rule missing');
 assert(html.includes('@media(prefers-reduced-motion:reduce){.vault-stage *'),'Reduced-motion support missing');
 
-const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.13-sim-results.json','utf8'));
-assert(sim.version==='6.9.13','Focused simulation report is not v6.9.13');
+const sim=JSON.parse(fs.readFileSync('docs/release/wildcard-v6.9.14-sim-results.json','utf8'));
+assert(sim.version==='6.9.14','Focused simulation report is not v6.9.14');
 assert(sim.mode==='stress','Release simulation is not a full stress result');
-assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.13 regression counts are incomplete');
+assert(sim.counts.scoringCases===10000&&sim.counts.cheatCases===5000&&sim.counts.fullRuns===550,'Focused v6.9.14 regression counts are incomplete');
 assert(sim.sourceSha256===htmlSha256,'Release simulation was not generated from the current canonical HTML');
 const simScript=fs.readFileSync('tools/deep-sim-v57.js');
 const simScriptSha256=crypto.createHash('sha256').update(simScript).digest('hex');
@@ -463,7 +495,7 @@ assert(economy.gameplayInput&&economy.gameplayInput.file==='docs/release/wildcar
 assert(economy.gates.every(g=>g.pass),'Economy model contains a failed release gate');
 
 console.log(JSON.stringify({
-  version:'6.9.13',scriptsCompiled:scripts.length,htmlIds:ids.length,
+  version:'6.9.14',scriptsCompiled:scripts.length,htmlIds:ids.length,
   cloud:{googleSignIn:true,noResetMerge:true,offlinePhoneSave:true,ownerOnlyRules:true,playGamesDiagnostics:true},
   artwork:{runtimeWebp:backgrounds.length,pwaOffline:true,standaloneEmbedded:true,standaloneBytes:Buffer.byteLength(standalone),sourceSha256:htmlSha256},
   missionRefresh:{nativeRewarded:true,onePerDay:true,progressPreserved:true,allThreeChanged:true},

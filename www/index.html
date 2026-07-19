@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0D1A15">
 <meta name="description" content="WILDCARD — arcade roguelike poker. Build a joker engine, clear 12 Heats, beat THE HOUSE.">
 <meta name="mobile-web-app-capable" content="yes">
@@ -472,6 +472,26 @@ body.bg-theme-ice .bgfx{filter:hue-rotate(155deg) saturate(.85) brightness(1.05)
 }
 .overlay.active{display:flex}
 .overlay .panel{max-width:760px;margin:auto}
+#privacy-gate{
+  position:fixed;inset:0;z-index:6000;display:none;align-items:center;justify-content:center;
+  padding:calc(18px + var(--sat)) calc(18px + var(--sar)) calc(18px + var(--sab)) calc(18px + var(--sal));
+  background:rgba(3,5,14,.98);overflow:auto
+}
+#privacy-gate.active{display:flex}
+#privacy-gate .privacy-gate-card{
+  width:min(520px,100%);margin:auto;padding:24px;border:3px solid var(--violet);border-radius:22px;
+  background:linear-gradient(155deg,#21113c,#071613);box-shadow:0 24px 80px rgba(0,0,0,.75);
+  text-align:left
+}
+#privacy-gate h1{font-family:'Bungee',sans-serif;font-size:clamp(20px,6vw,30px);line-height:1.12;color:var(--gold);text-align:center;margin:0 0 12px}
+#privacy-gate p{font-size:14px;line-height:1.55;color:var(--cream-dim)}
+#privacy-gate a{color:var(--mint);font-weight:800}
+#privacy-gate .privacy-accept{width:100%;min-height:52px;margin-top:16px;font-size:15px}
+body.privacy-blocked{overflow:hidden}
+body.privacy-blocked>#sound-toggle,
+body.privacy-blocked>#music-toggle,
+body.privacy-blocked>#speed-toggle,
+body.privacy-blocked>#coin-badge{display:none!important}
 /* --- v4.2 top-back icon (mirrors the bottom Back button) --- */
 .top-back{position:absolute;top:12px;left:12px;z-index:6;width:40px;height:40px;padding:0;border-radius:12px;
   display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;cursor:pointer;
@@ -1938,6 +1958,125 @@ body:has(#game.active) #wc-toast{
   #hand .card.selected{transform:translateY(-18px) scale(1.025)!important}
   .vault-stage{overflow:hidden}
 }
+
+/* v6.9.14 launch hardening: static boss suppression, complete theme coverage,
+   safe overlays and touch/readability floors. These rules do not alter the
+   approved scoring cadence or Joker-trigger animation. */
+.joker.boss-blocked{
+  position:relative;opacity:.5!important;filter:grayscale(.8) brightness(.66)!important;
+  border-color:#9aa0ad!important;box-shadow:inset 0 0 0 2px rgba(190,196,210,.24)!important;
+}
+.joker.boss-blocked::before{
+  content:'';position:absolute;inset:0;z-index:8;pointer-events:none;border-radius:inherit;
+  background:repeating-linear-gradient(-45deg,rgba(10,12,18,.14) 0 6px,rgba(185,192,205,.12) 6px 9px);
+}
+.boss-blocked-label{
+  position:relative;z-index:10;margin:0 0 5px;padding:4px 5px;border:1px solid #c3c7d1;
+  border-radius:6px;background:#171a22;color:#f0f1f4;font:8px/1.15 'Bungee',sans-serif;
+  letter-spacing:.04em;text-align:center;
+}
+.boss-blocked-summary{margin-top:6px;color:#f0c96c;font:9px/1.35 'Bungee',sans-serif}
+.chest-newcomer{
+  color:var(--mint);font:9px/1.3 'Bungee',sans-serif;letter-spacing:.05em;text-align:center;
+}
+
+body:is(
+  [data-screen='tutorial'],[data-screen='startboost'],[data-screen='adbreak'],
+  [data-screen='gameover'],[data-screen='settings'],[data-screen='achievements'],
+  [data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],
+  [data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']
+) .bgfx{
+  background-color:#080414!important;
+  background-image:
+    var(--ui-art-tint),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><text x='14' y='54' font-size='34' fill='%23F6EFDF' fill-opacity='.12'>%E2%99%A0</text><text x='108' y='68' font-size='30' fill='%23FF4FD8' fill-opacity='.10'>%E2%99%A5</text><text x='48' y='142' font-size='32' fill='%2345E0C6' fill-opacity='.11'>%E2%99%A3</text><text x='132' y='162' font-size='28' fill='%23F0B94B' fill-opacity='.10'>%E2%99%A6</text></svg>"),
+    var(--theme-home-art,var(--art-menu-palace))!important;
+  background-position:center,center,center top!important;
+  background-size:cover,180px 180px,cover!important;
+  background-repeat:no-repeat,repeat,no-repeat!important;
+  background-attachment:fixed,fixed,fixed!important;
+}
+body:is(
+  [data-screen='tutorial'],[data-screen='startboost'],[data-screen='adbreak'],
+  [data-screen='gameover'],[data-screen='settings'],[data-screen='achievements'],
+  [data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],
+  [data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']
+) .bgfx :is(.suit-rain,.blob,.spotlight,.casino-floor){display:none!important}
+.overlay{
+  padding:
+    calc(20px + var(--sat))
+    calc(12px + var(--sar))
+    calc(20px + var(--sab))
+    calc(12px + var(--sal));
+  background:color-mix(in srgb,var(--ui-panel-strong,#06110e) 88%,transparent);
+  overscroll-behavior:contain;
+}
+.overlay>.panel{
+  width:min(760px,100%);max-height:calc(100dvh - var(--sat) - var(--sab) - 40px);
+  overflow:auto;background:linear-gradient(160deg,var(--ui-panel-strong),var(--ui-panel));
+  border-color:var(--ui-line);
+}
+
+.btn,.top-back,.mini-card,.joker-inspect-close{min-height:44px}
+.top-back{min-width:44px;width:44px;height:44px;top:calc(10px + var(--sat));left:calc(10px + var(--sal))}
+.actions #btn-play,.actions #btn-discard{min-height:48px!important}
+#btn-abandon{min-height:44px!important;padding:8px 18px!important;font-size:10px!important}
+.equation .eq-chip .small{font-size:9px!important;letter-spacing:.05em!important}
+#game .mascot[data-reaction-label]:not([data-reaction-label=''])::after{font-size:9px}
+.deck-rank-head{font-size:9px!important}.deck-cell{font-size:9px}.deck-copy-count{font-size:8px}
+.collection-controls{
+  position:sticky;top:calc(var(--sat) + 4px);z-index:30;margin:8px -4px 6px;padding:8px;
+  border:1px solid var(--ui-line);border-radius:13px;background:var(--ui-panel-strong);
+  box-shadow:0 6px 18px rgba(0,0,0,.34);
+}
+.collection-search{
+  display:block;width:100%;min-height:44px;padding:10px 12px;border:2px solid var(--ui-line);
+  border-radius:11px;background:#081511;color:var(--cream);font:14px/1.2 inherit;
+}
+.collection-search::placeholder{color:var(--cream-dim)}
+.collection-result-count{min-height:18px;margin:8px 0 0;color:var(--cream-dim);font-size:11px;text-align:center}
+.collection-load-more{display:block;margin:0 auto 14px}.collection-load-more[hidden]{display:none}
+.unlock-card,.unlock-card .joker-text-visual{height:auto;max-height:none}
+.unlock-card .jdesc{
+  display:block!important;overflow:visible!important;-webkit-line-clamp:unset!important;
+  -webkit-box-orient:initial!important;
+}
+.sr-only{
+  position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+
+@media(max-width:640px){
+  body:is(
+    [data-screen='tutorial'],[data-screen='startboost'],[data-screen='adbreak'],
+    [data-screen='gameover'],[data-screen='settings'],[data-screen='achievements'],
+    [data-screen='cabinet'],[data-screen='missions'],[data-screen='unlocks'],
+    [data-screen='howto'],[data-screen='wardrobe'],[data-screen='store']
+  ) .bgfx{background-attachment:scroll,scroll,scroll!important}
+  .unlock-toolbar{gap:5px;margin:6px auto 2px}
+  .unlock-toolbar .btn{min-height:44px;padding:7px 9px;font-size:10px}
+  .unlock-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .unlock-card{width:auto;min-width:0;min-height:0!important;padding:9px}
+  .unlock-card .joker-text-visual{min-height:0}
+  .overlay{padding-top:calc(10px + var(--sat));padding-bottom:calc(10px + var(--sab))}
+  .overlay>.panel{max-height:calc(100dvh - var(--sat) - var(--sab) - 20px)}
+}
+@media(min-width:700px){
+  .unlock-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+  .unlock-card{width:auto}
+  .collection-controls{top:calc(var(--sat) + 8px)}
+}
+@media(min-width:900px){
+  .unlock-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .overlay>.panel{padding:clamp(22px,3vw,34px)}
+}
+@media(min-width:700px) and (orientation:landscape){
+  #tutorial>.panel,#startboost>.panel,#gameover>.panel{max-width:min(1040px,calc(100vw - var(--sal) - var(--sar) - 48px))}
+}
+@media(pointer:coarse){
+  button,.btn,[role='button'],input,select{min-height:44px}
+  .actions #btn-play,.actions #btn-discard{min-height:48px!important}
+}
 @media(max-width:359px){
   #hand .card{flex-basis:38px!important;width:38px!important;min-width:38px!important;margin-left:-6.5px!important}
 }
@@ -1954,6 +2093,17 @@ body:has(#game.active) #wc-toast{
     <div class="boot-bar" id="boot-bar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="boot-text" id="boot-text">LOADING</div>
     <div class="boot-tip" id="boot-tip"></div>
+  </div>
+</div>
+
+<div id="privacy-gate" role="dialog" aria-modal="true" aria-labelledby="privacy-gate-title">
+  <div class="privacy-gate-card">
+    <h1 id="privacy-gate-title">Privacy before play</h1>
+    <p>Before WILDCARD can open your account, connect online services, load advertising or send anonymous aggregate counters, please read and accept the current Privacy Policy.</p>
+    <p>The game stores progress on this device. Google sign-in, cloud backup, Play Games, advertising and purchases are optional services described in the policy.</p>
+    <p><a href="privacy.html" target="_blank" rel="noopener">Read the full WILDCARD Privacy Policy</a></p>
+    <p>Acceptance is not pre-selected. If you do not accept, close the app; the game and its online services will remain locked.</p>
+    <button type="button" class="btn alt privacy-accept" id="privacy-gate-accept">I have read and accept</button>
   </div>
 </div>
 
@@ -1992,7 +2142,7 @@ body:has(#game.active) #wc-toast{
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.13</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.14</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -2017,7 +2167,7 @@ body:has(#game.active) #wc-toast{
     <div class="stat-list" style="font-size:14px">
       <div class="stat-row"><span>You hold <b>9 cards</b>. Select up to <b>5</b>, then <b>Play</b> to score them or <b>Discard</b> to redraw. One 52-card deck per Heat — binned cards stay gone until the next Heat.</span></div>
       <div class="stat-row"><span>Score = (Hand Base + rank sum <b>×0.6</b>) × Multiplier. <b>Only cards forming the hand score</b> — a Pair scores 2 cards, kickers score nothing. Ace is always <b>15</b>. Tap ♠ Hands in-game for the full table.</span></div>
-      <div class="stat-row"><span>Each Heat: a target, <b>4 plays</b>, <b>5 discards</b>. Every 3rd Heat (and all Endless Heats) twists the rules with a <b>Heat Modifier</b>. Heat 12 is the boss — <b>THE HOUSE</b> jams joker ×Mult (enhanced cards still work).</span></div>
+      <div class="stat-row"><span>Each Heat: a target, <b>4 plays</b>, <b>5 discards</b>. Every 3rd Heat twists the rules with a <b>Heat Modifier</b>. Heat 12 is the boss — <b>THE HOUSE</b> randomly blocks exactly 2 equipped Jokers for that Heat (enhanced cards still work).</span></div>
       <div class="stat-row"><span>Shops sell <b>jokers</b> (max 1 per shop, 5 slots, swap when buying at full slots, sell in any shop) and <b>supplies</b>: destroy, copy or re-suit deck cards, and <b>Hand Boosts</b> that permanently level up a hand type's base value.</span></div>
       <div class="stat-row"><span>Money earns <b>interest</b>: +1 run coin per 5 held when you clear a Heat (max +5). Spend or compound — your call. Reroll the joker offer for 2 coins.</span></div>
       <div class="stat-row"><span>Clearing a Heat in fewer plays earns a better <b>grade</b>: S (+3 coins), A (+2), B (+1), C. Top 5 runs make the high score board.</span></div>
@@ -2091,9 +2241,15 @@ body:has(#game.active) #wc-toast{
       <button class="btn alt" style="font-size:13px;padding:10px 18px" onclick="openStore()">💰 Coin Store</button>
     </div>
     <div class="collection-summary" id="collection-summary"></div>
-    <div class="unlock-toolbar" id="unlock-filter-bar"></div>
-    <div class="unlock-toolbar" id="unlock-sort-bar"></div>
+    <div class="collection-controls">
+      <label class="sr-only" for="unlock-search">Search Jokers</label>
+      <input class="collection-search" id="unlock-search" type="search" inputmode="search" autocomplete="off" placeholder="Search Joker name, effect or rarity" oninput="setUnlockSearch(this.value)">
+      <div class="unlock-toolbar" id="unlock-filter-bar"></div>
+      <div class="unlock-toolbar" id="unlock-sort-bar"></div>
+    </div>
+    <p class="collection-result-count" id="unlock-result-count" aria-live="polite"></p>
     <div class="unlock-grid" id="unlock-grid"></div>
+    <button class="btn ghost collection-load-more" id="unlock-load-more" onclick="loadMoreUnlocks()">Load more (24)</button>
     <button class="btn ghost" onclick="showScreen('menu'); updateMenuAccount()">Back to Menu</button>
   </div>
 </section>
@@ -2308,8 +2464,8 @@ body:has(#game.active) #wc-toast{
 </section>
 
 <!-- ============ PICKER OVERLAY ============ -->
-<div class="overlay" id="overlay">
-  <div class="panel">
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title" aria-describedby="ov-sub">
+  <div class="panel" tabindex="-1">
     <h2 id="ov-title" style="font-size:22px">Pick a card</h2>
     <p class="sub" id="ov-sub"></p>
     <div id="ov-body"></div>
@@ -2351,19 +2507,45 @@ body:has(#game.active) #wc-toast{
 
   /* =============== FIREBASE ACCOUNT + PLAY GAMES =============== */
   var Cloud = P.WildcardCloud;
+  var currentCloudUid = '';
   WN.cloudAvailable = !!Cloud;
+  function rememberCloudAuth(state) {
+    currentCloudUid = state && state.signedIn && state.uid ? String(state.uid) : '';
+    return state;
+  }
   if (Cloud) {
-    WN.cloudAuthState = function () { return Cloud.authState(); };
-    WN.cloudSignInGoogle = function () { return Cloud.signInWithGoogle(); };
-    WN.cloudSignOut = function () { return Cloud.signOut(); };
+    WN.cloudAuthState = function () { return Cloud.authState().then(rememberCloudAuth); };
+    WN.cloudSignInGoogle = function () { return Cloud.signInWithGoogle().then(rememberCloudAuth); };
+    WN.cloudSignOut = function () {
+      return Cloud.signOut().then(function (state) {
+        currentCloudUid = '';
+        return state;
+      });
+    };
     WN.cloudReadSave = function () { return Cloud.readCloudSave(); };
-    WN.cloudWriteSave = function (accountJson, runJson, clientSavedAt) {
+    WN.cloudWriteSave = function (
+      accountJson,
+      runJson,
+      clientSavedAt,
+      expectedProgressVersion,
+      billingAdjustmentApplied
+    ) {
       return Cloud.writeCloudSave({
         accountJson: accountJson || '',
         runJson: runJson || '',
-        clientSavedAt: Math.max(0, Number(clientSavedAt) || Date.now())
+        clientSavedAt: Math.max(0, Number(clientSavedAt) || Date.now()),
+        expectedProgressVersion: Math.max(0, Math.floor(Number(expectedProgressVersion) || 0)),
+        billingAdjustmentApplied: Math.max(0, Math.floor(Number(billingAdjustmentApplied) || 0))
       });
     };
+    if (typeof Cloud.deleteAccount === 'function') {
+      WN.cloudDeleteAccount = function () {
+        return Cloud.deleteAccount().then(function (result) {
+          currentCloudUid = '';
+          return result;
+        });
+      };
+    }
     WN.playGamesState = function () { return Cloud.playGamesState(); };
     WN.playGamesSignIn = function () { return Cloud.signInPlayGames(); };
     WN.submitPlayGamesScore = function (score) {
@@ -2373,11 +2555,21 @@ body:has(#game.active) #wc-toast{
       return Cloud.loadLeaderboardScores({ span: span || 'all' });
     };
     WN.showPlayGamesLeaderboard = function () { return Cloud.showLeaderboard(); };
+    if (typeof Cloud.submitDailyScore === 'function') {
+      WN.cloudSubmitDailyScore = function (submission) {
+        submission = submission || {};
+        return Cloud.submitDailyScore({
+          name: String(submission.name || '').trim().toUpperCase(),
+          score: Math.max(0, Math.floor(Number(submission.score) || 0)),
+          idempotencyKey: String(submission.idempotencyKey || '')
+        });
+      };
+    }
   }
 
   /* ======================= PHONE PERSISTENCE ======================= */
   var Preferences = P.Preferences;
-  var SAVE_KEYS = ['wildcard_save_v1', 'wildcard_run_v1'];
+  var SAVE_KEYS = ['wildcard_save_v1', 'wildcard_run_v1', 'wildcard_privacy_accept_v1', 'wildcard_cloud_owner_v2'];
   var PREF_PREFIX = 'wildcard.phone.';
 
   WN.storageReady = Promise.resolve({});
@@ -2416,15 +2608,20 @@ body:has(#game.active) #wc-toast{
 
   /* ============================== ADS ============================= */
   var AdMob = P.AdMob;
-  var REWARDED_AD_ID = 'ca-app-pub-3940256099942544/5224354917';
-  var INTERSTITIAL_AD_ID = 'ca-app-pub-3940256099942544/1033173712';
-  var AD_TESTING = true;
+  var REWARDED_AD_ID = '';
+  var INTERSTITIAL_AD_ID = '';
+  var AD_TESTING = false;
+  var serviceConfigReady = Cloud && typeof Cloud.serviceConfig === 'function'
+    ? Cloud.serviceConfig().catch(function () { return {}; })
+    : Promise.resolve({});
   var ad = {
+    configured: false,
     allowed: false,
     consentStatus: 'UNKNOWN',
     privacyRequired: false,
     rewardedReady: false,
     rewardedPreparing: false,
+    rewardedInFlight: false,
     rewardedEarned: false,
     rewardedCb: null,
     interstitialReady: false,
@@ -2434,6 +2631,7 @@ body:has(#game.active) #wc-toast{
 
   WN.getPrivacyState = function () {
     return {
+      configured: ad.configured,
       allowed: ad.allowed,
       status: ad.consentStatus,
       privacyRequired: ad.privacyRequired,
@@ -2442,14 +2640,14 @@ body:has(#game.active) #wc-toast{
   };
 
   function prepareRewarded() {
-    if (!AdMob || !ad.allowed || ad.rewardedPreparing || ad.rewardedReady) return;
+    if (!AdMob || !ad.configured || !ad.allowed || ad.rewardedPreparing || ad.rewardedReady) return;
     ad.rewardedPreparing = true;
     AdMob.prepareRewardVideoAd({ adId: REWARDED_AD_ID, isTesting: AD_TESTING, immersiveMode: true })
       .catch(function () { ad.rewardedPreparing = false; });
   }
 
   function prepareInterstitial() {
-    if (!AdMob || !ad.allowed || ad.interstitialPreparing || ad.interstitialReady) return;
+    if (!AdMob || !ad.configured || !ad.allowed || ad.interstitialPreparing || ad.interstitialReady) return;
     ad.interstitialPreparing = true;
     AdMob.prepareInterstitial({ adId: INTERSTITIAL_AD_ID, isTesting: AD_TESTING, immersiveMode: true })
       .catch(function () { ad.interstitialPreparing = false; });
@@ -2458,6 +2656,23 @@ body:has(#game.active) #wc-toast{
   function prepareAds() {
     prepareRewarded();
     prepareInterstitial();
+  }
+
+  function settleRewarded(success) {
+    var cb = ad.rewardedCb;
+    if (!cb) return false;
+    ad.rewardedCb = null;
+    callback(cb, !!success);
+    return true;
+  }
+
+  function finishRewardedShow() {
+    var earned = ad.rewardedEarned;
+    ad.rewardedInFlight = false;
+    ad.rewardedEarned = false;
+    ad.rewardedReady = false;
+    prepareRewarded();
+    if (!earned) settleRewarded(false);
   }
 
   function applyConsentInfo(info) {
@@ -2469,8 +2684,17 @@ body:has(#game.active) #wc-toast{
     return info;
   }
 
-  function initialiseAds() {
-    if (!AdMob) return;
+  var adsInitialised = false;
+  function initialiseAds(config) {
+    config = config || {};
+    REWARDED_AD_ID = typeof config.rewardedAdId === 'string' ? config.rewardedAdId : '';
+    INTERSTITIAL_AD_ID = typeof config.interstitialAdId === 'string' ? config.interstitialAdId : '';
+    AD_TESTING = !!config.adTesting;
+    ad.configured = !!config.adsEnabled
+      && /^ca-app-pub-\d{16}\/\d{10}$/.test(REWARDED_AD_ID)
+      && /^ca-app-pub-\d{16}\/\d{10}$/.test(INTERSTITIAL_AD_ID);
+    if (!AdMob || !ad.configured || adsInitialised) return false;
+    adsInitialised = true;
 
     AdMob.addListener('onRewardedVideoAdLoaded', function () {
       ad.rewardedReady = true;
@@ -2481,22 +2705,18 @@ body:has(#game.active) #wc-toast{
       ad.rewardedPreparing = false;
       setTimeout(prepareRewarded, 30000);
     });
-    AdMob.addListener('onRewardedVideoAdReward', function () { ad.rewardedEarned = true; });
+    AdMob.addListener('onRewardedVideoAdReward', function () {
+      if (!ad.rewardedInFlight || ad.rewardedEarned) return;
+      ad.rewardedEarned = true;
+      settleRewarded(true);
+    });
     AdMob.addListener('onRewardedVideoAdDismissed', function () {
-      var cb = ad.rewardedCb;
-      var earned = ad.rewardedEarned;
-      ad.rewardedCb = null;
-      ad.rewardedEarned = false;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, earned);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
     AdMob.addListener('onRewardedVideoAdFailedToShow', function () {
-      var cb = ad.rewardedCb;
-      ad.rewardedCb = null;
-      ad.rewardedReady = false;
-      prepareRewarded();
-      callback(cb, false);
+      if (!ad.rewardedInFlight) return;
+      finishRewardedShow();
     });
 
     AdMob.addListener('interstitialAdLoaded', function () {
@@ -2536,25 +2756,24 @@ body:has(#game.active) #wc-toast{
       }
       return info;
     }).then(applyConsentInfo).catch(function () {
-      // Test builds remain usable when no AdMob message has been configured yet.
+      // Developer builds may continue with Google's demonstration ads. A
+      // release build always remains disabled after any consent/config error.
       ad.allowed = AD_TESTING;
       if (ad.allowed) prepareAds();
     });
 
     WN.showRewardedAd = function (cb) {
-      if (!ad.allowed || !ad.rewardedReady || ad.rewardedCb) {
+      if (!ad.configured || !ad.allowed || !ad.rewardedReady || ad.rewardedInFlight) {
         prepareRewarded();
         callback(cb, false);
         return;
       }
       ad.rewardedEarned = false;
+      ad.rewardedInFlight = true;
       ad.rewardedCb = cb;
       AdMob.showRewardVideoAd().catch(function () {
-        var failed = ad.rewardedCb;
-        ad.rewardedCb = null;
-        ad.rewardedReady = false;
-        prepareRewarded();
-        callback(failed, false);
+        if (!ad.rewardedInFlight) return;
+        finishRewardedShow();
       });
     };
 
@@ -2584,9 +2803,22 @@ body:has(#game.active) #wc-toast{
     WN.setAdMuted = function (muted) {
       AdMob.setApplicationMuted({ muted: !!muted }).catch(function () {});
     };
+    return true;
   }
 
-  initialiseAds();
+  // Fail-closed methods exist before configuration so the Android shell never
+  // falls through to browser-preview rewards.
+  WN.showRewardedAd = function (cb) { callback(cb, false); };
+  WN.showInterstitial = function (cb) { callback(cb, false); };
+  WN.showPrivacyOptions = function (cb) { callback(cb, false); };
+  WN.setAdMuted = function () {};
+
+  // The game calls this only after the player has explicitly accepted the
+  // current privacy policy. No SDK initialization, consent request or ad load
+  // happens behind the mandatory first-launch policy gate.
+  WN.enableAdsAfterPolicyAcceptance = function () {
+    return serviceConfigReady.then(initialiseAds);
+  };
 
   /* ============================ BILLING ============================ */
   var PRODUCTS = [
@@ -2597,11 +2829,34 @@ body:has(#game.active) #wc-toast{
     { id: 'coins_8500', consumable: true },
     { id: 'remove_ads', consumable: false }
   ];
-  var billing = { ready: false, waiting: {}, activeProductId: null };
+  var billing = {
+    enabled: false,
+    ready: false,
+    initialising: false,
+    initialization: null,
+    orderStarting: false,
+    waiting: {},
+    activeProductId: null,
+    accountUid: '',
+    receipts: {},
+    deliveryQueue: [],
+    deliveryHandler: null,
+    store: null
+  };
 
   // Fail-closed defaults prevent native builds from granting demo purchases.
-  WN.purchase = function (productId, cb) { callback(cb, false); };
-  WN.restorePurchases = function (cb) { callback(cb, []); };
+  WN.purchase = function (productId, cb) {
+    callback(cb, { ok: false, productId: productId || '', reason: 'billing_unavailable' });
+  };
+  WN.restorePurchases = function (cb) { callback(cb, { owned: [], entitlements: null }); };
+  WN.getBillingProducts = function () { return Promise.resolve([]); };
+  WN.completePurchase = function (tokenHash, cb) { callback(cb, false); };
+  WN.refreshPurchases = function () {
+    return Promise.resolve({ signedIn: false, owned: [], entitlements: null, products: [] });
+  };
+  WN.setPurchaseDeliveryHandler = function (handler) {
+    billing.deliveryHandler = typeof handler === 'function' ? handler : null;
+  };
 
   function verifiedProductIds(receipt) {
     var ids = [];
@@ -2622,22 +2877,215 @@ body:has(#game.active) #wc-toast{
     if (receipt && receipt.transaction) addTransactions([receipt.transaction]);
     return ids;
   }
-  function settlePurchase(productId, success) {
+  function transactionProductIds(transaction) {
+    return (transaction && Array.isArray(transaction.products) ? transaction.products : [])
+      .map(function (product) { return product && product.id; })
+      .filter(Boolean);
+  }
+  function settlePurchase(productId, result) {
     var cb = billing.waiting[productId];
     if (!cb) return false;
     delete billing.waiting[productId];
     if (billing.activeProductId === productId) billing.activeProductId = null;
-    callback(cb, !!success);
+    billing.orderStarting = false;
+    callback(cb, result);
     return true;
   }
-  function finishDeliveredReceipt(receipt) {
-    try { Promise.resolve(receipt.finish()).catch(function () {}); } catch (e) {}
+  function validationFailure(done, reason) {
+    var Purchase = window.CdvPurchase;
+    var code = Purchase && Purchase.ErrorCode && Purchase.ErrorCode.VERIFICATION_FAILED;
+    done({
+      ok: false,
+      code: code || 6778003,
+      message: reason || 'Google Play verification failed'
+    });
+  }
+  function validatorResponse(body, result) {
+    return {
+      ok: true,
+      data: {
+        id: result.tokenHash,
+        latest_receipt: true,
+        transaction: {
+          type: body.transaction.type,
+          kind: 'androidpublisher#productPurchase',
+          purchaseToken: body.transaction.purchaseToken,
+          tokenHash: result.tokenHash,
+          delivered: !!result.delivered
+        },
+        collection: [{
+          id: result.productId,
+          // Match the native transaction so the plugin can safely skip a
+          // redundant consume/acknowledge after Play reports it finished.
+          transactionId: body.transaction.id,
+          isConsumed: !!result.consumed
+        }]
+      }
+    };
+  }
+  function receiptDelivery(receipt) {
+    var ids = verifiedProductIds(receipt);
+    var productId = ids.length === 1 ? ids[0] : '';
+    var source = receipt && receipt.sourceReceipt;
+    var transaction = source && Array.isArray(source.transactions) ? source.transactions[0] : null;
+    var raw = receipt && receipt.raw || {};
+    var rawTransaction = raw.transaction || {};
+    var purchaseToken = source && source.purchaseToken
+      || transaction && transaction.purchaseId
+      || rawTransaction.purchaseToken
+      || '';
+    var tokenHash = typeof raw.id === 'string' ? raw.id : rawTransaction.tokenHash || '';
+    if (!PRODUCTS.some(function (item) { return item.id === productId; })
+      || typeof purchaseToken !== 'string' || purchaseToken.length < 16
+      || !/^[a-f0-9]{64}$/.test(tokenHash)) return null;
+    return {
+      ok: true,
+      verified: true,
+      productId: productId,
+      purchaseToken: purchaseToken,
+      tokenHash: tokenHash,
+      delivered: !!rawTransaction.delivered,
+      recovered: billing.activeProductId !== productId
+    };
+  }
+  function flushPurchaseDeliveries() {
+    if (!billing.deliveryHandler) return;
+    billing.deliveryQueue.forEach(function (delivery) {
+      if (delivery.sentToHandler) return;
+      delivery.sentToHandler = true;
+      callback(billing.deliveryHandler, delivery);
+    });
+  }
+  function queueVerifiedReceipt(receipt) {
+    var delivery = receiptDelivery(receipt);
+    if (!delivery) return;
+    if (billing.receipts[delivery.tokenHash]) return;
+    billing.receipts[delivery.tokenHash] = {
+      receipt: receipt,
+      delivery: delivery,
+      completing: false
+    };
+    billing.deliveryQueue.push(delivery);
+    flushPurchaseDeliveries();
+    settlePurchase(delivery.productId, {
+      ok: true,
+      verified: true,
+      productId: delivery.productId,
+      tokenHash: delivery.tokenHash
+    });
+  }
+  function priceRows() {
+    if (!billing.store) return [];
+    var Purchase = window.CdvPurchase;
+    return PRODUCTS.map(function (registered) {
+      var item = billing.store.get(registered.id, Purchase.Platform.GOOGLE_PLAY);
+      var pricing = item && item.pricing;
+      return {
+        id: registered.id,
+        available: !!(item && item.getOffer && item.getOffer() && pricing && pricing.price),
+        price: pricing && pricing.price || '',
+        currency: pricing && pricing.currency || '',
+        priceMicros: pricing && Number(pricing.priceMicros) || 0,
+        title: item && item.title || '',
+        description: item && item.description || ''
+      };
+    });
+  }
+
+  function notifyBillingProducts() {
+    try {
+      if (typeof window.CustomEvent === 'function' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new window.CustomEvent('wildcardbillingproducts'));
+      }
+    } catch (e) {}
+  }
+
+  function waitForBillingReady(attempt) {
+    attempt = Number(attempt) || 0;
+    if (billing.ready) return Promise.resolve(true);
+    if (!billing.enabled || attempt >= 24) return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        waitForBillingReady(attempt + 1).then(resolve);
+      }, 250);
+    });
+  }
+
+  function ownedProductIds() {
+    var owned = [];
+    var Purchase = window.CdvPurchase;
+    if (!billing.store || !Purchase) return owned;
+    try {
+      PRODUCTS.forEach(function (product) {
+        var item = billing.store.get(product.id, Purchase.Platform.GOOGLE_PLAY);
+        if (item && item.owned) owned.push(product.id);
+      });
+    } catch (e) {}
+    return owned;
+  }
+
+  function recoverPurchases() {
+    if (!billing.enabled || !Cloud || typeof Cloud.authState !== 'function') {
+      return Promise.resolve({
+        signedIn: false,
+        owned: ownedProductIds(),
+        entitlements: null,
+        products: priceRows()
+      });
+    }
+    return Cloud.authState().then(rememberCloudAuth).then(function (state) {
+      if (!state || !state.signedIn || !state.uid) {
+        billing.accountUid = '';
+        return {
+          signedIn: false,
+          owned: ownedProductIds(),
+          entitlements: null,
+          products: priceRows()
+        };
+      }
+      billing.accountUid = String(state.uid);
+      return waitForBillingReady(0).then(function (ready) {
+        var restored = ready && billing.store && typeof billing.store.restorePurchases === 'function'
+          ? billing.store.restorePurchases().catch(function () {})
+          : Promise.resolve();
+        return restored.then(function () {
+          // Approved receipts are verified asynchronously. Re-open the
+          // delivery queue whenever recovery is requested so a previous
+          // transient save/backend failure can be retried.
+          billing.deliveryQueue.forEach(function (delivery) {
+            delivery.sentToHandler = false;
+          });
+          flushPurchaseDeliveries();
+          if (typeof Cloud.getPlayEntitlements !== 'function') return null;
+          return Cloud.getPlayEntitlements().catch(function () { return null; });
+        }).then(function (entitlements) {
+          return {
+            signedIn: true,
+            owned: ownedProductIds(),
+            entitlements: entitlements,
+            products: priceRows()
+          };
+        });
+      });
+    }).catch(function () {
+      return {
+        signedIn: false,
+        owned: ownedProductIds(),
+        entitlements: null,
+        products: priceRows()
+      };
+    });
   }
 
   function initBilling() {
     var Purchase = window.CdvPurchase;
-    if (!Purchase || !Purchase.store || billing.ready) return;
+    billing.enabled = true;
+    if (!Purchase || !Purchase.store || billing.ready || billing.initialising) {
+      return billing.initialization || Promise.resolve(billing.ready);
+    }
     var store = Purchase.store;
+    billing.initialising = true;
+    billing.store = store;
 
     try {
       store.register(PRODUCTS.map(function (product) {
@@ -2648,49 +3096,169 @@ body:has(#game.active) #wc-toast{
         };
       }));
 
+      // Attach every order to the signed-in Firebase UID. The plugin's UUID
+      // obfuscator passes a deterministic hash to setObfuscatedAccountId.
+      store.applicationUsername = function () { return billing.accountUid || currentCloudUid || undefined; };
+      store.obfuscator = 'uuid';
+      store.validator_privacy_policy = ['fraud'];
+      store.validator = function (body, done) {
+        var productId = body && body.id;
+        var purchaseToken = body && body.transaction && body.transaction.purchaseToken;
+        if (!Cloud || typeof Cloud.verifyPlayPurchase !== 'function'
+          || !PRODUCTS.some(function (item) { return item.id === productId; })
+          || typeof purchaseToken !== 'string' || purchaseToken.length < 16) {
+          validationFailure(done, 'Secure purchase verification is unavailable');
+          return;
+        }
+        Cloud.verifyPlayPurchase({
+          packageName: 'com.nisarg.wildcard',
+          productId: productId,
+          purchaseToken: purchaseToken
+        }).then(function (result) {
+          if (!result || !result.valid || result.productId !== productId
+            || !/^[a-f0-9]{64}$/.test(String(result.tokenHash || ''))) {
+            validationFailure(done, 'Google Play did not verify this purchase');
+            return;
+          }
+          done(validatorResponse(body, result));
+        }).catch(function () {
+          validationFailure(done, 'Google Play verification is unavailable');
+        });
+      };
+
       store.when()
+        .productUpdated(notifyBillingProducts)
         .approved(function (transaction) { transaction.verify(); })
-        .verified(function (receipt) {
+        .pending(function (transaction) {
+          var ids = transactionProductIds(transaction);
           var productId = billing.activeProductId;
-          if (!productId || verifiedProductIds(receipt).indexOf(productId) === -1) return;
-          if (settlePurchase(productId, true)) finishDeliveredReceipt(receipt);
+          if (productId && ids.indexOf(productId) !== -1) {
+            settlePurchase(productId, {
+              ok: false,
+              pending: true,
+              productId: productId,
+              reason: 'pending'
+            });
+          }
+        })
+        .verified(queueVerifiedReceipt)
+        .unverified(function (failure) {
+          var ids = verifiedProductIds(failure && failure.receipt);
+          var productId = billing.activeProductId;
+          if (productId && ids.indexOf(productId) !== -1) {
+            settlePurchase(productId, {
+              ok: false,
+              productId: productId,
+              reason: 'verification_failed'
+            });
+          }
+        })
+        .receiptsVerified(function () {
+          flushPurchaseDeliveries();
         });
 
-      store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
+      billing.initialization = store.initialize([Purchase.Platform.GOOGLE_PLAY]).then(function () {
         billing.ready = true;
-      }).catch(function () {});
+        billing.initialising = false;
+        notifyBillingProducts();
+        return true;
+      }).catch(function () {
+        billing.initialising = false;
+        return false;
+      });
 
       WN.purchase = function (productId, cb) {
-        if (!billing.ready || billing.activeProductId) { callback(cb, false); return; }
+        if (!billing.ready || billing.activeProductId || billing.orderStarting) {
+          callback(cb, { ok: false, productId: productId || '', reason: 'billing_busy' });
+          return;
+        }
         var product = store.get(productId, Purchase.Platform.GOOGLE_PLAY);
         var offer = product && product.getOffer && product.getOffer();
-        if (!offer) { callback(cb, false); return; }
-        billing.activeProductId = productId;
-        billing.waiting[productId] = cb;
-        store.order(offer).then(function (err) {
-          if (err) settlePurchase(productId, false);
-        }).catch(function () { settlePurchase(productId, false); });
+        if (!offer || !Cloud || typeof Cloud.authState !== 'function') {
+          callback(cb, { ok: false, productId: productId || '', reason: 'product_unavailable' });
+          return;
+        }
+        billing.orderStarting = true;
+        Cloud.authState().then(rememberCloudAuth).then(function (state) {
+          if (!state || !state.signedIn || !state.uid) {
+            billing.orderStarting = false;
+            callback(cb, { ok: false, productId: productId, reason: 'sign_in_required' });
+            return;
+          }
+          billing.accountUid = String(state.uid);
+          billing.activeProductId = productId;
+          billing.waiting[productId] = cb;
+          return store.order(offer).then(function (err) {
+            if (err) {
+              settlePurchase(productId, {
+                ok: false,
+                productId: productId,
+                reason: 'cancelled_or_unavailable'
+              });
+            }
+          }).catch(function () {
+            settlePurchase(productId, {
+              ok: false,
+              productId: productId,
+              reason: 'cancelled_or_unavailable'
+            });
+          });
+        }).catch(function () {
+          billing.orderStarting = false;
+          callback(cb, { ok: false, productId: productId, reason: 'sign_in_required' });
+        });
+      };
+
+      WN.getBillingProducts = function () { return Promise.resolve(priceRows()); };
+
+      WN.setPurchaseDeliveryHandler = function (handler) {
+        billing.deliveryHandler = typeof handler === 'function' ? handler : null;
+        flushPurchaseDeliveries();
+      };
+
+      WN.completePurchase = function (tokenHash, cb) {
+        var entry = billing.receipts[tokenHash];
+        if (!entry || entry.completing || !Cloud
+          || typeof Cloud.markPlayPurchaseDelivered !== 'function') {
+          callback(cb, false);
+          return;
+        }
+        entry.completing = true;
+        Cloud.markPlayPurchaseDelivered({
+          packageName: 'com.nisarg.wildcard',
+          productId: entry.delivery.productId,
+          purchaseToken: entry.delivery.purchaseToken
+        }).then(function (result) {
+          if (!result || !result.delivered) throw new Error('Delivery was not recorded');
+          return entry.receipt.finish();
+        }).then(function () {
+          delete billing.receipts[tokenHash];
+          billing.deliveryQueue = billing.deliveryQueue.filter(function (item) {
+            return item.tokenHash !== tokenHash;
+          });
+          callback(cb, true);
+        }).catch(function () {
+          entry.completing = false;
+          callback(cb, false);
+        });
       };
 
       WN.restorePurchases = function (cb) {
-        var report = function () {
-          var owned = [];
-          try {
-            PRODUCTS.forEach(function (product) {
-              var item = store.get(product.id, Purchase.Platform.GOOGLE_PLAY);
-              if (item && item.owned) owned.push(product.id);
-            });
-          } catch (e) {}
-          callback(cb, owned);
-        };
-        if (billing.ready) store.restorePurchases().then(report).catch(report);
-        else setTimeout(function () { WN.restorePurchases(cb); }, 2000);
+        recoverPurchases().then(function (report) { callback(cb, report); });
       };
-    } catch (e) {}
+      WN.refreshPurchases = recoverPurchases;
+    } catch (e) {
+      billing.initialising = false;
+      billing.initialization = Promise.resolve(false);
+    }
+    return billing.initialization || Promise.resolve(false);
   }
 
-  document.addEventListener('deviceready', initBilling, false);
-  setTimeout(initBilling, 2500);
+  // Billing can query Play and Firebase, so it starts only after the mandatory
+  // first-launch privacy gate has been accepted.
+  WN.enableBillingAfterPolicyAcceptance = function () {
+    return initBilling();
+  };
 })();
 
 </script>
@@ -2791,7 +3359,7 @@ const MODIFIERS = [
   {id:'famine',   name:'Famine',       desc:'Hold 7 cards instead of 9 this Heat.'},
   {id:'frostbite',name:'Frostbite',    desc:'Spades score 0 rank this Heat.'},
 ];
-const BOSS_MOD={id:'boss_house', name:'THE HOUSE', desc:'★ BOSS ★ The House takes a 10% bigger cut and jams every ×Mult joker. Beat the house to win the run.', boss:true};
+const BOSS_MOD={id:'boss_house', name:'THE HOUSE', desc:'★ BOSS ★ The House takes a 10% bigger cut and blocks 2 randomly selected equipped Jokers for this Heat. Beat the house to win the run.', boss:true};
 function mod(id){ return run && run.modifier && run.modifier.id===id; }
 function effDiscards(){ return DISCARDS_PER_STAGE - (mod('cold')?1:0); }
 function effHandSize(){ return HAND_SIZE - (mod('short')?1:0) - (mod('famine')?2:0); }
@@ -2915,19 +3483,44 @@ const JOKERS = [
   {id:'rehearsal_tape', name:'Rehearsal Tape', rarity:'wild', desc:'×1.3 Multiplier on the first hand of each Heat.', price:10, unlock:180,
     xMult:ctx=>ctx.handsPlayedThisStage===0?1.3:1},
   {id:'prism_lens', name:'Prism Lens', rarity:'wild', desc:'×1.35 Multiplier when 5+ played cards share one colour.', price:10, unlock:190,
-    xMult:ctx=>allSameColor(ctx.cards)&&ctx.cards.length>=5?1.35:1},
-  {id:'glass_joystick', name:'Glass Joystick', rarity:'wild', desc:'×3 Multiplier. Survives its first Heat, then has a 25% chance to shatter on later clears.', price:12, unlock:200, stateKey:'glass_joystick_armed',
+    xMult:ctx=>{const reds=ctx.cards.filter(c=>c.red).length; return (reds>=5||ctx.cards.length-reds>=5)?1.35:1}},
+  {id:'glass_joystick', name:'Glass Joystick', rarity:'wild', desc:'×3 Multiplier. Survives its first Heat, then has a 1 in 6 chance to shatter on later clears.', price:12, unlock:200, stateKey:'glass_joystick_armed',
     xMult:()=>3, onHeatClear:()=>{
       const key='glass_joystick_armed';
       if(!run.jokerState[key]){ run.jokerState[key]=1; return; }
-      if(rnd('luck')<0.25){
+      if(rnd('luck')<1/6){
         run.jokers=run.jokers.filter(j=>j.id!=='glass_joystick');
         delete run.jokerState[key];
         setTimeout(()=>toast('Glass Joystick shattered after the clear.','var(--violet)'),0);
       }
     }},
 ];
-function hasJoker(id){ return !!(run && run.jokers.some(j=>j.id===id)); }
+function bossHeatActive(){
+  return !!(run&&run.modifier&&run.modifier.id==='boss_house');
+}
+function ensureBossBlocks(){
+  if(!bossHeatActive()) return [];
+  const equipped=[...new Set(run.jokers.map(j=>j&&j.id).filter(Boolean))];
+  const wanted=equipped.length<2?equipped.length:2;
+  const kept=[...new Set(Array.isArray(run.bossBlockedJokerIds)?run.bossBlockedJokerIds:[])]
+    .filter(id=>equipped.includes(id)).slice(0,wanted);
+  const available=equipped.filter(id=>!kept.includes(id));
+  while(kept.length<wanted&&available.length){
+    const index=Math.floor(rnd('boss')*available.length);
+    kept.push(available.splice(index,1)[0]);
+  }
+  run.bossBlockedJokerIds=kept;
+  return kept;
+}
+function isJokerBlocked(jokerOrId){
+  if(!bossHeatActive()) return false;
+  const id=typeof jokerOrId==='string'?jokerOrId:(jokerOrId&&jokerOrId.id);
+  return !!id&&ensureBossBlocks().includes(id);
+}
+function activeJokers(){
+  return run&&Array.isArray(run.jokers)?run.jokers.filter(j=>!isJokerBlocked(j)):[];
+}
+function hasJoker(id){ return activeJokers().some(j=>j.id===id); }
 function mostCommonRank(cards){
   const counts={}; for(const c of cards||[]) counts[c.rank]=(counts[c.rank]||0)+1;
   let best=null,bestN=-1,tied=false;
@@ -3107,12 +3700,6 @@ function toggleMusic(){   // background arcade music + modifier ambience
   if(account.musicOn){ syncArcadeMusic(); syncModifierAmbience(); if(!account.muted) tone(523,0.07,'triangle'); }
   else { stopArcadeMusic(); stopModifierAmbience(); }
 }
-function toggleHaptics(){
-  account.hapticsOn=!account.hapticsOn;
-  saveAccount();
-  if(account.hapticsOn) nativeHaptic('medium');
-}
-
 const reducedMotion = (typeof matchMedia!=='undefined') && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ffwd=false;   // used only by the explicit "finish then abandon" action
 const sleep = ms => new Promise(res=>setTimeout(res, reducedMotion?Math.min(ms,160):(ffwd?Math.min(ms,40):ms)));
@@ -3157,7 +3744,6 @@ function nativeRemovePersisted(key){
   if(WN && typeof WN.removePersisted==='function') WN.removePersisted(key);
 }
 function nativeHaptic(kind){
-  if(!account.hapticsOn) return;
   const WN=window.WildcardNative;
   if(WN && typeof WN.haptic==='function') WN.haptic(kind||'light');
 }
@@ -3168,7 +3754,7 @@ function hydrateNativeStorage(){
   const WN=window.WildcardNative;
   if(!WN || !WN.storageReady || typeof WN.storageReady.then!=='function') return Promise.resolve();
   return WN.storageReady.then(function(nativeData){
-    ['wildcard_save_v1','wildcard_run_v1'].forEach(function(key){
+    ['wildcard_save_v1','wildcard_run_v1','wildcard_privacy_accept_v1','wildcard_cloud_owner_v2'].forEach(function(key){
       const nativeRaw=nativeData && nativeData[key];
       if(!nativeRaw) return;
       let localRaw=null;
@@ -3182,76 +3768,108 @@ function hydrateNativeStorage(){
 
 /* ===================== v6.9.1 optional Google cloud save ===================== */
 const CLOUD_LINK_KEY='wildcard_cloud_link_v1';
-const cloudState={available:false,user:null,ready:false,busy:false,status:'Guest — phone save only',playGamesSignedIn:false,playGamesCode:''};
+const CLOUD_OWNER_KEY='wildcard_cloud_owner_v2';
+const CLOUD_ACCOUNT_SLOT_PREFIX='wildcard_cloud_account_v2:';
+const CLOUD_RUN_SLOT_PREFIX='wildcard_cloud_run_v2:';
+const CLOUD_SERVER_VERSION_PREFIX='wildcard_cloud_server_v2:';
+const CLOUD_DIRTY_PREFIX='wildcard_cloud_dirty_v2:';
+const CLOUD_CONFLICT_PREFIX='wildcard_cloud_conflict_v2:';
+const CLOUD_GUEST_BACKUP_KEY='wildcard_cloud_guest_backup_v2';
+const cloudState={
+  available:false,user:null,ready:false,busy:false,
+  status:'Guest — phone save only',
+  playGamesSignedIn:false,playGamesCode:'',
+  saveVersion:0,progressVersion:0,billingAdjustmentApplied:0,
+  billingAdjustmentTotal:0
+};
 let cloudSaveTimer=0, cloudWriteBusy=false, cloudWritePending=false;
 
 function parseJsonObject(raw){
   try{ const d=JSON.parse(raw||''); return d&&typeof d==='object'&&!Array.isArray(d)?d:null; }catch(e){ return null; }
 }
-function meaningfulAccount(d){
-  return !!(d && (Number(d.coins)>0 || Number(d.bestScore)>0 || Number(d.bestHeat)>0 || d.tutorialDone || d.noAds
-    || (Array.isArray(d.unlocked)&&d.unlocked.length) || (Array.isArray(d.cosmeticsOwned)&&d.cosmeticsOwned.length)
-    || (Array.isArray(d.topRuns)&&d.topRuns.length)));
+function cloudStorageGet(key){
+  try{ return localStorage.getItem(key)||''; }catch(e){ return ''; }
 }
-function unionList(a,b){ return [...new Set([...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])])]; }
-function maxObject(a,b){
-  const out={...((a&&typeof a==='object')?a:{}),...((b&&typeof b==='object')?b:{})};
-  Object.keys(out).forEach(k=>{ out[k]=Math.max(Number(a&&a[k])||0,Number(b&&b[k])||0); });
-  return out;
+function cloudStorageSet(key,value){
+  try{
+    if(value) localStorage.setItem(key,String(value));
+    else localStorage.removeItem(key);
+  }catch(e){}
 }
-function mergeAccountSaves(localRaw,cloudRaw){
-  const local=parseJsonObject(localRaw), remote=parseJsonObject(cloudRaw);
-  if(!local) return cloudRaw||'';
-  if(!remote) return localRaw||'';
-  if(!meaningfulAccount(local) && meaningfulAccount(remote)) return cloudRaw;
-  if(!meaningfulAccount(remote) && meaningfulAccount(local)) return localRaw;
-
-  // On a first link, keep the phone's choices while taking the safest union of
-  // earned progress. This prevents sign-in from resetting an established save.
-  const out={...remote,...local};
-  ['coins','bestHeat','bestScore','bestClearedHeat','dailyStreak','missionRotation'].forEach(k=>{
-    out[k]=Math.max(Number(local[k])||0,Number(remote[k])||0);
-  });
-  ['tutorialDone','starterGiftClaimed','firstRunStarted','firstLossCoached','tutorialChestClaimed','noAds'].forEach(k=>{
-    out[k]=!!(local[k]||remote[k]);
-  });
-  out.unlocked=unionList(local.unlocked,remote.unlocked);
-  out.cosmeticsOwned=unionList(local.cosmeticsOwned,remote.cosmeticsOwned);
-  // Cloud may be stale or come from another device. Keep the phone's newest
-  // claims at the tail so the 256-entry cap cannot evict a reward that was
-  // just paid locally and make it claimable again after reconciliation.
-  out.rewardClaims=validRewardClaims(unionList(remote.rewardClaims,local.rewardClaims));
-  out.achievements=maxObject(remote.achievements,local.achievements);
-  out.achievementClaimed=maxObject(remote.achievementClaimed,local.achievementClaimed);
-  out.stats=maxObject(remote.stats,local.stats);
-  out.playerName=local.playerName||remote.playerName||'';
-  out.lastDaily=[local.lastDaily||'',remote.lastDaily||''].sort().pop();
-  out.dailyRunDate=[local.dailyRunDate||'',remote.dailyRunDate||''].sort().pop();
-  const daily=[local.dailyBest,remote.dailyBest].filter(x=>x&&x.date).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  if(daily.length){
-    out.dailyBest={...daily[0]};
-    if(daily[1]&&daily[1].date===daily[0].date) out.dailyBest.score=Math.max(Number(daily[0].score)||0,Number(daily[1].score)||0);
-  }
-  const runs=[...(Array.isArray(local.topRuns)?local.topRuns:[]),...(Array.isArray(remote.topRuns)?remote.topRuns:[])];
-  out.topRuns=runs.filter((x,i,a)=>x&&a.findIndex(y=>Number(y.score)===Number(x.score)&&Number(y.heat)===Number(x.heat))===i)
-    .sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0)).slice(0,5);
-  const log=[...(Array.isArray(local.runLog)?local.runLog:[]),...(Array.isArray(remote.runLog)?remote.runLog:[])];
-  out.runLog=log.filter((x,i,a)=>a.findIndex(y=>JSON.stringify(y)===JSON.stringify(x))===i).slice(0,10);
-
-  const lw=String(local.missionWeek||''), rw=String(remote.missionWeek||'');
-  if(rw>lw){
-    ['missionWeek','missionStats','missionClaimed','missionSet','missionRotation','missionRefreshDate'].forEach(k=>out[k]=remote[k]);
-  }else if(lw===rw){
-    out.missionStats=maxObject(remote.missionStats,local.missionStats);
-    out.missionClaimed=maxObject(remote.missionClaimed,local.missionClaimed);
-  }
-  const adSource=String(remote.adDate||'')>String(local.adDate||'')?remote:local;
-  out.adDate=adSource.adDate||''; out.adViews=Number(adSource.adViews)||0;
-  out._savedAt=Math.max(savedStamp(localRaw),savedStamp(cloudRaw),Date.now());
-  return JSON.stringify(out);
+function safeCloudUid(uid){ return encodeURIComponent(String(uid||'').slice(0,256)); }
+function cloudOwnerUid(){
+  // The v1 link is read only as a one-time ownership migration. It is never
+  // permission to combine data belonging to two Google accounts.
+  return cloudStorageGet(CLOUD_OWNER_KEY)||cloudStorageGet(CLOUD_LINK_KEY);
+}
+function setCloudOwnerUid(uid){
+  cloudStorageSet(CLOUD_OWNER_KEY,uid||'');
+  cloudStorageSet(CLOUD_LINK_KEY,uid||'');
+  if(uid) nativePersist(CLOUD_OWNER_KEY,String(uid));
+  else nativeRemovePersisted(CLOUD_OWNER_KEY);
+}
+function cloudSlot(prefix,uid){ return prefix+safeCloudUid(uid); }
+function stashOwnedPhoneSave(uid){
+  if(!uid) return;
+  const accountRaw=store.get()||'';
+  let runRaw=''; try{ runRaw=localStorage.getItem(RUN_KEY)||''; }catch(e){}
+  cloudStorageSet(cloudSlot(CLOUD_ACCOUNT_SLOT_PREFIX,uid),accountRaw);
+  cloudStorageSet(cloudSlot(CLOUD_RUN_SLOT_PREFIX,uid),runRaw);
+}
+function ownedPhoneSave(uid){
+  return {
+    accountJson:cloudStorageGet(cloudSlot(CLOUD_ACCOUNT_SLOT_PREFIX,uid)),
+    runJson:cloudStorageGet(cloudSlot(CLOUD_RUN_SLOT_PREFIX,uid))
+  };
+}
+function cloudServerVersion(uid){
+  return Number(cloudStorageGet(cloudSlot(CLOUD_SERVER_VERSION_PREFIX,uid)))||0;
+}
+function setCloudServerVersion(uid,value){
+  cloudStorageSet(cloudSlot(CLOUD_SERVER_VERSION_PREFIX,uid),String(Math.max(0,Number(value)||0)));
+}
+function cloudDirtyState(uid){
+  return parseJsonObject(cloudStorageGet(cloudSlot(CLOUD_DIRTY_PREFIX,uid)));
+}
+function markCloudDirty(explicitStamp){
+  const uid=cloudState.user&&cloudState.user.uid;
+  if(!uid || cloudOwnerUid()!==uid) return;
+  const accountRaw=store.get()||'';
+  let runRaw=''; try{ runRaw=localStorage.getItem(RUN_KEY)||''; }catch(e){}
+  const stamp=Math.max(savedStamp(accountRaw),savedStamp(runRaw),Number(explicitStamp)||Date.now());
+  cloudStorageSet(cloudSlot(CLOUD_DIRTY_PREFIX,uid),JSON.stringify({stamp:stamp}));
+}
+function clearCloudDirty(uid){ cloudStorageSet(cloudSlot(CLOUD_DIRTY_PREFIX,uid),''); }
+function preserveCloudConflict(uid,accountRaw,runRaw){
+  cloudStorageSet(cloudSlot(CLOUD_CONFLICT_PREFIX,uid),JSON.stringify({
+    savedAt:Date.now(),accountJson:accountRaw||'',runJson:runRaw||''
+  }));
+}
+function localPaidState(){
+  return {
+    noAds:!!account.noAds,
+    purchaseClaims:validPurchaseClaims(account.purchaseClaims)
+  };
+}
+function accountRawWithTrustedPaidState(accountRaw,paidState=localPaidState()){
+  const parsed=parseJsonObject(accountRaw);
+  if(!parsed) throw new Error('Cloud account save is invalid');
+  [
+    'noAds','purchaseClaims','paidCoins','paidCoinBalance','billingDebt',
+    'billingAdjustments','billingAdjustmentApplied','billingAdjustmentTotal'
+  ].forEach(field=>delete parsed[field]);
+  parsed.noAds=!!paidState.noAds;
+  parsed.purchaseClaims=validPurchaseClaims(paidState.purchaseClaims);
+  return JSON.stringify(parsed);
 }
 function installCloudReconciledSave(accountRaw,runRaw){
-  if(accountRaw){ store.set(accountRaw); nativePersist(SAVE_KEY,accountRaw); }
+  if(accountRaw){
+    // Cloud accountJson contains progression only. Paid state is retained in
+    // the offline phone save and reconciled against the protected backend.
+    const localRaw=accountRawWithTrustedPaidState(accountRaw);
+    store.set(localRaw);
+    nativePersist(SAVE_KEY,localRaw);
+  }
   if(runRaw){
     try{ localStorage.setItem(RUN_KEY,runRaw); }catch(e){}
     nativePersist(RUN_KEY,runRaw);
@@ -3261,8 +3879,6 @@ function installCloudReconciledSave(accountRaw,runRaw){
   }
   loadAccount(); ensureMissionWeek(); applyCosmetics(); updateMenuAccount();
 }
-function linkedCloudUid(){ try{return localStorage.getItem(CLOUD_LINK_KEY)||'';}catch(e){return '';} }
-function rememberCloudUid(uid){ try{localStorage.setItem(CLOUD_LINK_KEY,uid||'');}catch(e){} }
 function cloudLabel(){
   if(!cloudState.user) return cloudState.status;
   return htmlSafe(cloudState.user.displayName||cloudState.user.email||'Google player');
@@ -3304,9 +3920,31 @@ async function cloudSaveNow(showMessage=true){
     const accountRaw=store.get()||'';
     let runRaw=''; try{runRaw=localStorage.getItem(RUN_KEY)||'';}catch(e){}
     const stamp=Math.max(savedStamp(accountRaw),savedStamp(runRaw),Date.now());
-    await WN.cloudWriteSave(accountRaw,runRaw,stamp);
-    cloudState.status='Cloud backup up to date';
-    if(showMessage) toast('Saved to this phone and Google cloud.','var(--mint)');
+    markCloudDirty(stamp);
+    stashOwnedPhoneSave(cloudState.user.uid);
+    const result=await WN.cloudWriteSave(
+      accountRaw,runRaw,stamp,
+      cloudState.progressVersion,
+      cloudState.billingAdjustmentApplied
+    );
+    if(!result||result.exists!==true||!parseJsonObject(result.accountJson)){
+      throw new Error('Cloud server returned an invalid save');
+    }
+    cloudState.saveVersion=clampInt(result.saveVersion,0,999999999);
+    cloudState.progressVersion=clampInt(result.progressVersion,0,999999999);
+    cloudState.billingAdjustmentApplied=clampInt(result.billingAdjustmentApplied);
+    cloudState.billingAdjustmentTotal=clampInt(result.billingAdjustmentTotal);
+    installCloudReconciledSave(result.accountJson,result.runJson||'');
+    stashOwnedPhoneSave(cloudState.user.uid);
+    clearCloudDirty(cloudState.user.uid);
+    if(result.serverUpdatedAt) setCloudServerVersion(cloudState.user.uid,result.serverUpdatedAt);
+    cloudState.status='Cloud backup verified';
+    const adjusted=clampInt(result.adjustedCoins);
+    if(adjusted>0){
+      toast('Google Play refund adjustment · -'+adjusted+' coins','var(--gold)',4800);
+    }else if(showMessage){
+      toast('Saved on this phone and verified in the cloud.','var(--mint)');
+    }
     return true;
   }catch(e){
     cloudState.status='Phone save safe — cloud waiting for connection';
@@ -3324,26 +3962,94 @@ async function reconcileCloudAccount(user,announce){
     // Always read first. A failed/uncertain read is never followed by a blind
     // overwrite, which protects an existing cloud save during bad connectivity.
     const remote=await WN.cloudReadSave();
-    if(remote&&remote.fromCache&&!remote.exists){
+    if(remote&&remote.fromCache){
       cloudState.ready=false; cloudState.status='Offline — phone save safe';
       if(announce) toast('Signed in. Connect once to finish cloud backup.','var(--gold)');
       return false;
     }
+    const uid=String(user&&user.uid||'');
+    if(!uid) throw new Error('Signed-in account has no uid');
+    cloudState.saveVersion=clampInt(remote&&remote.saveVersion,0,999999999);
+    cloudState.progressVersion=clampInt(remote&&remote.progressVersion,0,999999999);
+    cloudState.billingAdjustmentApplied=clampInt(remote&&remote.billingAdjustmentApplied);
+    cloudState.billingAdjustmentTotal=clampInt(remote&&remote.billingAdjustmentTotal);
     const localAccount=store.get()||'';
     let localRun=''; try{localRun=localStorage.getItem(RUN_KEY)||'';}catch(e){}
-    let accountRaw=localAccount, runRaw=localRun;
-    if(remote&&remote.exists){
-      const sameLink=linkedCloudUid()===user.uid;
-      accountRaw=sameLink
-        ? (savedStamp(remote.accountJson)>savedStamp(localAccount)?remote.accountJson:localAccount)
-        : mergeAccountSaves(localAccount,remote.accountJson);
-      runRaw=savedStamp(remote.runJson)>savedStamp(localRun)?(remote.runJson||''):localRun;
+    const owner=cloudOwnerUid();
+    const remoteExists=!!(remote&&remote.exists);
+    if(remoteExists && !parseJsonObject(remote.accountJson)) throw new Error('Cloud save is invalid');
+    const remoteServerAt=Math.max(0,Number(remote&&remote.serverUpdatedAt)||0);
+    let accountRaw=localAccount, runRaw=localRun, shouldUpload=!remoteExists;
+    let reconciledStatus='Cloud backup up to date';
+
+    if(owner && owner!==uid){
+      // Preserve account A locally, but never union or upload any of its fields
+      // into account B. B must have its own cloud document or an existing local
+      // slot; otherwise sign-in is refused until the phone save is reset.
+      stashOwnedPhoneSave(owner);
+      const slot=ownedPhoneSave(uid);
+      if(remoteExists){
+        accountRaw=remote.accountJson;
+        runRaw=remote.runJson||'';
+        shouldUpload=false;
+      }else if(slot.accountJson){
+        accountRaw=slot.accountJson;
+        runRaw=slot.runJson||'';
+        shouldUpload=true;
+      }else{
+        await WN.cloudSignOut();
+        cloudState.user=null;
+        cloudState.ready=false;
+        cloudState.saveVersion=0; cloudState.progressVersion=0;
+        cloudState.billingAdjustmentApplied=0; cloudState.billingAdjustmentTotal=0;
+        cloudState.status='Different Google account — reset phone progress before linking';
+        if(announce) toast('This phone save belongs to another Google account. Sign out, reset phone progress, then link the new account.','var(--gold)',4200);
+        return false;
+      }
+    }else if(!owner && remoteExists){
+      // A guest save is kept as a diagnostic recovery copy, never merged into
+      // an established cloud economy.
+      cloudStorageSet(CLOUD_GUEST_BACKUP_KEY,JSON.stringify({savedAt:Date.now(),accountJson:localAccount,runJson:localRun}));
+      accountRaw=remote.accountJson;
+      runRaw=remote.runJson||'';
+      shouldUpload=false;
+    }else if(owner===uid && remoteExists){
+      const dirty=cloudDirtyState(uid);
+      const lastServerAt=cloudServerVersion(uid);
+      if(dirty && Number(remote.clientSavedAt)>=Number(dirty.stamp)){
+        // The server has observed this device's pending write.
+        accountRaw=remote.accountJson;
+        runRaw=remote.runJson||'';
+        clearCloudDirty(uid);
+      }else if(dirty && lastServerAt>0 && remoteServerAt===lastServerAt){
+        // The server has not changed since this phone last read it, so uploading
+        // the locally-dirty same-account save cannot overwrite another device.
+        shouldUpload=true;
+      }else if(dirty){
+        // Concurrent device edits are not unioned. Preserve a local diagnostic
+        // copy and let the server copy win, preventing duplicated progression.
+        preserveCloudConflict(uid,localAccount,localRun);
+        accountRaw=remote.accountJson;
+        runRaw=remote.runJson||'';
+        clearCloudDirty(uid);
+        shouldUpload=false;
+        reconciledStatus='Cloud conflict resolved with server copy';
+      }else{
+        accountRaw=remote.accountJson;
+        runRaw=remote.runJson||'';
+        shouldUpload=false;
+      }
     }
     installCloudReconciledSave(accountRaw,runRaw);
-    rememberCloudUid(user.uid);
-    cloudState.ready=true; cloudState.status='Cloud backup up to date';
-    await cloudSaveNow(false);
-    if(announce) toast('Google sign-in complete — your phone progress is linked.','var(--mint)');
+    setCloudOwnerUid(uid);
+    stashOwnedPhoneSave(uid);
+    if(remoteServerAt) setCloudServerVersion(uid,remoteServerAt);
+    cloudState.ready=true; cloudState.status=reconciledStatus;
+    if(shouldUpload){
+      markCloudDirty();
+      await cloudSaveNow(false);
+    }
+    if(announce) toast('Google sign-in complete — this account has its own private save.','var(--mint)');
     return true;
   }catch(e){
     cloudState.ready=false; cloudState.status='Phone save safe — cloud unavailable';
@@ -3359,7 +4065,11 @@ async function cloudSignIn(){
   try{
     const user=await WN.cloudSignInGoogle();
     cloudState.busy=false;
-    if(user&&user.signedIn) await reconcileCloudAccount(user,true);
+    if(user&&user.signedIn){
+      await reconcileCloudAccount(user,true);
+      await recoverPlayPurchases('sign-in',true);
+      refreshPlayCatalog(true);
+    }
   }catch(e){
     cloudState.busy=false; cloudState.status='Guest — phone save only'; refreshSettingsIfOpen();
     toast('Google sign-in was cancelled or unavailable.','var(--gold)');
@@ -3368,9 +4078,80 @@ async function cloudSignIn(){
 async function cloudSignOut(){
   const WN=window.WildcardNative; if(!WN||typeof WN.cloudSignOut!=='function') return;
   if(cloudState.ready) await cloudSaveNow(false);
+  if(cloudState.user&&cloudState.user.uid) stashOwnedPhoneSave(cloudState.user.uid);
   try{ await WN.cloudSignOut(); }catch(e){}
   cloudState.user=null; cloudState.ready=false; cloudState.status='Guest — phone save only';
+  cloudState.saveVersion=0; cloudState.progressVersion=0;
+  cloudState.billingAdjustmentApplied=0; cloudState.billingAdjustmentTotal=0;
   refreshSettingsIfOpen(); updateMenuAccount(); toast('Signed out. Phone save remains available.','var(--cream-dim)');
+}
+function openCloudAccountDeletion(){
+  const WN=window.WildcardNative;
+  if(!cloudState.user){
+    toast('Sign in before deleting a cloud account.','var(--gold)');
+    return;
+  }
+  const body=openOverlay('Delete Google account','This permanently deletes the Firebase account, its cloud save and this phone save. Purchases remain in Google Play purchase history. This cannot be undone.');
+  const warning=document.createElement('p');
+  warning.className='sub';
+  warning.style.color='var(--coral)';
+  warning.textContent='Type DELETE to confirm permanent account and progress deletion.';
+  const input=document.createElement('input');
+  input.autocomplete='off';
+  input.placeholder='DELETE';
+  input.style.cssText='padding:12px 14px;border-radius:12px;border:2px solid var(--coral);background:#0b1512;color:var(--cream);font-family:inherit;font-size:16px;text-align:center;width:100%;max-width:240px';
+  const msg=document.createElement('div');
+  msg.setAttribute('role','status');
+  msg.style.cssText='margin-top:9px;min-height:18px;color:var(--coral);font-size:12px';
+  const button=document.createElement('button');
+  button.className='btn ghost';
+  button.style.cssText='margin-top:12px;color:var(--coral);border-color:var(--coral)';
+  button.textContent='Delete account permanently';
+  button.onclick=async()=>{
+    if(input.value.trim()!=='DELETE'){
+      msg.textContent='Enter DELETE exactly to continue.';
+      return;
+    }
+    if(!WN||typeof WN.cloudDeleteAccount!=='function'){
+      msg.textContent='Account deletion is unavailable in this installed build. Update WILDCARD before trying again.';
+      return;
+    }
+    button.disabled=true;
+    input.disabled=true;
+    msg.textContent='Deleting account and cloud data…';
+    const uid=String(cloudState.user&&cloudState.user.uid||'');
+    try{
+      await WN.cloudDeleteAccount();
+      clearTimeout(cloudSaveTimer);
+      cloudWritePending=false;
+      store.del();
+      nativeRemovePersisted(SAVE_KEY);
+      try{ localStorage.removeItem(RUN_KEY); }catch(e){}
+      nativeRemovePersisted(RUN_KEY);
+      [
+        CLOUD_OWNER_KEY,CLOUD_LINK_KEY,CLOUD_GUEST_BACKUP_KEY,
+        cloudSlot(CLOUD_ACCOUNT_SLOT_PREFIX,uid),cloudSlot(CLOUD_RUN_SLOT_PREFIX,uid),
+        cloudSlot(CLOUD_SERVER_VERSION_PREFIX,uid),cloudSlot(CLOUD_DIRTY_PREFIX,uid),
+        cloudSlot(CLOUD_CONFLICT_PREFIX,uid)
+      ].forEach(k=>cloudStorageSet(k,''));
+      nativeRemovePersisted(CLOUD_OWNER_KEY);
+      cloudState.user=null;
+      cloudState.ready=false;
+      cloudState.status='Account deleted';
+      cloudState.saveVersion=0; cloudState.progressVersion=0;
+      cloudState.billingAdjustmentApplied=0; cloudState.billingAdjustmentTotal=0;
+      closeOverlay();
+      location.reload();
+    }catch(e){
+      button.disabled=false;
+      input.disabled=false;
+      msg.textContent='Deletion could not be completed. Re-authenticate or check the connection, then try again.';
+    }
+  };
+  body.appendChild(warning);
+  body.appendChild(input);
+  body.appendChild(msg);
+  body.appendChild(button);
 }
 async function initCloudAccount(){
   const WN=window.WildcardNative;
@@ -3378,7 +4159,10 @@ async function initCloudAccount(){
   if(!cloudState.available) return;
   try{
     const user=await WN.cloudAuthState();
-    if(user&&user.signedIn) await reconcileCloudAccount(user,false);
+    if(user&&user.signedIn){
+      await reconcileCloudAccount(user,false);
+      await recoverPlayPurchases('startup',true);
+    }
   }catch(e){ cloudState.status='Guest — phone save only'; }
   try{
     if(typeof WN.playGamesState==='function'){
@@ -3407,7 +4191,6 @@ async function openOfficialLeaderboard(){
     capturePlayGamesCode(state,state&&state.signedIn?'PGS_OK':'PGS_SIGN_IN_REQUIRED');
     cloudState.playGamesSignedIn=!!(state&&state.signedIn);
     if(!cloudState.playGamesSignedIn){ toast(playGamesUserMessage(cloudState.playGamesCode)+' · '+cloudState.playGamesCode,'var(--gold)'); return; }
-    if(account.bestScore>0) await submitOfficialScore(account.bestScore);
     if(typeof WN.loadPlayGamesLeaderboard!=='function'){
       await WN.showPlayGamesLeaderboard(); return;
     }
@@ -3456,9 +4239,22 @@ const account = {
   noAds:false, lastDaily:'', dailyStreak:0, achievements:{}, achievementClaimed:{}, adDate:'', adViews:0,
   cosmeticsOwned:new Set(), equipped:{table:'felt_classic', theme:'theme_default', sly:'sly_classic'},
   title:'', missionWeek:'', missionStats:{}, missionClaimed:{}, missionSet:[], missionRotation:0, missionRefreshDate:'', dailyRunDate:'', dailyBest:{date:'',score:0},
-  bestClearedHeat:0, musicOn:true, hapticsOn:true,
-  playerName:'', stats:{runs:0,wins:0,gWins:0,hands:0}, runLog:[], rewardClaims:[]
+  bestClearedHeat:0, musicOn:true,
+  playerName:'', stats:{runs:0,wins:0,gWins:0,hands:0}, runLog:[], rewardClaims:[],
+  purchaseClaims:{}
 };
+
+// Google Play grants are accepted only after the native Firebase backend has
+// verified the purchase token. purchaseClaims is an idempotency cache, never
+// proof of payment by itself.
+const PLAY_COIN_GRANTS=Object.freeze({
+  coins_250:250,
+  coins_600:600,
+  coins_1600:1600,
+  coins_3600:3600,
+  coins_8500:8500
+});
+const PLAY_PRODUCT_IDS=new Set([...Object.keys(PLAY_COIN_GRANTS),'remove_ads']);
 
 // ---------- COSMETICS: pure visuals, zero balance effect ----------
 // kinds: table | theme | sly. Defaults are free & owned by everyone.
@@ -3660,6 +4456,35 @@ function validUnlocked(ids){
 function validRewardClaims(ids){
   return [...new Set((Array.isArray(ids)?ids:[]).filter(id=>typeof id==='string' && id.length<=96))].slice(-256);
 }
+function validPurchaseClaims(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([tokenHash,claim])=>
+    /^[a-f0-9]{64}$/.test(tokenHash)
+    && claim&&typeof claim==='object'&&!Array.isArray(claim)
+    && PLAY_PRODUCT_IDS.has(claim.productId)
+  ).map(([tokenHash,claim])=>[tokenHash,{
+    productId:claim.productId,
+    claimedAt:clampInt(claim.claimedAt,0,9999999999999)
+  }]).sort((a,b)=>a[1].claimedAt-b[1].claimedAt).slice(-256));
+}
+function validTopRuns(rows){
+  return (Array.isArray(rows)?rows:[]).filter(r=>r&&typeof r==='object').map(r=>{
+    const clean={score:clampInt(r.score),heat:clampInt(r.heat,0,999)};
+    if(Number.isFinite(Number(r._provisional))) clean._provisional=clampInt(r._provisional);
+    return clean;
+  }).filter(r=>r.score>0).sort((a,b)=>b.score-a.score).slice(0,5);
+}
+function validRunLog(rows){
+  return (Array.isArray(rows)?rows:[]).filter(r=>r&&typeof r==='object').map(r=>({
+    d:/^\d{4}-\d{2}-\d{2}$/.test(String(r.d||''))?String(r.d):'',
+    h:clampInt(r.h,0,999),
+    c:clampInt(r.c,0,999),
+    s:clampInt(r.s),
+    m:['G','D','S'].includes(r.m)?r.m:'S',
+    w:!!r.w,
+    a:!!r.a
+  })).slice(0,10);
+}
 
 function saveAccount(){
   const serialized=JSON.stringify({
@@ -3673,11 +4498,13 @@ function saveAccount(){
     achievements:account.achievements, achievementClaimed:account.achievementClaimed, adDate:account.adDate, adViews:account.adViews,
     cosmeticsOwned:[...account.cosmeticsOwned], equipped:account.equipped,
     title:account.title, missionWeek:account.missionWeek, missionStats:account.missionStats, missionClaimed:account.missionClaimed, missionSet:account.missionSet, missionRotation:account.missionRotation, missionRefreshDate:account.missionRefreshDate, dailyRunDate:account.dailyRunDate, dailyBest:account.dailyBest,
-    bestClearedHeat:account.bestClearedHeat, musicOn:account.musicOn, hapticsOn:account.hapticsOn,
+    bestClearedHeat:account.bestClearedHeat, musicOn:account.musicOn,
     playerName:account.playerName, stats:account.stats, runLog:account.runLog, rewardClaims:account.rewardClaims,
+    purchaseClaims:account.purchaseClaims,
   });
   store.set(serialized);
   nativePersist(SAVE_KEY,serialized);
+  markCloudDirty();
   scheduleCloudSave();
 }
 function loadAccount(){
@@ -3694,7 +4521,7 @@ function loadAccount(){
     account.bestHeat=clampInt(d.bestHeat,0,999);
     account.bestScore=clampInt(d.bestScore);
     account.muted=!!d.muted;
-    account.topRuns=Array.isArray(d.topRuns)?d.topRuns:[];
+    account.topRuns=validTopRuns(d.topRuns);
     account.speed=(clampInt(d.pacingVersion,0,99)>=2 && d.speed==='fast')?'fast':'normal';
     account.pacingVersion=2;
     account.noAds=!!d.noAds;
@@ -3723,19 +4550,25 @@ function loadAccount(){
     account.bestClearedHeat = clampInt(d.bestClearedHeat ?? Math.max(0,(clampInt(d.bestHeat,0,999))-1), 0, 999);
     account.playerName=(typeof d.playerName==='string'?d.playerName:'').replace(/[^A-Za-z0-9]/g,'').slice(0,8);
     account.stats=(d.stats&&typeof d.stats==='object')?{runs:clampInt(d.stats.runs),wins:clampInt(d.stats.wins),gWins:clampInt(d.stats.gWins),hands:clampInt(d.stats.hands)}:{runs:0,wins:0,gWins:0,hands:0};
-    account.runLog=Array.isArray(d.runLog)?d.runLog.slice(0,10):[];
+    account.runLog=validRunLog(d.runLog);
     account.rewardClaims=validRewardClaims(d.rewardClaims);
+    account.purchaseClaims=validPurchaseClaims(d.purchaseClaims);
     account.musicOn = (typeof d.musicOn==='boolean') ? d.musicOn : !d.muted;   // legacy: a fully-muted save keeps music off
-    account.hapticsOn = (typeof d.hapticsOn==='boolean') ? d.hapticsOn : true;
-    account.dailyBest=(d.dailyBest&&typeof d.dailyBest==='object')?d.dailyBest:{date:'',score:0};
+    account.dailyBest=(d.dailyBest&&typeof d.dailyBest==='object')
+      ? {date:/^\d{4}-\d{2}-\d{2}$/.test(String(d.dailyBest.date||''))?String(d.dailyBest.date):'',score:clampInt(d.dailyBest.score)}
+      : {date:'',score:0};
   }catch(e){}
 }
 function resetSave(){
   if(!confirm('Wipe all saved progress (coins, unlocks, bests, high scores)?')) return;
+  if(!cloudState.user) setCloudOwnerUid('');
+  // "Reset progress" is not a refund. Durable paid entitlements survive.
+  const retainedNoAds=!!account.noAds;
+  const retainedPurchaseClaims=validPurchaseClaims(account.purchaseClaims);
   account.coins=0; account.unlocked=new Set(); account.tutorialDone=false; account.starterGiftClaimed=false;
   account.firstRunStarted=false; account.firstLossCoached=false; account.tutorialChestClaimed=false;
   account.bestHeat=0; account.bestScore=0; account.topRuns=[];
-  account.muted=false; account.speed='normal'; account.pacingVersion=2; account.noAds=false;
+  account.muted=false; account.speed='normal'; account.pacingVersion=2; account.noAds=retainedNoAds;
   account.dailyStreak=0; account.lastDaily=''; account.achievements={}; account.achievementClaimed={};
   account.adDate=''; account.adViews=0;
   account.cosmeticsOwned=new Set();
@@ -3743,14 +4576,21 @@ function resetSave(){
   account.title=''; account.missionWeek=''; account.missionStats={}; account.missionClaimed={}; account.missionSet=[]; account.missionRotation=0; account.missionRefreshDate=''; account.dailyRunDate=''; account.dailyBest={date:'',score:0};
   account.bestClearedHeat=0;
   account.playerName=''; account.stats={runs:0,wins:0,gWins:0,hands:0}; account.runLog=[]; account.rewardClaims=[];
+  account.purchaseClaims=retainedPurchaseClaims;
   clearRunState();
-  account.musicOn=true; account.hapticsOn=true;
+  account.musicOn=true;
   applyCosmetics();
   saveAccount();   // overwrite storage with the clean slate so stale values can't resurrect on the next save
   updateMenuAccount();
 }
+function isDailyRun(activeRun=run){
+  return !!(dailyMode||(activeRun&&(activeRun.telemetryMode==='daily'||activeRun.dailyDate)));
+}
+function progressionEnabled(activeRun=run){ return !isDailyRun(activeRun); }
+
 // returns {placement, entry}; placement 0 if it missed the board
 function recordHighScore(score, heat,official=true){
+  if(!progressionEnabled()) return {placement:0,entry:null};
   if(score<=0) return {placement:0, entry:null};
   const entry={score, heat};
   account.topRuns.push(entry);
@@ -3862,6 +4702,7 @@ const ACHIEVEMENTS = [
 
 function achievementById(id){ return ACHIEVEMENTS.find(a=>a.id===id); }
 function awardAchievement(id){
+  if(!progressionEnabled()) return;
   if(account.achievements[id]) return;
   const a=achievementById(id); if(!a) return;
   account.achievements[id]=Date.now();
@@ -3882,6 +4723,7 @@ function claimAchievement(id){
 }
 let achievementChecking = false;
 function checkAchievements(){
+  if(!progressionEnabled()) return;
   if(achievementChecking) return;
   achievementChecking = true;
   try{
@@ -3926,10 +4768,16 @@ function createRunId(){
   return Date.now().toString(36)+'-'+Math.floor(Math.random()*0x7fffffff).toString(36);
 }
 function newRunState(){
+  const dailyDate=dailyMode?(dailyChallengeDate||todayStr()):'';
   return {
     runId:createRunId(),
     gauntlet: pendingGauntlet,
     telemetryMode: dailyMode?'daily':(pendingGauntlet?'gauntlet':'normal'),
+    dailyDate:dailyDate,
+    rngSeed:newRunSeed(dailyDate),
+    rngCounters:{deck:0,shop:0,mods:0,luck:0,boss:0},
+    pendingTransition:null,
+    bossBlockedJokerIds:[],
 
     stage:1, endless:false, modifier:null,
     guidedFirstRun:false, guideStep:0, shopGuideShown:false,
@@ -3945,7 +4793,7 @@ function newRunState(){
     prevHandType:null,
     bestPlay:0, totalScore:0, stagesCleared:0,
     accountEarned:0, accountRewardIds:[],
-    reviveUsed:false, terminalPending:false, failureReason:'', leaderboardEligible:true,
+    reviveUsed:false, terminalPending:false, failureReason:'', leaderboardEligible:!dailyMode,
     heat12SequenceStarted:false, heat12InterstitialAttempted:false, victoryChoiceMade:false,
     doubleBaseCoins:0, coinDoubleClaimed:false,
     pendingShopJoker:null,
@@ -4065,7 +4913,7 @@ function evaluateHand(cards){
 function cardEffectiveRankForScoring(c){
   if((mod('heartless') && c.suit==='♥') || (mod('frostbite') && c.suit==='♠')) return 0;
   let v=c.value;
-  for(const j of run.jokers) if(j.rankMod) v += j.rankMod(c)||0;
+  for(const j of run.jokers) if(!isJokerBlocked(j)&&j.rankMod) v += j.rankMod(c)||0;
   if(c.enh==='gild') v+=8;
   if(hasJoker('royalscam') && (c.rank==='J'||c.rank==='Q'||c.rank==='K')) v *= 2;
   return v;
@@ -4158,7 +5006,7 @@ function scoreHand(cards, commit=false, resolvedHand=null){
       rankSum += c.value;
       events.push({type:'card', idx, amount:c.value, label:'+'+c.value});
       // 2) then each rank joker fires ON that card, Balatro-style
-      for(const j of run.jokers) if(j.rankMod){
+      for(const j of run.jokers) if(!isJokerBlocked(j)&&j.rankMod){
         const m2=j.rankMod(c);
         if(m2){
           v+=m2; rankSum+=m2;
@@ -4193,15 +5041,15 @@ function scoreHand(cards, commit=false, resolvedHand=null){
     if(flags[idx] && c.enh==='neon'){ mult+=0.20; events.push({type:'mult', jokerIdx:-1, cardIdx:idx, label:'NEON +0.20', amount:0.20, mult}); }
   });
   for(const j of run.jokers){
-    if(j.addMult){
+    if(!isJokerBlocked(j)&&j.addMult){
       const a=j.addMult(ctx);
       if(a>0.001){ mult+=a; events.push({type:'mult', jokerIdx:run.jokers.indexOf(j), label:'+'+a.toFixed(2)+' Mult', amount:a, mult}); }
       else mult+=a;
     }
   }
-  if(!mod('fog') && !(run.modifier && run.modifier.boss)){
+  if(!mod('fog')){
   for(const j of run.jokers){
-    if(j.xMult){
+    if(!isJokerBlocked(j)&&j.xMult){
       const x=j.xMult(ctx);
       mult*=x;
       if(Math.abs(x-1)>0.001) events.push({type:'xmult', jokerIdx:run.jokers.indexOf(j), label:'\u00d7'+x, amount:x, mult});
@@ -4307,15 +5155,15 @@ function showHeat12Choice(){
 }
 function startHeat12VictorySequence(){
   if(!run) return;
-  const dailyVictory=dailyMode;
+  const dailyVictory=dailyMode||run.telemetryMode==='daily';
   run.heat12SequenceStarted=true;
-  if(!dailyVictory) saveRunState('wincomplete');
+  saveRunState('wincomplete');
   playSlyTearCinematic(()=>{
     if(!run) return;
     // Persist before the request. A relaunch goes straight to the choice instead
     // of replaying either the cinematic or the interstitial.
     run.heat12InterstitialAttempted=true;
-    if(!dailyVictory) saveRunState('wincomplete');
+    saveRunState('wincomplete');
     showAdBreak(()=>dailyVictory?gameOver(true):showHeat12Choice());
   });
 }
@@ -4360,7 +5208,7 @@ function updateMenuAccount(){
     account.bestHeat>0 ? 'Best: Heat '+account.bestHeat+' · '+account.bestScore+' pts' : 'Best: —';
   document.getElementById('storage-note').textContent = store.ok
     ? (cloudState.ready ? 'Saved on this phone and privately backed up to Google cloud.' : 'Progress saves automatically on this device. Optional Google backup is in Settings.')
-    : 'Storage unavailable in this preview — use Export Save before closing to keep your progress.';
+    : 'Storage is unavailable in this preview — progress lasts for this session only.';
   document.getElementById('sound-toggle').textContent = account.muted?'🔇':'🔊';
   const mb0=document.getElementById('music-toggle'); if(mb0) mb0.textContent = account.musicOn?'🎵':'🔕';
   const sp=document.getElementById('speed-toggle');
@@ -4668,8 +5516,9 @@ function renderStartBoost(){
   });
 }
 function assignModifier(){
+  run.bossBlockedJokerIds=[];
   if(run.gauntlet){
-    if(run.stage===GAUNTLET_HEATS){ run.modifier=BOSS_MOD; return; }   // Gauntlet finale
+    if(run.stage===GAUNTLET_HEATS){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // Gauntlet finale
     let m=MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)];
     if(run.prevGauntletMod && MODIFIERS.length>1){
       let guard=0;
@@ -4679,13 +5528,14 @@ function assignModifier(){
     run.modifier=m;
     return;
   }
-  if(run.stage===12 && !run.endless){ run.modifier=BOSS_MOD; return; }   // named boss Heat
+  if(run.stage===12 && !run.endless){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // named boss Heat
   const qualifies = run.stage>0 && run.stage%3===0;
   run.modifier = qualifies ? MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)] : null;
 }
 function beginRun(startJokerId=null){
-  const guidedFirstRun=!account.firstRunStarted;
-  const starter = startJokerId ? JOKERS.find(j=>j.id===startJokerId && account.unlocked.has(j.id)) : null;
+  const canProgress=progressionEnabled();
+  const guidedFirstRun=canProgress&&!account.firstRunStarted;
+  const starter = canProgress&&startJokerId ? JOKERS.find(j=>j.id===startJokerId && account.unlocked.has(j.id)) : null;
   const cost = starter ? starterJokerPrice(starter) : 0;
   if(starter && account.coins<cost){ renderStartBoost(); return; }
   if(starter){
@@ -4693,7 +5543,7 @@ function beginRun(startJokerId=null){
     saveAccount();
   }
   let stakeAmt=0;
-  if(pendingStake>0 && stakeUnlocked()){
+  if(canProgress&&pendingStake>0 && stakeUnlocked()){
     // Gauntlet losses are doubled, so the wallet must cover 2× the stake up front
     const affordable = pendingGauntlet ? Math.floor(account.coins/(2*STAKE_STEP))*STAKE_STEP
                                        : Math.floor(account.coins/STAKE_STEP)*STAKE_STEP;
@@ -4702,7 +5552,7 @@ function beginRun(startJokerId=null){
   }
   pendingStake=0;
   clearRunState();
-  account.stats.runs=(account.stats.runs||0)+1;
+  if(canProgress) account.stats.runs=(account.stats.runs||0)+1;
   run = newRunState();
   pendingGauntlet=false;   // consumed — the flag must never leak into the next run
   run.stake=stakeAmt;
@@ -4732,6 +5582,8 @@ function beginRun(startJokerId=null){
   if(starter) slySay('buy', 3000);
   else slySay('greet', 3500);
   syncModifierAmbience();
+  saveRunState('game');
+  if(canProgress) saveAccount();
   queueTelemetry('run_start',{m:telemetryRunMode(run,dailyMode)});
 }
 
@@ -4790,6 +5642,16 @@ async function playHand(){
   if(sel.length===0){ setHint('Select 1–'+effMaxSelect()+' cards to play.'); return; }
   nativeHaptic('medium');
 
+  // Persist the exact pre-roll table and RNG counters before any committed luck
+  // is consumed. If the process dies during scoring, Resume restores this same
+  // selected hand and the same Lucky Seven / Glass outcomes instead of rerolling.
+  run.pendingTransition={
+    kind:'play',
+    stage:run.stage,
+    selectedUids:sel.map(c=>String(c.uid||'')),
+    rngCounters:{...run.rngCounters}
+  };
+  saveRunState('game');
   const res = scoreHand(sel, true);   // commit: Lucky Seven rolls happen here
   if(run.guidedFirstRun && run.guideStep===0) run.guideStep=1;
   run.animating = true;
@@ -4949,17 +5811,18 @@ async function playHand(){
   run.totalScore += res.total;
   if(res.total>run.bestPlay){ run.bestPlay=res.total; run.bestPlayType=res.handType; }
   run.handTypeCounts[res.handType]=(run.handTypeCounts[res.handType]||0)+1;
-  bumpMission('hands',1,false);
-  account.stats.hands=(account.stats.hands||0)+1;
-  if(res.handType.includes('Flush')) bumpMission('flush',1,false);
-  if(['Full House','Four of a Kind','Straight Flush','Royal Flush'].includes(res.handType)) bumpMission('bighand',1,false);
+  if(progressionEnabled()){
+    bumpMission('hands',1,false);
+    account.stats.hands=(account.stats.hands||0)+1;
+    if(res.handType.includes('Flush')) bumpMission('flush',1,false);
+    if(['Full House','Four of a Kind','Straight Flush','Royal Flush'].includes(res.handType)) bumpMission('bighand',1,false);
+  }
   attributeJokerScore(res);
   run.prevHandType = res.handType;   // Double Down reads this
   checkAchievements();
   run.handsLeft--;
   run.handsPlayedThisStage++;
-  for(const j of run.jokers) if(j.onScored) j.onScored(res.ctx);
-  saveAccount();
+  for(const j of run.jokers) if(!isJokerBlocked(j)&&j.onScored) j.onScored(res.ctx);
 
   // Glass cards gamble their existence: 20% shatter per scoring play (skipped if the deck is already minimal)
   if(sel.filter((c,i)=>c.enh==='glass' && res.flags[i]).length>=2) run.glassDouble=true;
@@ -4980,6 +5843,7 @@ async function playHand(){
   refillHand();
 
   if(run.abortAfterAnimation){
+    run.pendingTransition=null;
     run.abortAfterAnimation=false;
     run.abandoned=true;
     run.animating=false;
@@ -4990,18 +5854,27 @@ async function playHand(){
   // previously allowed a second play (and a second clearStage) to fire.
 
   if(run.stageScore >= stageTarget()){
+    run.pendingTransition={kind:'clear',stage:run.stage};
+    saveRunState('game');
+    if(progressionEnabled()) saveAccount();
     renderGame(false);
     await sleep(600);
     clearStage();
     return;
   }
   if(run.handsLeft<=0 || run.hand.length===0){
+    run.pendingTransition={kind:'fail',stage:run.stage,reason:run.hand.length===0?'cards':'plays'};
+    saveRunState('game');
+    if(progressionEnabled()) saveAccount();
     renderGame(false);
     await sleep(400);
     requestFailedHeat(run.hand.length===0?'cards':'plays');
     return;
   }
+  run.pendingTransition=null;
   run.animating = false;   // only unlock when play genuinely continues
+  saveRunState('game');
+  if(progressionEnabled()) saveAccount();
   renderGame(true);
 }
 
@@ -5023,23 +5896,25 @@ function discardSelected(){
 }
 
 function clearStage(){
+  const canProgress=progressionEnabled();
+  run.pendingTransition=null;
   run.stagesCleared++;
-  if(!run.gauntlet) account.bestClearedHeat=Math.max(account.bestClearedHeat||0, run.stage);   // CLEARED, not just reached (standard runs only)
-  bumpMission('heats',1);
+  if(canProgress&&!run.gauntlet) account.bestClearedHeat=Math.max(account.bestClearedHeat||0, run.stage);   // CLEARED, not just reached (standard runs only)
+  if(canProgress) bumpMission('heats',1);
   const heat = run.stage;
   const grade = GRADES[Math.min(4, Math.max(1, run.handsPlayedThisStage))];
   run.lastGrade = grade;
   run.lastInterest = Math.min(INTEREST_CAP, Math.floor(run.runCoins/INTEREST_PER));
   run.lastRunReward = runReward(heat);
-  run.lastAcctReward = acctReward(heat);
+  run.lastAcctReward = canProgress?acctReward(heat):0;
   run.runCoins += run.lastRunReward + run.lastInterest + grade.bonus;
   creditRunAccountOnce('heat:'+heat,run.lastAcctReward);
-  for(const j of run.jokers) if(j.onHeatClear) j.onHeatClear();
+  for(const j of run.jokers) if(!isJokerBlocked(j)&&j.onHeatClear) j.onHeatClear();
   if(run.modifier) run.modifiersSurvived.push(run.modifier.name);
   run.inflation = mod('inflation');   // this Heat's modifier hits the next shop
-  if(!run.gauntlet) account.bestHeat = Math.max(account.bestHeat, run.stage);   // furthest Heat reached (standard runs only)
+  if(canProgress&&!run.gauntlet) account.bestHeat = Math.max(account.bestHeat, run.stage);   // furthest Heat reached (standard runs only)
   checkAchievements();
-  saveAccount();
+  if(canProgress) saveAccount();
   chord([392,494,587,784]);
   nativeHaptic('success');
 
@@ -5062,21 +5937,21 @@ function clearStage(){
   }
   if(run.stage===12 && !run.endless && !run.gauntlet){
     creditRunAccountOnce('completion:standard',WIN_BONUS_ACCOUNT);
-    bumpMission('wins',1); bumpMission('bosskill',1);
+    if(canProgress){ bumpMission('wins',1); bumpMission('bosskill',1); }
     // Bank the result, but retain a resumable victory checkpoint until the player
     // explicitly enters Endless or chooses Bank Run & Finish.
-    account.bestScore = Math.max(account.bestScore, run.totalScore);
-    const winBoard=recordHighScore(run.totalScore, 12,run.leaderboardEligible!==false);
+    if(canProgress) account.bestScore = Math.max(account.bestScore, run.totalScore);
+    const winBoard=canProgress?recordHighScore(run.totalScore, 12,run.leaderboardEligible!==false):{entry:null,placement:0};
     run.hsEntry=winBoard.entry;
     run.winPlacement=winBoard.placement;
     run.provisionalWinScore=winBoard.entry?run.totalScore:0;
     run.provisionalWinStamp=winBoard.entry?Date.now():0;
     if(run.hsEntry) run.hsEntry._provisional=run.provisionalWinStamp;
     resolveStakeContract();
-    account.stats.wins=(account.stats.wins||0)+1;
+    if(canProgress) account.stats.wins=(account.stats.wins||0)+1;
     checkAchievements();
-    saveAccount();
-    if(!dailyMode) saveRunState('wincomplete');
+    if(canProgress) saveAccount();
+    saveRunState('wincomplete');
     updateMenuAccount();
     renderWin();
     startHeat12VictorySequence();
@@ -5141,6 +6016,7 @@ function canOfferRunRevive(reason){
     && reason==='plays' && run.handsLeft<=0 && run.hand.length>0);
 }
 function requestFailedHeat(reason='plays'){
+  if(run) run.pendingTransition=null;
   if(!canOfferRunRevive(reason)){ gameOver(false); return; }
   run.terminalPending=true;
   run.failureReason=reason;
@@ -5298,18 +6174,18 @@ function claimDoubleRunCoins(){
 }
 function gameOver(won){
   nativeHaptic(won?'success':'warning');
-  const _wasDaily=dailyMode;
+  const _wasDaily=dailyMode||run.telemetryMode==='daily';
   queueRunEndTelemetry(run,_wasDaily,won);
   const firstLossChest=!!(run && !won && !run.abandoned && !run.endless && !run.gauntlet && !dailyMode && !account.firstLossCoached && !account.tutorialChestClaimed);
   if(firstLossChest){ account.firstLossCoached=true; run.firstLossChestPending=true; }
-  if(dailyMode) endDailyRun();
-  run.doubleBaseCoins=(!run.abandoned && run.accountEarned>0)?run.accountEarned:0;
+  if(_wasDaily) endDailyRun();
+  run.doubleBaseCoins=(!_wasDaily&&!run.abandoned && run.accountEarned>0)?run.accountEarned:0;
   run.coinDoubleClaimed=hasRewardClaim(doubleCoinsClaimId());
   clearRunState();
-  if(run){
+  if(run&&!_wasDaily){
     account.runLog=[{d:todayStr(), h:run.stage, c:run.stagesCleared, s:run.totalScore, m:run.gauntlet?'G':(_wasDaily?'D':'S'), w:!!won, a:!!run.abandoned}, ...(account.runLog||[])].slice(0,10);
-    run._wasDaily=_wasDaily;
   }
+  if(run) run._wasDaily=_wasDaily;
   stopModifierAmbience();
   const t=document.getElementById('go-title'), s=document.getElementById('go-sub');
   if(won){ t.textContent='Run Banked'; t.style.color='var(--mint)';
@@ -5321,10 +6197,10 @@ function gameOver(won){
   else { t.textContent='Run Over'; t.style.color='var(--coral)';
     s.innerHTML='Heat '+run.stage+' target not reached — out of plays (or cards).<br><span style="color:var(--violet)">🃏 Sly: \u201c'+SLY_LOSS_LINES[Math.floor(Math.random()*SLY_LOSS_LINES.length)]+'\u201d</span>'; }
 
-  if(!run.gauntlet) account.bestHeat = Math.max(account.bestHeat, run.stage);   // furthest Heat reached (standard runs only)
-  account.bestScore = Math.max(account.bestScore, run.totalScore);
-  removeProvisionalWinScore(); // Endless/final banking supersedes the Heat 12 provisional entry
-  const placement = run.gauntlet ? null : recordHighScore(run.totalScore, run.stage,run.leaderboardEligible!==false).placement;
+  if(!_wasDaily&&!run.gauntlet) account.bestHeat = Math.max(account.bestHeat, run.stage);   // furthest Heat reached (standard runs only)
+  if(!_wasDaily) account.bestScore = Math.max(account.bestScore, run.totalScore);
+  if(!_wasDaily) removeProvisionalWinScore(); // Endless/final banking supersedes the Heat 12 provisional entry
+  const placement = (_wasDaily||run.gauntlet) ? null : recordHighScore(run.totalScore, run.stage,run.leaderboardEligible!==false).placement;
   saveAccount();
   updateMenuAccount();
 
@@ -5436,7 +6312,7 @@ function updateWildPityFromOffers(offers, countForHeatShop, wildAvailable){
   }
 }
 function jokerAvailableForRun(joker){
-  return !!joker&&(dailyMode||account.unlocked.has(joker.id));
+  return !!joker&&(isDailyRun(run)||account.unlocked.has(joker.id));
 }
 function rollJokerOffers(countForHeatShop=false){
   const owned = new Set(run.jokers.map(j=>j.id));
@@ -5464,6 +6340,7 @@ function rollSupplyOffers(){
 }
 
 function openShop(){
+  if(saveRunState._t&&typeof clearTimeout==='function') clearTimeout(saveRunState._t);
   document.getElementById('shop-title').textContent =
     (run.endless?'Endless · ':'')+'Heat '+run.stage+' Cleared!';
   normalizeSupplyState();
@@ -5481,10 +6358,10 @@ function openShop(){
     run.shopGuideShown=true; run.guideStep=3;
     setTimeout(showFirstShopGuide,260);
   }
-  if(!dailyMode) saveRunState('shop');
+  saveRunState('shop');
 }
 function updateShopSub(){
-  if(run && !dailyMode) saveRunState('shop');
+  if(run) saveRunState('shop');
   const bits = [`+${run.lastRunReward} run coins`, `+${run.lastAcctReward} account coins`];
   if(run.lastInterest>0) bits.push(`+${run.lastInterest} interest`);
   if(run.lastGrade && run.lastGrade.bonus>0) bits.push(`+${run.lastGrade.bonus} grade bonus`);
@@ -5670,6 +6547,13 @@ function cancelSwap(){
 // ---------- Supplies: pickers ----------
 let chestOpening=false;
 let overlayCancelAction=null;
+let overlayReturnFocus=null;
+function overlayFocusable(){
+  const overlay=document.getElementById('overlay');
+  if(!overlay||!overlay.classList.contains('active')) return [];
+  return Array.from(overlay.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'))
+    .filter(el=>el.offsetParent!==null&&!el.hidden);
+}
 function useSupply(s){
   normalizeSupplyState();
   if(run.pendingShopJoker) return;
@@ -5682,6 +6566,7 @@ function useSupply(s){
 function openOverlay(title, sub){
   overlayCancelAction=null;
   const overlay=document.getElementById('overlay');
+  overlayReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   overlay.classList.remove('joker-inspect-active','deck-view-active');
   overlay.removeAttribute('aria-label');
   document.getElementById('ov-title').textContent=title;
@@ -5689,9 +6574,14 @@ function openOverlay(title, sub){
   document.getElementById('ov-body').innerHTML='';
   var _ovc=document.getElementById('ov-cancel'); if(_ovc) _ovc.style.display='';
   overlay.classList.add('active');
+  requestAnimationFrame(()=>{
+    const focusable=overlayFocusable();
+    (focusable[0]||overlay.querySelector('.panel'))?.focus({preventScroll:true});
+  });
   return document.getElementById('ov-body');
 }
 function closeOverlay(silent=false){
+  if(chestOpening&&!silent) return false;
   const afterClose=silent?null:overlayCancelAction;
   overlayCancelAction=null;
   if(jokerInspectTimer){ clearTimeout(jokerInspectTimer); jokerInspectTimer=null; }
@@ -5700,7 +6590,13 @@ function closeOverlay(silent=false){
   const overlay=document.getElementById('overlay');
   overlay.classList.remove('active','joker-inspect-active','deck-view-active');
   overlay.removeAttribute('aria-label');
+  const returnTo=overlayReturnFocus;
+  overlayReturnFocus=null;
+  if(returnTo&&returnTo.isConnected) requestAnimationFrame(()=>{
+    if(returnTo.offsetParent!==null) returnTo.focus({preventScroll:true});
+  });
   if(afterClose) setTimeout(afterClose,0);
+  return true;
 }
 function closeOverlaySilently(){ closeOverlay(true); }
 
@@ -5888,8 +6784,8 @@ function openDeckView(){
   body.appendChild(summary);
   const matrix=document.createElement('div'); matrix.className='deck-overview';
   matrix.appendChild(document.createElement('span'));
-  const VALUES=[2,3,4,5,6,7,8,9,10,11,12,13,14];
-  const LABELS={11:'J',12:'Q',13:'K',14:'A'};
+  const VALUES=[2,3,4,5,6,7,8,9,10,11,12,13,15];
+  const LABELS={11:'J',12:'Q',13:'K',15:'A'};
   VALUES.forEach(v=>{ const h=document.createElement('div'); h.className='deck-rank-head'; h.textContent=LABELS[v]||v; matrix.appendChild(h); });
   const SUIT_ROWS=['\u2660','\u2665','\u2666','\u2663'];
   for(const s of SUIT_ROWS){
@@ -5932,6 +6828,9 @@ function renderWin(){
 // ---------- Collection filters / improved unlock renderer ----------
 let unlockFilter = 'all';
 let unlockSort = 'rarity';
+let unlockSearch = '';
+let unlockVisible = 24;
+const UNLOCK_PAGE_SIZE = 24;
 const RARITY_ORDER = {common:1, uncommon:2, rare:3, wild:4};
 function rarityColor(r){
   return r==='wild' ? 'var(--wild)' : r==='rare' ? 'var(--rare)' : r==='uncommon' ? 'var(--mint)' : 'var(--gold)';
@@ -6057,8 +6956,11 @@ function unlockJokerFromInspect(id,event){
   renderUnlocks();
   inspectJoker(id);
 }
-function setUnlockFilter(f){ unlockFilter=f; renderUnlocks(); }
-function setUnlockSort(s){ unlockSort=s; renderUnlocks(); }
+function resetUnlockPage(){ unlockVisible=UNLOCK_PAGE_SIZE; }
+function setUnlockFilter(f){ unlockFilter=f; resetUnlockPage(); renderUnlocks(); }
+function setUnlockSort(s){ unlockSort=s; resetUnlockPage(); renderUnlocks(); }
+function setUnlockSearch(value){ unlockSearch=String(value||'').trim().toLowerCase(); resetUnlockPage(); renderUnlocks(); }
+function loadMoreUnlocks(){ unlockVisible+=UNLOCK_PAGE_SIZE; renderUnlocks(); }
 function renderUnlocks(){
   document.getElementById('unlock-account').textContent=account.coins;
   const cbv2=document.getElementById('coin-badge-val');
@@ -6091,6 +6993,7 @@ function renderUnlocks(){
   if(unlockFilter==='locked') list=list.filter(j=>!account.unlocked.has(j.id));
   else if(unlockFilter==='owned') list=list.filter(j=>account.unlocked.has(j.id));
   else if(unlockFilter!=='all') list=list.filter(j=>j.rarity===unlockFilter);
+  if(unlockSearch) list=list.filter(j=>(j.name+' '+j.desc+' '+j.rarity+' '+jokerTagline(j)).toLowerCase().includes(unlockSearch));
   list.sort((a,b)=>{
     if(unlockSort==='name') return a.name.localeCompare(b.name);
     if(unlockSort==='cost') return jokerUnlockCost(a)-jokerUnlockCost(b) || RARITY_ORDER[a.rarity]-RARITY_ORDER[b.rarity] || a.name.localeCompare(b.name);
@@ -6099,9 +7002,17 @@ function renderUnlocks(){
   });
   if(list.length===0){
     grid.innerHTML='<p class="sub">Nothing in this filter yet.</p>';
+    const count=document.getElementById('unlock-result-count'); if(count) count.textContent='0 Jokers shown';
+    const more=document.getElementById('unlock-load-more'); if(more) more.hidden=true;
     return;
   }
-  list.forEach(j=>{
+  const totalFiltered=list.length;
+  const visibleList=list.slice(0,unlockVisible);
+  const count=document.getElementById('unlock-result-count');
+  if(count) count.textContent='Showing '+visibleList.length+' of '+totalFiltered+' Jokers';
+  const more=document.getElementById('unlock-load-more');
+  if(more){ more.hidden=visibleList.length>=totalFiltered; more.textContent='Load more ('+Math.min(UNLOCK_PAGE_SIZE,totalFiltered-visibleList.length)+')'; }
+  visibleList.forEach(j=>{
     const el=document.createElement('div');
     const has=account.unlocked.has(j.id);
     const cost=jokerUnlockCost(j);
@@ -6209,7 +7120,7 @@ function runCoachRows(){
   if(run.jokers.length<MAX_JOKERS) rows.push(['Next fix', 'Fill joker slots before over-spending on supplies. Empty slots are usually lost scaling.']);
   if(run.stage>=6 && run.boostsBought<2) rows.push(['Boost advice', 'Buy Hand Boosts for '+mostPlayedType()+' or your strongest late-game hand type.']);
   if(run.stage>=7 && run.destroyedCount+run.copiedCount<3) rows.push(['Deck advice', 'Try more Scalpel/Copier work. Late game wants a shaped deck, not a fair deck.']);
-  if(run.stage>=8) rows.push(['Late wall', 'Heats 9\u201312 need \u00d7Mult or a focused engine \u2014 and THE HOUSE at Heat 12 jams joker \u00d7Mult, so bank rank and +Mult too.']);
+  if(run.stage>=8) rows.push(['Late wall', 'Heats 9\u201312 need a focused engine \u2014 and THE HOUSE blocks 2 randomly selected equipped Jokers at Heat 12, so build some redundancy.']);
   return rows.map(([k,v])=>`<div class="stat-row"><span>${k}</span><b>${v}</b></div>`).join('');
 }
 
@@ -6244,10 +7155,11 @@ function ensureDelegatedHandSelection(handEl){
 
 function renderGame(dealt){
   applyCosmetics();
-  if(run && !run.animating && !dailyMode){
+  const bossBlockedJokerIds=bossHeatActive()?ensureBossBlocks():[];
+  if(run && !run.animating){
     // v5.4: debounced — serializing the whole run on every tap costs real ms on phones
     clearTimeout(saveRunState._t);
-    saveRunState._t=setTimeout(function(){ if(run && !run.abandoned && !run.animating && !dailyMode) saveRunState('game'); }, 400);
+    saveRunState._t=setTimeout(function(){ if(run && !run.abandoned && !run.animating) saveRunState('game'); }, 400);
   }
   document.getElementById('hud-stage').textContent = run.endless ? run.stage+' ∞' : run.stage;
   document.getElementById('hud-hands').textContent = run.handsLeft;
@@ -6291,13 +7203,17 @@ function renderGame(dealt){
   if(run.handsLeft>1) run.clutchSaid=false;
 
   const banner=document.getElementById('mod-banner');
-  const bannerSig=run.modifier ? run.modifier.id+'|'+run.modifier.name+'|'+run.modifier.desc : '-';
+  const bannerSig=run.modifier ? run.modifier.id+'|'+run.modifier.name+'|'+run.modifier.desc+'|'+bossBlockedJokerIds.join(',') : '-';
   if(banner.dataset.sig!==bannerSig){
     banner.dataset.sig=bannerSig;
     if(run.modifier){
       banner.style.display='block';
       banner.classList.add('modifier-active');
-      banner.innerHTML=run.modifier.id==='boss_house' ? '<b>♛ SLY\'S KINGDOM · THE HOUSE</b><br><span>'+run.modifier.desc+'</span>' : '<b>'+run.modifier.name+'</b> &nbsp;'+run.modifier.desc;
+      if(run.modifier.id==='boss_house'){
+        const blockedNames=run.jokers.filter(j=>bossBlockedJokerIds.includes(j.id)).map(j=>j.name);
+        banner.innerHTML='<b>♛ SLY\'S KINGDOM · THE HOUSE</b><br><span>'+run.modifier.desc+'</span>'
+          +(blockedNames.length?'<div class="boss-blocked-summary">BLOCKED THIS HEAT · '+blockedNames.join(' · ')+'</div>':'');
+      } else banner.innerHTML='<b>'+run.modifier.name+'</b> &nbsp;'+run.modifier.desc;
     } else {
       banner.style.display='none';
       banner.classList.remove('modifier-active');
@@ -6314,7 +7230,7 @@ function renderGame(dealt){
   const row=document.getElementById('joker-row');
   // v5.4: only rebuild the joker row when its contents change — a full rebuild
   // every render restarted animations and flashed visibly on phones.
-  const jokerSig=MAX_JOKERS+'~'+run.jokers.map(j=>j?(j.name+'~'+j.rarity+'~'+j.desc):'-').join('|');
+  const jokerSig=MAX_JOKERS+'~'+run.jokers.map(j=>j?(j.name+'~'+j.rarity+'~'+j.desc+'~'+(bossBlockedJokerIds.includes(j.id)?'B':'A')):'-').join('|');
   if(row.dataset.sig!==jokerSig){
     row.dataset.sig=jokerSig;
     row.innerHTML='';
@@ -6322,12 +7238,14 @@ function renderGame(dealt){
       const j=run.jokers[i];
       const el=document.createElement('div');
       if(j){
-        el.className='joker rare-'+j.rarity;
+        const blocked=bossBlockedJokerIds.includes(j.id);
+        el.className='joker rare-'+j.rarity+(blocked?' boss-blocked':'');
         el.style.setProperty('--jr',rarityColor(j.rarity));
         el.setAttribute('role','button');
         el.setAttribute('tabindex','0');
-        el.setAttribute('aria-label','Inspect '+j.name+' joker');
-        el.innerHTML=`<div class="jname">${j.name}</div><div class="jdesc">${j.desc}</div><div class="proc-chip" aria-hidden="true"></div>`;
+        el.setAttribute('aria-label','Inspect '+j.name+' joker'+(blocked?', blocked this Heat':''));
+        el.innerHTML=(blocked?'<div class="boss-blocked-label">BLOCKED THIS HEAT</div>':'')
+          +`<div class="jname">${j.name}</div><div class="jdesc">${j.desc}</div><div class="proc-chip" aria-hidden="true"></div>`;
         el.onclick=()=>inspectJoker(j.id);
         el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); inspectJoker(j.id); } };
       }
@@ -6336,7 +7254,9 @@ function renderGame(dealt){
     }
     const liveStatus=document.getElementById('joker-live-status');
     if(liveStatus){
-      liveStatus.textContent=run.jokers.length?'Tap a Joker for its full effect':'No Jokers equipped';
+      liveStatus.textContent=bossBlockedJokerIds.length
+        ? bossBlockedJokerIds.length+' Jokers blocked this Heat'
+        :(run.jokers.length?'Tap a Joker for its full effect':'No Jokers equipped');
       liveStatus.classList.remove('active');
     }
   }
@@ -6563,9 +7483,26 @@ function sparks(n, color, suitMode){
 }
 // ---------- Keyboard controls (arcade cabinet mode) ----------
 document.addEventListener('keydown', e=>{
+  const overlay=document.getElementById('overlay');
+  if(overlay&&overlay.classList.contains('active')){
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(chestOpening) toast('Vault opening in progress — claim the saved reward first.','var(--gold)');
+      else closeOverlay();
+      return;
+    }
+    if(e.key==='Tab'){
+      const focusable=overlayFocusable();
+      if(!focusable.length){ e.preventDefault(); overlay.querySelector('.panel')?.focus(); return; }
+      const first=focusable[0], last=focusable[focusable.length-1];
+      if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+      return;
+    }
+  }
   if(!run || run.animating) return;
   if(!document.getElementById('game').classList.contains('active')) return;
-  if(document.getElementById('overlay').classList.contains('active')) return;
+  if(overlay.classList.contains('active')) return;
   const k=e.key;
   if(k>='1' && k<='9'){
     const i=parseInt(k)-1;
@@ -6580,23 +7517,27 @@ document.addEventListener('keydown', e=>{
   else if(k==='d' || k==='D'){ discardSelected(); }
 });
 
-// ---------- Save transfer (carry progress between game versions/files) ----------
-function encodeSave(){
+// ---------- Read-only diagnostic backup ----------
+// Public restore/import was intentionally removed. An unsigned client code must
+// never be able to mint coins, entitlements, rewards, unlocks or leaderboard
+// scores. This complete snapshot is support evidence only and has no load path.
+function encodeDiagnosticBackup(){
+  const accountRaw=store.get()||'';
+  let runRaw=''; try{ runRaw=localStorage.getItem(RUN_KEY)||''; }catch(e){}
   return btoa(unescape(encodeURIComponent(JSON.stringify({
-    coins:account.coins, unlocked:[...account.unlocked], tutorialDone:account.tutorialDone,
-    starterGiftClaimed:account.starterGiftClaimed, firstRunStarted:account.firstRunStarted, firstLossCoached:account.firstLossCoached, tutorialChestClaimed:account.tutorialChestClaimed,
-    bestHeat:account.bestHeat, bestScore:account.bestScore, muted:account.muted, topRuns:account.topRuns, speed:account.speed, pacingVersion:account.pacingVersion,
-    noAds:account.noAds, lastDaily:account.lastDaily, dailyStreak:account.dailyStreak,
-    achievements:account.achievements, achievementClaimed:account.achievementClaimed,
-    cosmeticsOwned:[...account.cosmeticsOwned], equipped:account.equipped,
-    title:account.title, missionWeek:account.missionWeek, missionStats:account.missionStats, missionClaimed:account.missionClaimed, missionSet:account.missionSet, missionRotation:account.missionRotation, missionRefreshDate:account.missionRefreshDate, dailyRunDate:account.dailyRunDate, dailyBest:account.dailyBest, bestClearedHeat:account.bestClearedHeat, musicOn:account.musicOn,
-    playerName:account.playerName, stats:account.stats, runLog:account.runLog, v:1
+    format:'wildcard-diagnostic-backup-v2',
+    appVersion:'6.9.14',
+    createdAt:new Date().toISOString(),
+    restorable:false,
+    cloudOwnerPresent:!!cloudOwnerUid(),
+    account:parseJsonObject(accountRaw),
+    activeRun:parseJsonObject(runRaw)
   }))));
 }
 function exportSave(){
-  const body=openOverlay('Export Save','Copy this code. Paste it into Import Save on any version of the game to carry your progress over.');
+  const body=openOverlay('Diagnostic Backup','Copy this only when WILDCARD support asks for it. It includes your complete local game state, cannot be imported by the game and is not a way to transfer rewards.');
   const ta=document.createElement('textarea');
-  ta.readOnly=true; ta.value=encodeSave();
+  ta.readOnly=true; ta.value=encodeDiagnosticBackup();
   ta.style.cssText='width:100%;min-height:110px;border-radius:12px;border:2px solid var(--line);background:#0b1512;color:var(--cream);padding:10px;font-size:12px;word-break:break-all';
   body.appendChild(ta);
   const b=document.createElement('button');
@@ -6611,75 +7552,6 @@ function exportSave(){
     }catch(e){ b.textContent='Select & copy manually'; }
   };
   body.appendChild(b);
-}
-function openImportSave(){
-  const body=openOverlay('Import Save','Paste a save code from any version, then Load. This replaces your current progress.');
-  const ta=document.createElement('textarea');
-  ta.placeholder='Paste save code here';
-  ta.style.cssText='width:100%;min-height:110px;border-radius:12px;border:2px solid var(--line);background:#0b1512;color:var(--cream);padding:10px;font-size:12px;word-break:break-all';
-  body.appendChild(ta);
-  const msg=document.createElement('div');
-  msg.style.cssText='margin-top:8px;font-size:12px;min-height:16px;color:var(--coral)';
-  const b=document.createElement('button');
-  b.className='btn alt'; b.style.cssText='margin-top:10px;padding:11px 22px;font-size:14px';
-  b.textContent='Load save';
-  b.onclick=()=>{
-    try{
-      const d=JSON.parse(decodeURIComponent(escape(atob(ta.value.trim()))));
-      if(typeof d.coins!=='number' || !Array.isArray(d.unlocked)) throw new Error('bad');
-      account.coins=clampInt(d.coins);
-      account.unlocked=validUnlocked(d.unlocked);
-      account.tutorialDone=!!d.tutorialDone;
-      account.starterGiftClaimed=(typeof d.starterGiftClaimed==='boolean')?d.starterGiftClaimed:account.tutorialDone;
-      account.firstRunStarted=(typeof d.firstRunStarted==='boolean')?d.firstRunStarted:account.tutorialDone;
-      account.firstLossCoached=!!d.firstLossCoached;
-      account.tutorialChestClaimed=!!d.tutorialChestClaimed;
-      account.bestHeat=clampInt(d.bestHeat,0,999);
-      account.bestScore=clampInt(d.bestScore);
-      account.muted=!!d.muted;
-      account.topRuns=Array.isArray(d.topRuns)?d.topRuns:[];
-      account.speed=(clampInt(d.pacingVersion,0,99)>=2 && d.speed==='fast')?'fast':'normal';
-      account.pacingVersion=2;
-      account.noAds=!!d.noAds;
-      account.dailyStreak=clampInt(d.dailyStreak,0,999);
-      account.lastDaily=d.lastDaily||'';
-      account.achievements=(d.achievements && typeof d.achievements==='object') ? d.achievements : {};
-      account.achievementClaimed=(d.achievementClaimed&&typeof d.achievementClaimed==='object') ? d.achievementClaimed : Object.fromEntries(Object.keys(account.achievements).map(id=>[id,1]));
-      account.adDate=d.adDate||'';
-      account.adViews=clampInt(d.adViews,0,9999);
-      account.title=typeof d.title==='string'?d.title:'';
-      account.missionWeek=typeof d.missionWeek==='string'?d.missionWeek:'';
-      account.missionStats=(d.missionStats&&typeof d.missionStats==='object')?d.missionStats:{};
-      account.missionClaimed=(d.missionClaimed&&typeof d.missionClaimed==='object')?d.missionClaimed:{};
-      account.missionSet=Array.isArray(d.missionSet)?d.missionSet.filter(id=>typeof id==='string').slice(0,3):[];
-      account.missionRotation=clampInt(d.missionRotation,0,9999);
-      account.missionRefreshDate=typeof d.missionRefreshDate==='string'?d.missionRefreshDate:'';
-      account.dailyRunDate=typeof d.dailyRunDate==='string'?d.dailyRunDate:'';
-      account.dailyBest=(d.dailyBest&&typeof d.dailyBest==='object'&&typeof d.dailyBest.score==='number')?{date:d.dailyBest.date||'',score:clampInt(d.dailyBest.score)}:{date:'',score:0};
-      account.bestClearedHeat=clampInt(d.bestClearedHeat ?? Math.max(0,clampInt(d.bestHeat,0,999)-1),0,999);
-      account.playerName=(typeof d.playerName==='string'?d.playerName:'').replace(/[^A-Za-z0-9]/g,'').slice(0,8);
-      account.stats=(d.stats&&typeof d.stats==='object')?{runs:clampInt(d.stats.runs),wins:clampInt(d.stats.wins),gWins:clampInt(d.stats.gWins),hands:clampInt(d.stats.hands)}:{runs:0,wins:0,gWins:0,hands:0};
-      account.runLog=Array.isArray(d.runLog)?d.runLog.slice(0,10):[];
-      account.rewardClaims=validRewardClaims(d.rewardClaims);
-      account.musicOn=(typeof d.musicOn==='boolean')?d.musicOn:!d.muted;
-      const validCos=new Set(COSMETICS.map(c=>c.id));
-      account.cosmeticsOwned=new Set((Array.isArray(d.cosmeticsOwned)?d.cosmeticsOwned:[]).filter(id=>validCos.has(id)));
-      account.equipped={table:'felt_classic',theme:'theme_default',sly:'sly_classic'};
-      const eq=(d.equipped&&typeof d.equipped==='object')?d.equipped:{};
-      for(const kind of ['table','theme','sly']){
-        if(eq[kind] && validCos.has(eq[kind]) && cosmeticById(eq[kind]).kind===kind && ownsCosmetic(eq[kind])) account.equipped[kind]=eq[kind];
-      }
-      applyCosmetics();
-      grantFreeUnlocks();
-      checkAchievements();
-      saveAccount();
-      updateMenuAccount();
-      closeOverlay();
-      chord([659,784,988]);
-    }catch(e){ msg.textContent='That code didn\u2019t work — check you copied all of it.'; body.appendChild(msg); tone(160,0.15,'sawtooth',0.04); }
-  };
-  body.appendChild(b);
-  body.appendChild(msg);
 }
 
 // =====================================================
@@ -6760,7 +7632,7 @@ function grantCoinsOnce(id,n,why,announce=false){
   return true;
 }
 function creditRunAccountOnce(suffix,n){
-  if(!run) return false;
+  if(!run||run.telemetryMode==='daily'||(typeof dailyMode!=='undefined'&&dailyMode)) return false;
   const id=run.runId+':'+suffix;
   if(!Array.isArray(run.accountRewardIds)) run.accountRewardIds=[];
   if(!run.accountRewardIds.includes(id)){
@@ -6800,7 +7672,7 @@ function showRewardedPlacement(label,detail,onEarned,onUnavailable){
   const WN=window.WildcardNative;
   if(WN && typeof WN.showRewardedAd==='function'){
     const phase=currentRunPhase();
-    if(run && !run.animating && !dailyMode) saveRunState(phase);
+    if(run && !run.animating) saveRunState(phase);
     saveAccount(); nativeHaptic('medium');
     WN.showRewardedAd(ok=>settle(!!ok,ok?'earned':'unavailable'));
     return true;
@@ -6834,20 +7706,62 @@ const COIN_BUNDLES=[
   {coins:3600, gbp:'9.99', label:'The Vault', tag:'BEST VALUE'},
   {coins:8500, gbp:'19.99', label:'Jackpot Crate'},
 ];
-function openStore(){ renderStore(); showScreen('store'); }
+const playStoreCatalog=Object.create(null);
+const playDeliveryInFlight=new Set();
+let playCatalogLoading=false;
+let playRecoveryInFlight=null;
+let playLastRecoveryAt=0;
+
+function installPlayCatalog(rows){
+  (Array.isArray(rows)?rows:[]).forEach(row=>{
+    if(!row||!PLAY_PRODUCT_IDS.has(row.id)) return;
+    playStoreCatalog[row.id]={
+      available:!!row.available,
+      price:typeof row.price==='string'?row.price:'',
+      currency:typeof row.currency==='string'?row.currency:'',
+      priceMicros:clampInt(row.priceMicros,0,999999999999)
+    };
+  });
+}
+async function refreshPlayCatalog(force=false){
+  const WN=window.WildcardNative;
+  if(!isNativeShell()||!WN||typeof WN.getBillingProducts!=='function'||playCatalogLoading) return;
+  if(!force&&Object.keys(playStoreCatalog).length) return;
+  playCatalogLoading=true;
+  try{ installPlayCatalog(await WN.getBillingProducts()); }
+  catch(e){}
+  finally{
+    playCatalogLoading=false;
+    const screen=document.getElementById('store');
+    if(screen&&screen.classList.contains('active')) renderStore();
+  }
+}
+function openStore(){
+  renderStore();
+  showScreen('store');
+  refreshPlayCatalog(true);
+}
 function renderStore(){
   refreshCoinReadouts();
   const mode=document.getElementById('store-mode-label');
-  if(mode) mode.textContent=isNativeShell()?'Google Play secure checkout':'Browser preview — purchases are simulated';
+  if(mode){
+    if(!isNativeShell()) mode.textContent='Browser preview — purchases are simulated';
+    else if(!cloudState.user) mode.textContent='Sign in with Google to use secure checkout';
+    else mode.textContent='Google Play secure checkout · prices supplied by Play';
+  }
   updateRewardAdButton('store-ad-btn');
   const g=document.getElementById('store-bundles'); g.innerHTML='';
   COIN_BUNDLES.forEach(b=>{
+    const productId='coins_'+b.coins;
+    const playProduct=playStoreCatalog[productId];
     const el=document.createElement('div'); el.className='store-card';
     el.innerHTML=(b.tag?'<div class="store-tag">'+b.tag+'</div>':'')
       +'<div class="store-coins-amt"><span class="coin-disc"></span>'+b.coins.toLocaleString()+'</div>'
       +'<div class="store-label">'+b.label+'</div>';
     const btn=document.createElement('button'); btn.className='btn'; btn.style.cssText='padding:10px 0;font-size:14px;width:100%';
-    btn.textContent='£'+b.gbp; btn.onclick=()=>buyBundle(b);
+    btn.textContent=isNativeShell()?(playProduct&&playProduct.available?playProduct.price:'Unavailable'):'£'+b.gbp;
+    btn.disabled=isNativeShell()&&(!playProduct||!playProduct.available||!cloudState.user);
+    btn.onclick=()=>buyBundle(b);
     el.appendChild(btn); g.appendChild(el);
   });
   const ra=document.getElementById('store-removeads');
@@ -6857,18 +7771,28 @@ function renderStore(){
     ra.innerHTML='<div class="store-label" style="font-size:15px;color:var(--cream)">🚫 Remove Ads Forever</div>'
       +'<div class="sub" style="margin:6px 0 10px">No more between-run ad breaks. Rewarded bonuses become instant.</div>';
     const btn=document.createElement('button'); btn.className='btn alt'; btn.style.cssText='padding:10px 26px;font-size:14px';
-    btn.textContent='£2.99'; btn.onclick=buyRemoveAds; ra.appendChild(btn);
+    const playProduct=playStoreCatalog.remove_ads;
+    btn.textContent=isNativeShell()?(playProduct&&playProduct.available?playProduct.price:'Unavailable'):'£2.99';
+    btn.disabled=isNativeShell()&&(!playProduct||!playProduct.available||!cloudState.user);
+    btn.onclick=buyRemoveAds; ra.appendChild(btn);
   }
+  if(isNativeShell()&&!Object.keys(playStoreCatalog).length) refreshPlayCatalog();
 }
 function demoConfirm(what){
   return confirm('DEMO STORE\n\n'+what+'\n\nIn the Android app this is a real Google Play purchase. Grant it now for testing?');
 }
 function buyBundle(b){
-  // Native shell provides window.WildcardNative.purchase(productId, cb(success)) — real Google Play Billing.
+  // The native callback only reports checkout/verification state. The durable
+  // delivery handler below is the sole code path allowed to grant paid coins.
   const WN=window.WildcardNative;
   if(WN && typeof WN.purchase==='function'){
     nativeHaptic('medium');
-    WN.purchase('coins_'+b.coins, ok=>{ if(ok){ grantCoins(b.coins, 'purchase'); nativeHaptic('success'); renderStore(); } else toast('Google Play purchase was cancelled or unavailable.','var(--gold)'); });
+    WN.purchase('coins_'+b.coins, result=>{
+      if(result&&result.pending) toast('Payment is pending in Google Play. Coins arrive after payment clears.','var(--gold)',4200);
+      else if(result&&result.ok) toast('Purchase verified · securing your coins…','var(--mint)');
+      else if(result&&result.reason==='sign_in_required') toast('Sign in with Google before purchasing.','var(--gold)');
+      else toast('Google Play purchase was cancelled or unavailable.','var(--gold)');
+    });
     return;
   }
   if(!demoConfirm('Buy '+b.coins.toLocaleString()+' coins for £'+b.gbp+'.')) return;
@@ -6882,29 +7806,198 @@ function buyRemoveAds(){
   const WN=window.WildcardNative;
   if(WN && typeof WN.purchase==='function'){
     nativeHaptic('medium');
-    WN.purchase('remove_ads', ok=>{ if(ok){ nativeHaptic('success'); applyRemoveAds(); } else toast('Google Play purchase was cancelled or unavailable.','var(--gold)'); });
+    WN.purchase('remove_ads', result=>{
+      if(result&&result.pending) toast('Payment is pending in Google Play. Remove Ads activates after it clears.','var(--gold)',4200);
+      else if(result&&result.ok) toast('Purchase verified · securing Remove Ads…','var(--mint)');
+      else if(result&&result.reason==='sign_in_required') toast('Sign in with Google before purchasing.','var(--gold)');
+      else toast('Google Play purchase was cancelled or unavailable.','var(--gold)');
+    });
     return;
   }
   if(!demoConfirm('Remove Ads Forever for £2.99.')) return;
   applyRemoveAds();
 }
 
+function hasPaidClaim(tokenHash,productId){
+  const claim=account.purchaseClaims&&account.purchaseClaims[tokenHash];
+  return !!(claim&&claim.productId===productId);
+}
+function hasRemoveAdsPurchaseClaim(){
+  return Object.values(account.purchaseClaims||{}).some(claim=>claim&&claim.productId==='remove_ads');
+}
+async function persistPaidAccountNow(){
+  saveAccount();
+  const WN=window.WildcardNative;
+  if(WN&&typeof WN.persist==='function'){
+    try{ await WN.persist(SAVE_KEY,store.get()||''); }catch(e){}
+  }
+}
+function completeVerifiedPlayReceipt(tokenHash){
+  const WN=window.WildcardNative;
+  if(!WN||typeof WN.completePurchase!=='function') return Promise.resolve(false);
+  return new Promise(resolve=>{
+    try{ WN.completePurchase(tokenHash,ok=>resolve(!!ok)); }
+    catch(e){ resolve(false); }
+  });
+}
+async function handleVerifiedPlayDelivery(delivery){
+  if(!delivery||!PLAY_PRODUCT_IDS.has(delivery.productId)
+    ||!/^[a-f0-9]{64}$/.test(String(delivery.tokenHash||''))) return false;
+  const tokenHash=String(delivery.tokenHash);
+  if(playDeliveryInFlight.has(tokenHash)) return false;
+  playDeliveryInFlight.add(tokenHash);
+  try{
+    const alreadyClaimed=hasPaidClaim(tokenHash,delivery.productId);
+    if(!alreadyClaimed){
+      account.purchaseClaims=validPurchaseClaims({
+        ...account.purchaseClaims,
+        [tokenHash]:{productId:delivery.productId,claimedAt:Date.now()}
+      });
+      if(delivery.productId==='remove_ads'){
+        account.noAds=true;
+      }else if(!delivery.delivered){
+        // A server record already marked delivered must never mint consumable
+        // coins again on another device or after a stale cloud reconciliation.
+        account.coins+=PLAY_COIN_GRANTS[delivery.productId];
+      }
+      await persistPaidAccountNow();
+      refreshCoinReadouts();
+      updateMenuAccount();
+      renderStore();
+      if(delivery.productId==='remove_ads'){
+        nativeHaptic('success');
+        toast('Remove Ads restored from Google Play.','var(--mint)');
+      }else if(!delivery.delivered){
+        nativeHaptic('success');
+        toast('+'+PLAY_COIN_GRANTS[delivery.productId]+' coins · Google Play purchase','var(--gold)',3600);
+      }
+    }
+
+    // Paid claims are intentionally excluded from accountJson, but the
+    // resulting ordinary coin balance must reach the protected cloud save
+    // before the server marks a consumable delivered. If connectivity drops,
+    // leave the Play receipt unfinished and retry from the verified ledger.
+    if(!await cloudSaveNow(false)){
+      setTimeout(()=>recoverPlayPurchases('delivery-retry',true),15000);
+      return false;
+    }
+    const completed=await completeVerifiedPlayReceipt(tokenHash);
+    if(!completed) setTimeout(()=>recoverPlayPurchases('delivery-retry',true),15000);
+    return completed;
+  }finally{
+    playDeliveryInFlight.delete(tokenHash);
+  }
+}
+async function reconcilePlayEntitlements(entitlements){
+  if(!entitlements||!Array.isArray(entitlements.purchases)) return;
+  for(const purchase of entitlements.purchases){
+    if(!purchase||!PLAY_PRODUCT_IDS.has(purchase.productId)
+      ||!/^[a-f0-9]{64}$/.test(String(purchase.tokenHash||''))) continue;
+    if(!purchase.delivered||purchase.productId==='remove_ads'){
+      await handleVerifiedPlayDelivery({
+        ok:true,verified:true,recovered:true,
+        productId:purchase.productId,
+        tokenHash:String(purchase.tokenHash),
+        delivered:!!purchase.delivered
+      });
+    }
+  }
+  if(entitlements.authoritative!==true) return;
+
+  // A local/cloud claim is only an idempotency cache. Remove anything the
+  // protected Firebase ledger does not know, including crafted cloud fields.
+  const authoritativeClaims={};
+  for(const purchase of entitlements.purchases){
+    if(!purchase||!PLAY_PRODUCT_IDS.has(purchase.productId)
+      ||!/^[a-f0-9]{64}$/.test(String(purchase.tokenHash||''))) continue;
+    const tokenHash=String(purchase.tokenHash);
+    const existing=account.purchaseClaims&&account.purchaseClaims[tokenHash];
+    authoritativeClaims[tokenHash]={
+      productId:purchase.productId,
+      claimedAt:existing&&existing.productId===purchase.productId
+        ? existing.claimedAt
+        : Date.now()
+    };
+  }
+  account.purchaseClaims=validPurchaseClaims(authoritativeClaims);
+
+  // Fail closed: only an authoritative Play-backed response can enable or
+  // revoke Remove Ads. Network failures leave the offline phone cache intact.
+  const serverNoAds=!!entitlements.noAds;
+  if(account.noAds!==serverNoAds){
+    account.noAds=serverNoAds;
+    await persistPaidAccountNow();
+    updateMenuAccount();
+    renderStore();
+    toast(serverNoAds
+      ? 'Remove Ads restored from Google Play.'
+      : 'Remove Ads is no longer active on Google Play.',
+    serverNoAds?'var(--mint)':'var(--gold)',4200);
+  }else{
+    await persistPaidAccountNow();
+  }
+
+  // Refund/revocation debt is held by Firebase, not by accountJson. A secure
+  // cloud write applies the unapplied delta to this exact local balance and
+  // returns the reconciled save; retries cannot deduct the same offset twice.
+  const billing=entitlements.billing&&typeof entitlements.billing==='object'
+    ? entitlements.billing : {};
+  const adjustmentTotal=clampInt(billing.coinAdjustmentTotal);
+  cloudState.billingAdjustmentTotal=Math.max(
+    cloudState.billingAdjustmentTotal,
+    adjustmentTotal
+  );
+  if(cloudState.ready&&account.coins>0
+    &&adjustmentTotal>cloudState.billingAdjustmentApplied){
+    await cloudSaveNow(false);
+  }
+}
+function recoverPlayPurchases(reason='manual',force=false){
+  const WN=window.WildcardNative;
+  if(!onlineServicesStarted||!WN||typeof WN.refreshPurchases!=='function') return Promise.resolve(null);
+  const now=Date.now();
+  if(playRecoveryInFlight) return playRecoveryInFlight;
+  if(!force&&reason==='resume'&&now-playLastRecoveryAt<30000) return Promise.resolve(null);
+  playLastRecoveryAt=now;
+  playRecoveryInFlight=WN.refreshPurchases().then(async report=>{
+    if(report&&report.products) installPlayCatalog(report.products);
+    if(report&&report.entitlements) await reconcilePlayEntitlements(report.entitlements);
+    const screen=document.getElementById('store');
+    if(screen&&screen.classList.contains('active')) renderStore();
+    return report;
+  }).catch(()=>null).finally(()=>{ playRecoveryInFlight=null; });
+  return playRecoveryInFlight;
+}
+window.addEventListener('wildcardbillingproducts',()=>refreshPlayCatalog(true));
+
 // ---------- Joker chests (gacha) ----------
 const CHESTS={
-  wood:{name:'Wooden Chest', emoji:'📦', price:ECONOMY.jokerVaultPrice.wood, odds:{common:0.70, uncommon:0.26, rare:0.04, wild:0}, blurb:'Everyday jokers - Common-heavy, improved Uncommon rate, tiny Rare chance, never WILD.', primary:['common','uncommon']},
-  gold:{name:'Golden Chest', emoji:'🧰', price:ECONOMY.jokerVaultPrice.gold, odds:{common:0, uncommon:0.50, rare:0.42, wild:0.08}, blurb:'No commons - a strong Rare rate and a real shot at WILD.', primary:['uncommon','rare','wild']},
+  wood:{name:'Wooden Chest', emoji:'📦', price:ECONOMY.jokerVaultPrice.wood, odds:{common:0.70, uncommon:0.26, rare:0.04, wild:0}, blurb:'Everyday jokers - Common-heavy, improved Uncommon rate, tiny Rare chance, never WILD.'},
+  gold:{name:'Golden Chest', emoji:'🧰', price:ECONOMY.jokerVaultPrice.gold, odds:{common:0, uncommon:0.50, rare:0.42, wild:0.08}, blurb:'No commons - a strong Rare rate and a real shot at WILD.'},
 };
 const RARITY_LABEL={common:'Common', uncommon:'Uncommon', rare:'Rare', wild:'WILD'};
-function chestOddsText(cfg){
-  return Object.keys(cfg.odds).filter(r=>cfg.odds[r]>0)
-    .map(r=>RARITY_LABEL[r]+' '+Math.round(cfg.odds[r]*100)+'%').join(' · ');
+function effectiveChestOdds(cfg, pool){
+  const available=new Set(pool.map(j=>j.rarity));
+  const weighted=Object.entries(cfg.odds).filter(([rarity,weight])=>weight>0&&available.has(rarity));
+  const total=weighted.reduce((sum,[,weight])=>sum+weight,0);
+  if(!total) return [];
+  return weighted.map(([rarity,weight])=>({rarity,weight:weight/total}));
+}
+function chestOddsText(cfg, pool){
+  const odds=effectiveChestOdds(cfg,pool);
+  if(!odds.length) return 'No locked Jokers remain in this vault.';
+  return odds.map(({rarity,weight})=>{
+    const pct=weight*100;
+    return RARITY_LABEL[rarity]+' '+pct.toFixed(pct<1?1:Math.abs(pct-Math.round(pct))>.05?1:0)+'%';
+  }).join(' · ');
+}
+function chestPrice(tier){
+  if(tier==='wood' && account.unlocked.size<15) return 60;
+  return CHESTS[tier].price;
 }
 function chestPool(tier){
   const o=CHESTS[tier].odds;
-  const pool=JOKERS.filter(j=>!account.unlocked.has(j.id) && (o[j.rarity]||0)>0);
-  const primary=CHESTS[tier].primary;
-  if(primary && !pool.some(j=>primary.includes(j.rarity))) return [];
-  return pool;
+  return JOKERS.filter(j=>!account.unlocked.has(j.id) && (o[j.rarity]||0)>0);
 }
 function premiumChestHtml(tier='gold', size='full'){
   return `<div class="vault-chest chest-${tier} chest-size-${size}" aria-hidden="true">
@@ -6928,7 +8021,7 @@ function openTutorialChest(){
   note.innerHTML='<div class="stat-row"><span>Chests permanently unlock Jokers so they can appear in future run shops.</span></div>'
     +'<div class="stat-row"><span>Paid chests show their rarity odds and only draw from Jokers you do not own.</span></div>';
   const crack=document.createElement('button'); crack.className='btn alt'; crack.style.marginTop='14px'; crack.textContent='Crack the free chest';
-  crack.onclick=()=>{ if(chestOpening) return; chestOpening=true; account.tutorialChestClaimed=true; account.unlocked.add(win.id); saveAccount(); closeOverlay(); chestOpening=true; revealJoker(win,()=>{ showScreen('unlocks'); renderUnlocks(); },'tutorial'); };
+  crack.onclick=()=>{ if(chestOpening) return; chestOpening=true; account.tutorialChestClaimed=true; account.unlocked.add(win.id); saveAccount(); closeOverlaySilently(); chestOpening=true; revealJoker(win,()=>{ showScreen('unlocks'); renderUnlocks(); },'tutorial'); };
   body.appendChild(note); body.appendChild(crack);
 }
 function openChest(){ renderChest(); showScreen('chest'); }
@@ -6938,24 +8031,26 @@ function renderChest(){
   const g=document.getElementById('chest-cards'); g.innerHTML='';
   Object.entries(CHESTS).forEach(([tier,cfg])=>{
     const pool=chestPool(tier);
+    const price=chestPrice(tier);
     const el=document.createElement('div'); el.className='shop-card chest-card chest-choice-'+tier;
     el.innerHTML='<div class="chest-card-art">'+premiumChestHtml(tier,'mini')+'</div>'
       +'<div class="chest-head">'+cfg.name+'</div>'
       +'<div class="chest-copy">'+cfg.blurb+'</div>'
-      +'<div class="chest-odds">'+chestOddsText(cfg)+'</div>'
-      +'<div class="chest-buyline"><div class="price">'+cfg.price+' coins</div></div>';
+      +(tier==='wood'&&account.unlocked.size<15?'<div class="chest-newcomer">NEW PLAYER PRICE · until 15 Jokers</div>':'')
+      +'<div class="chest-odds">'+chestOddsText(cfg,pool)+'</div>'
+      +'<div class="chest-buyline"><div class="price">'+price+' coins</div></div>';
     const btn=document.createElement('button'); btn.className='btn alt';
     if(pool.length===0){ btn.disabled=true; btn.textContent='All owned'; }
-    else if(account.coins<cfg.price){ btn.disabled=true; btn.textContent='Need '+cfg.price; }
+    else if(account.coins<price){ btn.disabled=true; btn.textContent='Need '+price; }
     else if(chestOpening){ btn.disabled=true; btn.textContent='Opening…'; }
-    else { btn.textContent='Open · '+cfg.price; btn.onclick=()=>spinChest(tier); }
+    else { btn.textContent='Open · '+price; btn.onclick=()=>spinChest(tier); }
     el.querySelector('.chest-buyline').appendChild(btn); g.appendChild(el);
   });
   { const pool=cosmeticChestPool(); const el=document.createElement('div'); el.className='shop-card chest-card chest-choice-cosmetic';
     el.innerHTML='<div class="chest-card-art">'+premiumChestHtml('cosmetic','mini')+'</div>'
       +'<div class="chest-head">Cosmetic Vault</div>'
       +'<div class="chest-copy">A random look you don’t own — tables, Sly skins or UI themes. Never a duplicate.</div>'
-      +'<div class="chest-odds">'+(pool.length?('Guaranteed new cosmetic · duplicate-free · '+pool.length+' locked'):'All cosmetics owned!')+'</div>'
+      +'<div class="chest-odds">'+(pool.length?(cosmeticVaultOddsText(pool)+' · duplicate-free · '+pool.length+' locked'):'All cosmetics owned!')+'</div>'
       +'<div class="chest-buyline"><div class="price">'+COSMETIC_CHEST.price+' coins</div></div>';
     const btn=document.createElement('button'); btn.className='btn';
     if(pool.length===0){ btn.disabled=true; btn.textContent='All owned'; }
@@ -6969,12 +8064,9 @@ function renderChest(){
 // roll a rarity by the chest's published odds// roll a rarity by the chest's published odds, then a uniform-random locked joker of that rarity.
 // rarities with no remaining locked joker are dropped and their odds shared across the rest.
 function rollChest(cfg, pool){
-  const avail={};
-  for(const j of pool){ const o=cfg.odds[j.rarity]||0; if(o>0) avail[j.rarity]=o; }
-  const rarities=Object.keys(avail);
-  const total=rarities.reduce((s,rr)=>s+avail[rr],0);
-  let r=Math.random()*total, chosen=rarities[rarities.length-1];
-  for(const rr of rarities){ r-=avail[rr]; if(r<=0){ chosen=rr; break; } }
+  const odds=effectiveChestOdds(cfg,pool);
+  let r=Math.random(), chosen=odds[odds.length-1].rarity;
+  for(const item of odds){ r-=item.weight; if(r<=0){ chosen=item.rarity; break; } }
   const cands=pool.filter(j=>j.rarity===chosen);
   return cands[Math.floor(Math.random()*cands.length)];
 }
@@ -6982,9 +8074,10 @@ function spinChest(tier){
   if(chestOpening) return;
   const cfg=CHESTS[tier];
   const pool=chestPool(tier);
-  if(pool.length===0 || account.coins<cfg.price) return;
+  const price=chestPrice(tier);
+  if(pool.length===0 || account.coins<price) return;
   chestOpening=true;
-  account.coins-=cfg.price;
+  account.coins-=price;
   const win=rollChest(cfg, pool);
   account.unlocked.add(win.id);
   saveAccount();
@@ -7138,6 +8231,7 @@ function weeklyMissions(){
   return account.missionSet.map(id=>MISSION_POOL.find(m=>m.id===id)).filter(Boolean);
 }
 function bumpMission(stat,n,persist=true){
+  if(!progressionEnabled()) return;
   ensureMissionWeek();
   account.missionStats[stat]=(account.missionStats[stat]||0)+(n||1);
   if(persist) saveAccount();
@@ -7294,7 +8388,6 @@ function renderCabinet(){
     html+='<div class="cab-h3">Recent runs</div>'+account.runLog.slice(0,5).map(r=>
       '<div class="stat-row" style="font-size:12px"><span>'+r.d+' · '+(r.m==='G'?'🔥 Gauntlet':r.m==='D'?'🎯 Daily':'🃏 Run')+' · Heat '+r.h+'</span><b>'+(r.s||0).toLocaleString()+' pts '+(r.w?'👑':(r.a?'TERMINATED':'OUT'))+'</b></div>').join('');
   }
-  html+='<div style="margin-top:14px"><button class="btn alt" style="font-size:13px" onclick="openShareCode()">🔗 Share / Compare with a friend</button></div>';
   body.innerHTML=html;
 }
 function badgeProgress(id){
@@ -7315,35 +8408,6 @@ function openBadgeDetail(id){
   body.innerHTML='<div class="stat-row"><span>Requirement</span><b>'+badge.desc+'</b></div>'
     +'<div class="stat-row"><span>Status</span><b style="color:'+(earned?'var(--mint)':'var(--gold)')+'">'+(earned?'EARNED':'LOCKED')+'</b></div>'
     +'<div class="stat-row"><span>Progress</span><b>'+badgeProgress(id)+'</b></div>';
-}
-
-/* ---- Friend share code ---- */
-function myShareCode(){ return btoa(unescape(encodeURIComponent(JSON.stringify({n:currentTitleName()||'Player',h:account.bestHeat,s:account.bestScore,d:(account.dailyBest&&account.dailyBest.score)||0})))); }
-function compareShareCode(code){
-  let d; try{ d=JSON.parse(decodeURIComponent(escape(atob(code)))); }catch(e){ return '<span style="color:var(--coral)">That code did not read. Check you copied all of it.</span>'; }
-  if(typeof d.h!=='number') return '<span style="color:var(--coral)">That is not a valid WILDCARD code.</span>';
-  const rows=[['Best Heat',account.bestHeat,d.h|0],['Best score',account.bestScore,d.s|0],['Daily best',(account.dailyBest&&account.dailyBest.score)||0,d.d|0]];
-  return '<div style="text-align:left;margin-bottom:6px"><b>'+((d.n||'Friend')+'')+'</b> vs you:</div>'+rows.map(r=>{
-    const you=r[1],them=r[2]; const mark=you>them?'✅':(them>you?'❌':'➖');
-    return '<div class="stat-row"><span>'+r[0]+'</span><b>You '+you.toLocaleString()+' · Them '+them.toLocaleString()+' '+mark+'</b></div>';
-  }).join('');
-}
-function openShareCode(){
-  const body=openOverlay('🔗 Share Code','Send your code to a friend, or paste theirs to compare bests. No account needed.');
-  const mine=myShareCode();
-  const ta=document.createElement('textarea'); ta.readOnly=true; ta.value=mine;
-  ta.style.cssText='width:100%;min-height:60px;border-radius:12px;border:2px solid var(--line);background:#0b1512;color:var(--cream);padding:10px;font-size:12px;word-break:break-all;margin-bottom:8px';
-  body.appendChild(ta);
-  const copy=document.createElement('button'); copy.className='btn alt'; copy.style.cssText='font-size:13px;margin-bottom:14px'; copy.textContent='Copy my code';
-  copy.onclick=()=>{ ta.select(); try{ (navigator.clipboard&&navigator.clipboard.writeText)?navigator.clipboard.writeText(mine):document.execCommand('copy'); copy.textContent='Copied!'; tone(660,0.08,'triangle'); }catch(e){} };
-  body.appendChild(copy);
-  const inp=document.createElement('textarea'); inp.placeholder='Paste a friend code here...';
-  inp.style.cssText='width:100%;min-height:60px;border-radius:12px;border:2px solid var(--line);background:#0b1512;color:var(--cream);padding:10px;font-size:12px;word-break:break-all;margin-bottom:8px';
-  body.appendChild(inp);
-  const cmp=document.createElement('button'); cmp.className='btn'; cmp.style.cssText='font-size:13px'; cmp.textContent='Compare';
-  const out=document.createElement('div'); out.style.cssText='margin-top:12px;font-size:13px';
-  cmp.onclick=()=>{ out.innerHTML=compareShareCode(inp.value.trim()); };
-  body.appendChild(cmp); body.appendChild(out);
 }
 
 /* ---- Cosmetic chest ---- */
@@ -7438,16 +8502,44 @@ function revealCosmetic(cos, done){
   },520);
 }
 
-/* ---- Daily seeded challenge ----/* ---- Daily seeded challenge ----
-   v4.9: instead of hijacking global Math.random (where any extra call — a Lucky Seven
-   roll, a sound, a preview — would shift everyone's later shops and deals), the daily
-   uses SEPARATE seeded streams per system. Deck order and modifiers are shared. Daily
-   shop rolls use the complete Joker catalogue so every player sees the same stock,
-   including Jokers they have not permanently unlocked. Gameplay luck stays random. */
-let dailyMode=false, dailyChallengeDate='', _origRandom=null;
-const RNG={ deck:null, shop:null, mods:null, luck:null };
+/* ---- Daily seeded challenge ----
+   Every run uses persisted, independently indexed random streams. Daily runs derive
+   their seed from the challenge date, so equal actions produce equal deals, shops,
+   modifiers and luck. Normal/Gauntlet runs receive a cryptographic seed. Saving the
+   counters makes a process restart continue at the exact next random value. */
+let dailyMode=false, dailyChallengeDate='';
+const RNG_STREAM_SALTS=Object.freeze({
+  deck:0xA5A5A5A5,shop:0x5A5A5A5A,mods:0x01234567,luck:0x0077AA33,boss:0x51B055ED
+});
+function seededRandomAt(seed,stream,index){
+  let x=((Number(seed)>>>0)^(RNG_STREAM_SALTS[stream]||0x9E3779B9)^Math.imul((Number(index)>>>0)+1,0x85EBCA6B))>>>0;
+  x=Math.imul(x^(x>>>16),0x7FEB352D)>>>0;
+  x=Math.imul(x^(x>>>15),0x846CA68B)>>>0;
+  return ((x^(x>>>16))>>>0)/4294967296;
+}
+function newRunSeed(dailyDate=''){
+  if(dailyDate) return dailySeedNum(dailyDate);
+  try{
+    const value=new Uint32Array(1);
+    if(window.crypto&&window.crypto.getRandomValues){ window.crypto.getRandomValues(value); return value[0]>>>0; }
+  }catch(e){}
+  return (Date.now()^Math.floor(Math.random()*0xFFFFFFFF))>>>0;
+}
+function normalizeRunRng(activeRun){
+  if(!activeRun) return;
+  if(!Number.isFinite(Number(activeRun.rngSeed))) activeRun.rngSeed=newRunSeed(activeRun.dailyDate||'');
+  if(!activeRun.rngCounters||typeof activeRun.rngCounters!=='object') activeRun.rngCounters={};
+  for(const stream of Object.keys(RNG_STREAM_SALTS)){
+    const value=Math.floor(Number(activeRun.rngCounters[stream])||0);
+    activeRun.rngCounters[stream]=Math.max(0,value);
+  }
+}
 function rnd(stream){
-  return (dailyMode && RNG[stream]) ? RNG[stream]() : Math.random();
+  if(!run) return Math.random();
+  normalizeRunRng(run);
+  const index=run.rngCounters[stream]||0;
+  run.rngCounters[stream]=index+1;
+  return seededRandomAt(run.rngSeed,stream,index);
 }
 function dailySeedNum(date=todayStr()){ const d=date; let h=2166136261; for(let i=0;i<d.length;i++){ h=Math.imul(h^d.charCodeAt(i),16777619);} return h>>>0; }
 function startDailyRun(){
@@ -7481,19 +8573,20 @@ function launchDailyRun(){
   pendingGauntlet=false;
   dailyMode=true;
   dailyChallengeDate=today;
-  const seed=dailySeedNum(today);
-  RNG.deck=mulberry32(seed^0xA5A5A5); RNG.shop=mulberry32(seed^0x5A5A5A); RNG.mods=mulberry32(seed^0x123457); RNG.luck=mulberry32(seed^0x77AA33);
   if(typeof pendingStake!=='undefined') pendingStake=0;
   toast('Daily Challenge — everyone gets the same deck today. One attempt!','var(--rare)');
   beginRun();
-  if(run) run.dailyDate=today;
+  if(run){
+    run.dailyDate=today;
+    run.telemetryMode='daily';
+    run.leaderboardEligible=false;
+    saveRunState('game');
+  }
 }
 function endDailyRun(){
   const date=(run&&run.dailyDate)||dailyChallengeDate||account.dailyRunDate||todayStr();
   dailyMode=false;
   dailyChallengeDate='';
-  RNG.deck=RNG.shop=RNG.mods=RNG.luck=null;
-  if(_origRandom){ Math.random=_origRandom; _origRandom=null; }   // legacy safety
   account.dailyRunDate=date;
   const sc=run?run.totalScore:0;
   if(!account.dailyBest || account.dailyBest.date!==date) account.dailyBest={date,score:sc};
@@ -7514,6 +8607,7 @@ function renderSettings(){
     ? (cloudState.user
       ? '<div class="set-row"><span class="set-copy"><b class="save-ok">☁ '+cloudLabel()+'</b><small>'+htmlSafe(cloudState.status)+'</small></span><button class="btn alt" onclick="cloudSaveNow(true)">Sync now</button></div>'
         +'<div class="set-row"><span class="set-copy"><b>Google account</b><small>Signing out keeps the phone save</small></span><button class="btn ghost" onclick="cloudSignOut()">Sign out</button></div>'
+        +'<div class="set-row"><span class="set-copy"><b>Delete account</b><small>Permanently delete Firebase account, cloud data and phone progress</small></span><button class="btn ghost" style="color:var(--coral)" onclick="openCloudAccountDeletion()">Delete</button></div>'
       : '<div class="set-row"><span class="set-copy"><b>☁ Google cloud backup</b><small>'+htmlSafe(cloudState.status)+'</small></span><button class="btn alt" onclick="cloudSignIn()">Sign in</button></div>')
       +'<div class="set-row"><span class="set-copy"><b>🏆 Official rankings</b><small>Play Games daily, weekly and all-time</small></span><button class="btn ghost" onclick="openOfficialLeaderboard()">Open</button></div>'
     : '';
@@ -7521,15 +8615,13 @@ function renderSettings(){
     '<div class="set-row"><span>🔊 Sound effects</span><button class="btn '+(account.muted?'ghost':'alt')+'" onclick="toggleSound(); renderSettings()">'+(account.muted?'Off':'On')+'</button></div>'
    +'<div class="set-row"><span>🎵 Arcade music</span><button class="btn '+(account.musicOn?'alt':'ghost')+'" onclick="toggleMusic(); renderSettings()">'+(account.musicOn?'On':'Off')+'</button></div>'
    +'<div class="set-row"><span class="set-copy"><b>Music credit</b><small>“Bit Shift” — Kevin MacLeod · CC BY 4.0</small></span><button class="btn ghost" onclick="openMusicCredits()">Credits</button></div>'
-   +'<div class="set-row"><span>📳 Haptic feedback</span><button class="btn '+(account.hapticsOn?'alt':'ghost')+'" onclick="toggleHaptics(); renderSettings()">'+(account.hapticsOn?'On':'Off')+'</button></div>'
    +'<div class="set-row"><span class="set-copy"><b>⚡ Scoring speed</b><small>Normal explains every beat; Fast shortens each pause while keeping the same sequence</small></span><button class="btn alt" onclick="toggleSpeed(); renderSettings()">'+(account.speed==='fast'?'Fast':'Normal')+'</button></div>'
    +'<div class="set-row"><span>🏷️ Board name</span><button class="btn ghost" onclick="openNamePrompt()">'+(account.playerName||'Not set')+'</button></div>'
    +(native?'<div class="set-row"><span class="set-copy"><b class="save-ok">✓ Phone save active</b><small>WebView save mirrored to Android Preferences</small></span><button class="btn ghost" onclick="saveAccount(); if(run&&!run.animating) saveRunState(currentRunPhase()); toast(\'Saved to this phone\',\'var(--mint)\')">Save now</button></div>':'')
    +cloudRows
    +(native?'<div class="set-row"><span class="set-copy"><b>🛡️ Ad privacy</b><small>'+(privacy&&privacy.status?privacy.status.replace('_',' ').toLowerCase():'checking status')+'</small></span><button class="btn ghost" onclick="openPrivacyChoices()">Choices</button></div>':'')
    +'<div class="set-row"><span>📄 Privacy policy</span><button class="btn ghost" onclick="openPrivacyPolicy()">Read</button></div>'
-   +'<div class="set-row"><span>📤 Export save</span><button class="btn ghost" onclick="exportSave()">Export</button></div>'
-    +'<div class="set-row"><span>📥 Import save</span><button class="btn ghost" onclick="openImportSave()">Import</button></div>'
+   +'<div class="set-row"><span class="set-copy"><b>📤 Diagnostic backup</b><small>Read-only support snapshot; cannot restore rewards or progress</small></span><button class="btn ghost" onclick="exportSave()">Copy</button></div>'
     +'<div class="set-row"><span class="set-copy"><b>Replay tutorial</b><small>Review Sly’s lesson without resetting progress</small></span><button class="btn ghost" onclick="replayTutorial()">Replay</button></div>'
     +'<div class="set-row"><span>🗑️ Reset everything</span><button class="btn ghost" style="color:var(--coral)" onclick="resetSave(); renderSettings()">Reset</button></div>';
 }
@@ -7552,13 +8644,13 @@ function openPrivacyPolicy(){
   const body=openOverlay('📄 Privacy & Data','How WILDCARD handles local and optional online data.');
   body.innerHTML='<div class="privacy-copy">'
     +'<h3>Local progress</h3><p><strong>Your runs, unlocks, coins, settings and cosmetics always save on your phone.</strong> The Android app keeps both a WebView save and a mirrored native Preferences copy, so guest and offline play continue to work.</p>'
-    +'<h3>Optional Google account & cloud backup</h3><p>If you choose Sign in with Google, Google and Firebase provide your account identifier, display name, email address and profile photo. WILDCARD stores your private progress under that account in Firebase Firestore so it can be restored and synchronized. Signing in links your existing phone progress; it does not intentionally reset it. You can sign out and continue with the phone save.</p>'
+    +'<h3>Optional Google account & cloud backup</h3><p>If you choose Sign in with Google, Google and Firebase provide your account identifier, display name, email address and profile photo. WILDCARD stores a private progress document under that account in Firebase Firestore. Each Google account has separate progress: saves from different accounts are never combined. An established cloud save takes priority when that account signs in. You can sign out and continue with the phone save.</p>'
     +'<h3>Daily board</h3><p>Posting is optional. If you post, WILDCARD sends the board name you choose, the date and your score to the WILDCARD leaderboard service.</p>'
     +'<h3>Anonymous aggregate analytics</h3><p>WILDCARD sends small, fail-soft counters for app opens, runs started and runs ended to the publisher’s Raspberry Pi service. A run-end counter includes only the run mode, outcome and a broad Heat band. The analytics payload contains no player or board name, Google/Firebase identity, email, install or session identifier, device identifier, cards, Jokers, coins, save data or exact score. The analytics database stores daily totals rather than raw event records. Sending happens only while the app is idle or moving to the background and never blocks play.</p>'
     +'<h3>Official rankings</h3><p>If you use Play Games rankings, Google Play Games processes your player identity and submitted high score for daily, weekly and all-time leaderboards.</p>'
     +'<h3>Advertising</h3><p>The Android app uses Google AdMob. Google and its partners may process advertising identifiers, ad interactions, diagnostics and approximate location as described by Google. Privacy choices can be reviewed from Settings.</p>'
     +'<h3>Purchases</h3><p>Google Play processes payments. WILDCARD receives purchase status and product identifiers, not your card or bank details.</p>'
-    +'<h3>Accounts</h3><p>An account is optional. Guest play and the local phone save remain available without signing in. Cloud-save documents are restricted to their signed-in owner.</p>'
+    +'<h3>Accounts</h3><p>An account is optional. Guest play and the local phone save remain available without signing in. Cloud-save documents are restricted to their signed-in owner. Signed-in players can permanently delete their Firebase account, cloud save and local phone progress from Settings.</p>'
     +'<p style="margin-top:16px"><strong>Publisher:</strong> 145 Studios.</p></div>';
 }
 function openNamePrompt(){
@@ -7609,7 +8701,7 @@ function tutStepGo(d){ tutStep=Math.max(0,Math.min(TUT_STEPS.length-1,tutStep+d)
 
 // ---- Mid-run save / resume ----
 const RUN_KEY='wildcard_run_v1';
-const RUN_FIELDS=['runId','telemetryMode','stage','endless','gauntlet','prevGauntletMod','stageScore','handsLeft','discardsLeft','handsPlayedThisStage',
+const RUN_FIELDS=['runId','telemetryMode','dailyDate','rngSeed','rngCounters','pendingTransition','bossBlockedJokerIds','stage','endless','gauntlet','prevGauntletMod','stageScore','handsLeft','discardsLeft','handsPlayedThisStage',
  'runCoins','jokerState','cards','deck','hand','heatDeck','handLevels','destroyedCount','copiedCount','handTypeCounts',
  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
  'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','heat12SequenceStarted','heat12InterstitialAttempted','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
@@ -7633,10 +8725,11 @@ function saveRunState(phase){
     const serialized=JSON.stringify(d);
     localStorage.setItem(RUN_KEY, serialized);
     nativePersist(RUN_KEY,serialized);
+    markCloudDirty();
     scheduleCloudSave();
   }catch(e){}
 }
-function clearRunState(){ clearTimeout(saveRunState._t); try{ localStorage.removeItem(RUN_KEY); }catch(e){} nativeRemovePersisted(RUN_KEY); scheduleCloudSave(); }
+function clearRunState(){ clearTimeout(saveRunState._t); try{ localStorage.removeItem(RUN_KEY); }catch(e){} nativeRemovePersisted(RUN_KEY); markCloudDirty(); scheduleCloudSave(); }
 function loadRunState(){ try{ const raw=localStorage.getItem(RUN_KEY); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
 function hasSavedRun(){ const d=loadRunState(); return !!(d && d.v===1 && Array.isArray(d.hand)); }
 function savedRunHeat(){ const d=loadRunState(); return d?d.stage:0; }
@@ -7651,16 +8744,59 @@ function queueReplacedRunTelemetry(){
   active.abandoned=!completed;
   queueRunEndTelemetry(active,saved.telemetryMode==='daily',completed);
 }
+function recoverPendingRunTransition(){
+  if(!run||!run.pendingTransition) return false;
+  const pending=run.pendingTransition;
+  run.animating=false;
+  run.abortAfterAnimation=false;
+  if(pending.kind==='play'){
+    // The durable state is the exact pre-roll selected hand. Clearing only the
+    // marker lets the player replay it with the same saved RNG counters.
+    if(pending.rngCounters&&typeof pending.rngCounters==='object'){
+      run.rngCounters={...pending.rngCounters};
+      normalizeRunRng(run);
+    }
+    run.pendingTransition=null;
+    saveRunState('game');
+    renderGame(false);
+    setHint('Scoring was interrupted. Your selected hand and its luck were restored — tap Play again.');
+    return true;
+  }
+  if(pending.kind==='clear'){
+    setTimeout(()=>{ if(run&&run.pendingTransition&&run.pendingTransition.kind==='clear') clearStage(); },40);
+    return true;
+  }
+  if(pending.kind==='fail'){
+    const reason=pending.reason==='cards'?'cards':'plays';
+    run.pendingTransition=null;
+    setTimeout(()=>requestFailedHeat(reason),40);
+    return true;
+  }
+  run.pendingTransition=null;
+  saveRunState('game');
+  return false;
+}
 function resumeRun(){
   const d=loadRunState();
   if(!d || d.v!==1){ clearRunState(); toast('No saved run found.','var(--coral)'); updateMenuAccount(); return; }
   try{
+    const savedDaily=d.telemetryMode==='daily';
+    dailyMode=savedDaily;
+    dailyChallengeDate=savedDaily?String(d.dailyDate||account.dailyRunDate||todayStr()):'';
     run=newRunState();
     for(const k of RUN_FIELDS) if(d[k]!==undefined) run[k]=d[k];
+    if(savedDaily){
+      run.telemetryMode='daily';
+      run.dailyDate=dailyChallengeDate;
+      run.leaderboardEligible=false;
+      account.dailyRunDate=dailyChallengeDate;
+    }
+    if(typeof normalizeRunRng==='function') normalizeRunRng(run);
     normalizeSupplyState();
     run.jokers=(d.jokerIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
     run.modifier = d.modId==='boss_house' ? BOSS_MOD : (MODIFIERS.find(m=>m.id===d.modId)||null);
     run.animating=false; run.abortAfterAnimation=false; run.pendingShopJoker=null;
+    if(run.modifier&&run.modifier.id==='boss_house') ensureBossBlocks();
     if(d.phase==='revive' || run.terminalPending){
       run.terminalPending=true;
       showScreen('game'); renderGame(false); syncModifierAmbience();
@@ -7671,7 +8807,8 @@ function resumeRun(){
       run.heat12SequenceStarted=true;
       run.heat12InterstitialAttempted=true;
       saveRunState('wincomplete');
-      showHeat12Choice();
+      if(savedDaily) gameOver(true);
+      else showHeat12Choice();
     } else if(d.phase==='shop'){
       shopOffers=(d.shopOfferIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
       supplyOffers=(d.supplyOfferIds||[]).map(id=>SUPPLIES.find(x=>x.id===id)).filter(Boolean);
@@ -7680,12 +8817,16 @@ function resumeRun(){
       updateShopSub(); renderShop(); showScreen('shop');
     } else {
       showScreen('game'); renderGame(false); syncModifierAmbience();
+      if(run.pendingTransition) recoverPendingRunTransition();
     }
-    toast('Run resumed — Heat '+run.stage+(run.gauntlet?' (Gauntlet)':''),'var(--mint)');
-  }catch(e){ clearRunState(); toast('Saved run was unreadable — starting fresh.','var(--coral)'); showScreen('menu'); updateMenuAccount(); }
+    toast((savedDaily?'Daily resumed':'Run resumed')+' — Heat '+run.stage+(run.gauntlet?' (Gauntlet)':''),'var(--mint)');
+  }catch(e){
+    dailyMode=false; dailyChallengeDate='';
+    clearRunState(); toast('Saved run was unreadable — starting fresh.','var(--coral)'); showScreen('menu'); updateMenuAccount();
+  }
 }
 
-// ---- Global daily leaderboard (Pi API at /api/daily; fails soft offline) ----
+// ---- Global daily leaderboard (public reads; authenticated writes via Firebase) ----
 // On the Pi the API is same-origin; in a Capacitor/TWA wrapper (capacitor://localhost) it must be absolute.
 // localhost/file stay relative so local previews fail soft instead of posting to the live board.
 const DAILY_API_ORIGIN='https://raspberrypi.tail20f574.ts.net';
@@ -7703,7 +8844,7 @@ const API_BASE=resolveDailyApiBase(location.hostname,DAILY_API_NATIVE);
 // ---- Anonymous aggregate analytics (Pi; fail-soft and never awaited) ----
 // Only coarse product counters leave the device. There is no install/session ID,
 // player name, score, card data, save data or Google/Firebase identity in this path.
-const TELEMETRY_VERSION='6.9.13';
+const TELEMETRY_VERSION='6.9.14';
 const TELEMETRY_ENABLED=DAILY_API_NATIVE || location.hostname==='raspberrypi.tail20f574.ts.net';
 const TELEMETRY_PLATFORM=DAILY_API_NATIVE?'android':'web';
 const TELEMETRY_ENDPOINT=API_BASE+'/api/analytics';
@@ -7827,12 +8968,21 @@ function openDailySubmit(score,date=(run&&run.dailyDate)||todayStr()){
   b.onclick=async ()=>{
     const name=(inp.value||'').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase();
     if(!name){ msg.textContent='Name needs at least 1 letter or number.'; return; }
+    const WN=window.WildcardNative;
+    if(!cloudState.user||!WN||typeof WN.cloudSubmitDailyScore!=='function'){
+      msg.textContent='Sign in with Google in Settings before posting a Daily score.';
+      return;
+    }
     account.playerName=name; saveAccount();
     b.disabled=true; b.textContent='Posting…'; msg.textContent='';
     try{
-      const r=await fetchDailyRequest('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:boardDate,name,score:score|0})});
-      const d=await r.json();
-      if(!r.ok) throw new Error(d.err||'rejected');
+      const idempotencyKey='daily-'+boardDate+'-'+name+'-'+Math.max(0,Math.trunc(Number(score)||0));
+      const d=await WN.cloudSubmitDailyScore({
+        name,
+        score:Math.max(0,Math.trunc(Number(score)||0)),
+        idempotencyKey
+      });
+      if(!d||!d.ok) throw new Error('rejected');
       b.style.display='none'; inp.style.display='none';
       box.innerHTML='<p class="sub" style="color:var(--mint)">'+(d.rank?('You’re #'+d.rank+' today!'):'Posted!')+'</p>'+lbRows(d.top,name);
       chord([523,659,784]);
@@ -7872,12 +9022,16 @@ function bankCurrentState(){
     stopModifierAmbience();
     if(typeof stopArcadeMusic==='function') stopArcadeMusic();
     const scr=document.querySelector('.screen.active');
-    if(run && !run.animating && !dailyMode) saveRunState(currentRunPhase());
+    if(run && !run.animating) saveRunState(currentRunPhase());
     saveAccount();
   }catch(e){}
 }
 function resumeCurrentState(){
-  try{ if(typeof syncArcadeMusic==='function') syncArcadeMusic(); syncModifierAmbience(); }catch(e){}
+  try{
+    if(typeof syncArcadeMusic==='function') syncArcadeMusic();
+    syncModifierAmbience();
+    recoverPlayPurchases('resume');
+  }catch(e){}
 }
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){ bankCurrentState(); flushTelemetry(true); } else resumeCurrentState();
@@ -7896,20 +9050,65 @@ if('serviceWorker' in navigator && location.hostname==='raspberrypi.tail20f574.t
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
+const PRIVACY_ACCEPT_KEY='wildcard_privacy_accept_v1';
+const PRIVACY_POLICY_VERSION='2026-07-19-v1';
+let onlineServicesStarted=false;
+function hasAcceptedCurrentPrivacyPolicy(){
+  const marker=parseJsonObject(cloudStorageGet(PRIVACY_ACCEPT_KEY));
+  return !!(marker&&marker.version===PRIVACY_POLICY_VERSION&&Number(marker.acceptedAt)>0);
+}
+function setGameInteractionLocked(locked){
+  document.body.classList.toggle('privacy-blocked',!!locked);
+  document.querySelectorAll('.screen,#sound-toggle,#music-toggle,#speed-toggle,#coin-badge').forEach(el=>{
+    try{ el.inert=!!locked; }catch(e){}
+    el.setAttribute('aria-hidden',locked?'true':'false');
+  });
+}
+function startConsentGatedServices(){
+  if(onlineServicesStarted) return;
+  onlineServicesStarted=true;
+  const WN=window.WildcardNative;
+  if(WN&&typeof WN.enableAdsAfterPolicyAcceptance==='function') WN.enableAdsAfterPolicyAcceptance();
+  if(WN&&typeof WN.setAdMuted==='function') WN.setAdMuted(account.muted);
+  if(WN&&typeof WN.setPurchaseDeliveryHandler==='function'){
+    WN.setPurchaseDeliveryHandler(delivery=>{
+      handleVerifiedPlayDelivery(delivery).catch(()=>{});
+    });
+  }
+  if(WN&&typeof WN.enableBillingAfterPolicyAcceptance==='function') WN.enableBillingAfterPolicyAcceptance();
+  initCloudAccount();
+  queueTelemetry('app_open');
+}
+function acceptCurrentPrivacyPolicy(){
+  const acceptedAt=Date.now();
+  const marker=JSON.stringify({version:PRIVACY_POLICY_VERSION,acceptedAt:acceptedAt,_savedAt:acceptedAt});
+  cloudStorageSet(PRIVACY_ACCEPT_KEY,marker);
+  nativePersist(PRIVACY_ACCEPT_KEY,marker);
+  const gate=document.getElementById('privacy-gate');
+  if(gate) gate.classList.remove('active');
+  setGameInteractionLocked(false);
+  startConsentGatedServices();
+  updateMenuAccount();
+}
+function showPrivacyAcceptanceGate(){
+  const gate=document.getElementById('privacy-gate');
+  const accept=document.getElementById('privacy-gate-accept');
+  setGameInteractionLocked(true);
+  if(gate) gate.classList.add('active');
+  if(accept){
+    accept.onclick=acceptCurrentPrivacyPolicy;
+    setTimeout(()=>accept.focus(),0);
+  }
+}
 function finishWildcardStartup(){
   loadAccount();
   ensureMissionWeek();
   applyCosmetics();
   grantFreeUnlocks();
   updateMenuAccount();
-  const WN=window.WildcardNative;
-  if(WN && typeof WN.setAdMuted==='function') WN.setAdMuted(account.muted);
-  if(WN && typeof WN.restorePurchases==='function'){
-    try{ WN.restorePurchases(ids=>{ if(ids && ids.indexOf && ids.indexOf('remove_ads')>=0 && !account.noAds){ account.noAds=true; saveAccount(); updateMenuAccount(); } }); }catch(e){}
-  }
-  initCloudAccount();
   window.WildcardStartupReady=true;
-  queueTelemetry('app_open');
+  if(hasAcceptedCurrentPrivacyPolicy()) startConsentGatedServices();
+  else showPrivacyAcceptanceGate();
 }
 hydrateNativeStorage().then(finishWildcardStartup,finishWildcardStartup);
 profileMobileAnimationBudget();

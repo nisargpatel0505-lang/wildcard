@@ -1,0 +1,303 @@
+{
+  "version": "6.9.13",
+  "source_sha256": "499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9",
+  "generated_at": "2026-07-18T15:54:34.224446Z",
+  "opening_deals": 50000,
+  "full_runs": 19000,
+  "best_opening_configuration": {
+    "configuration": "Guided first run: Copper Chip + Pair Polisher",
+    "configuration_id": "guided_copper_polish",
+    "starter_cost": 0,
+    "deals": 50000,
+    "avg_best_score": 165.48,
+    "median_best_score": 120,
+    "p90_best_score": 324,
+    "one_play_clear_rate": 80.4,
+    "dominant_best_hand": "Two Pair",
+    "dominant_best_hand_share": 39.25,
+    "tutorial_only": true
+  },
+  "best_single_opening_starter": {
+    "configuration": "Opening Act",
+    "configuration_id": "opening_act",
+    "starter_cost": 6,
+    "deals": 50000,
+    "avg_best_score": 145.6,
+    "median_best_score": 106,
+    "p90_best_score": 285,
+    "one_play_clear_rate": 74.12,
+    "dominant_best_hand": "Two Pair",
+    "dominant_best_hand_share": 39.25,
+    "tutorial_only": false
+  },
+  "best_starter_by_depth": {
+    "starter": "Guided first run: Copper Chip + Pair Polisher",
+    "starter_id": "guided_copper_polish",
+    "starter_cost": 0,
+    "runs": 1000,
+    "wins": 13,
+    "win_rate": 1.3,
+    "ci_low": 0.76,
+    "ci_high": 2.21,
+    "avg_heats_cleared": 9.87,
+    "reach_heat_9": 96.5,
+    "reach_heat_12": 42.3,
+    "boss_hazard": 96.93,
+    "hand_entropy": 0.74,
+    "dominant_hand": "Two Pair",
+    "dominant_hand_share": 35.92,
+    "joker_active_play_rate": 100,
+    "joker_events_per_play": 4.59,
+    "notable_play_rate": 51.38,
+    "any_callout_play_rate": 86.69,
+    "final_play_clear_rate": 20.69,
+    "close_clear_rate": 24.6,
+    "build_jaccard_distance": 0.078,
+    "tutorial_only": true
+  },
+  "best_starter_by_win_rate": {
+    "starter": "Royal Retainer",
+    "starter_id": "retainer",
+    "starter_cost": 6,
+    "runs": 1000,
+    "wins": 17,
+    "win_rate": 1.7,
+    "ci_low": 1.06,
+    "ci_high": 2.71,
+    "avg_heats_cleared": 9.58,
+    "reach_heat_9": 93.6,
+    "reach_heat_12": 34.8,
+    "boss_hazard": 95.11,
+    "hand_entropy": 0.732,
+    "dominant_hand": "Two Pair",
+    "dominant_hand_share": 36.85,
+    "joker_active_play_rate": 96.09,
+    "joker_events_per_play": 4.34,
+    "notable_play_rate": 51.03,
+    "any_callout_play_rate": 87.07,
+    "final_play_clear_rate": 22.08,
+    "close_clear_rate": 25.74,
+    "build_jaccard_distance": 0.153,
+    "tutorial_only": false
+  },
+  "best_strategy": {
+    "strategy": "Adaptive greedy",
+    "strategy_id": "adaptive_greedy",
+    "runs": 1000,
+    "wins": 233,
+    "win_rate": 23.3,
+    "ci_low": 20.79,
+    "ci_high": 26.02,
+    "avg_heats_cleared": 9.8,
+    "reach_heat_9": 84.4,
+    "reach_heat_11": 63.1,
+    "hand_entropy": 0.773,
+    "dominant_hand": "Two Pair",
+    "dominant_hand_share": 30.85,
+    "joker_active_play_rate": 80.12,
+    "joker_events_per_play": 2.13,
+    "final_play_clear_rate": 25.26,
+    "close_clear_rate": 22.28,
+    "comeback_clear_rate": 5.21,
+    "affordable_choice_shop_rate": 88.6,
+    "dead_shop_rate": 2.03,
+    "build_jaccard_distance": 0.906,
+    "build_identity_rate": 65.7,
+    "boss_hazard": 55.95
+  },
+  "runner_up_strategy": {
+    "strategy": "Flush engine",
+    "strategy_id": "flush_engine",
+    "runs": 1000,
+    "wins": 225,
+    "win_rate": 22.5,
+    "ci_low": 20.02,
+    "ci_high": 25.19,
+    "avg_heats_cleared": 9.81,
+    "reach_heat_9": 83.9,
+    "reach_heat_11": 65.4,
+    "hand_entropy": 0.742,
+    "dominant_hand": "Flush",
+    "dominant_hand_share": 33.02,
+    "joker_active_play_rate": 80.97,
+    "joker_events_per_play": 2.49,
+    "final_play_clear_rate": 23.42,
+    "close_clear_rate": 23.35,
+    "comeback_clear_rate": 3.82,
+    "affordable_choice_shop_rate": 88.83,
+    "dead_shop_rate": 2.02,
+    "build_jaccard_distance": 0.878,
+    "build_identity_rate": 67.0,
+    "boss_hazard": 61.27
+  },
+  "top_strategy_paired_p": 0.645917,
+  "no_boost_starter": {
+    "starter": "No start boost",
+    "starter_id": "none",
+    "starter_cost": 0,
+    "runs": 1000,
+    "wins": 14,
+    "win_rate": 1.4,
+    "ci_low": 0.84,
+    "ci_high": 2.34,
+    "avg_heats_cleared": 9.49,
+    "reach_heat_9": 92.9,
+    "reach_heat_12": 33.8,
+    "boss_hazard": 95.86,
+    "hand_entropy": 0.729,
+    "dominant_hand": "Two Pair",
+    "dominant_hand_share": 37.03,
+    "joker_active_play_rate": 92.24,
+    "joker_events_per_play": 4.05,
+    "notable_play_rate": 49.82,
+    "any_callout_play_rate": 87.28,
+    "final_play_clear_rate": 23.4,
+    "close_clear_rate": 26.41,
+    "build_jaccard_distance": 0.196,
+    "tutorial_only": false
+  },
+  "guided_opening": {
+    "configuration": "Guided first run: Copper Chip + Pair Polisher",
+    "configuration_id": "guided_copper_polish",
+    "starter_cost": 0,
+    "deals": 50000,
+    "avg_best_score": 165.48,
+    "median_best_score": 120,
+    "p90_best_score": 324,
+    "one_play_clear_rate": 80.4,
+    "dominant_best_hand": "Two Pair",
+    "dominant_best_hand_share": 39.25,
+    "tutorial_only": true
+  },
+  "no_boost_opening": {
+    "configuration": "No start boost",
+    "configuration_id": "none",
+    "starter_cost": 0,
+    "deals": 50000,
+    "avg_best_score": 100.14,
+    "median_best_score": 73,
+    "p90_best_score": 196,
+    "one_play_clear_rate": 41.02,
+    "dominant_best_hand": "Two Pair",
+    "dominant_best_hand_share": 39.25,
+    "tutorial_only": false
+  },
+  "strategy_agency": {
+    "mixedOutcomeSeeds": 521,
+    "universalWinSeeds": 0,
+    "universalLossSeeds": 479,
+    "mixedOutcomeRate": 52.1,
+    "universalLossRate": 47.9
+  },
+  "sensible_strategy_spread_pp": 14.1,
+  "paired_strategy_significance": [
+    {
+      "strategy_id": "adaptive_greedy",
+      "strategy": "Adaptive greedy",
+      "best_only": 0,
+      "strategy_only": 0,
+      "discordant": 0,
+      "paired_p": 1.0
+    },
+    {
+      "strategy_id": "cheat_synergy",
+      "strategy": "Cheat + hand synergy",
+      "best_only": 120,
+      "strategy_only": 48,
+      "discordant": 168,
+      "paired_p": 0.0
+    },
+    {
+      "strategy_id": "pair_rank",
+      "strategy": "Pair and rank boosting",
+      "best_only": 188,
+      "strategy_only": 47,
+      "discordant": 235,
+      "paired_p": 0.0
+    },
+    {
+      "strategy_id": "utility_niche",
+      "strategy": "Utility and niche",
+      "best_only": 147,
+      "strategy_only": 60,
+      "discordant": 207,
+      "paired_p": 0.0
+    },
+    {
+      "strategy_id": "flush_engine",
+      "strategy": "Flush engine",
+      "best_only": 120,
+      "strategy_only": 112,
+      "discordant": 232,
+      "paired_p": 0.645917
+    },
+    {
+      "strategy_id": "economy_hoarding",
+      "strategy": "Economy hoarding",
+      "best_only": 157,
+      "strategy_only": 122,
+      "discordant": 279,
+      "paired_p": 0.041605
+    },
+    {
+      "strategy_id": "xmult_stacking",
+      "strategy": "xMult stacking",
+      "best_only": 224,
+      "strategy_only": 9,
+      "discordant": 233,
+      "paired_p": 0.0
+    }
+  ],
+  "validation": {
+    "decision_failures": 0,
+    "strategy_failures": 0,
+    "not_player_telemetry": true
+  },
+  "chart_map": [
+    {
+      "section": "Opening decisions",
+      "question": "How much immediate score does each start configuration expose?",
+      "family": "Comparison",
+      "type": "bar",
+      "fields": [
+        "configuration",
+        "avg_best_score"
+      ],
+      "source": "docs/release/wildcard-v6.9.13-decision-lab-results.json"
+    },
+    {
+      "section": "Starter boosts",
+      "question": "Which starter produces the deepest full run?",
+      "family": "Comparison",
+      "type": "bar",
+      "fields": [
+        "starter",
+        "avg_heats_cleared"
+      ],
+      "source": "docs/release/wildcard-v6.9.13-decision-lab-results.json"
+    },
+    {
+      "section": "Build strategies",
+      "question": "Which policy clears Heat 12 most often?",
+      "family": "Ranking",
+      "type": "bar",
+      "fields": [
+        "strategy",
+        "win_rate"
+      ],
+      "source": "docs/release/wildcard-v6.9.13-strategy-results.json"
+    },
+    {
+      "section": "Fun trade-off",
+      "question": "How does strategy strength relate to hand variety?",
+      "family": "Relationship",
+      "type": "scatter",
+      "fields": [
+        "hand_entropy",
+        "win_rate",
+        "strategy"
+      ],
+      "source": "docs/release/wildcard-v6.9.13-strategy-results.json"
+    }
+  ]
+}
