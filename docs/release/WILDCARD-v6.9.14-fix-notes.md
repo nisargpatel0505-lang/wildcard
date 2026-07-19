@@ -93,3 +93,15 @@ release.
 
 The signed code-34 AAB was published as `WILDCARD v6.9.14 internal test`.
 Google Play reported only the non-blocking deobfuscation/native-symbol warnings.
+
+## Distribution verification
+
+- GitHub PR #9 merged to `main` as
+  `569ccbd5fafeb2e86ddbc96d81c16b8d955eb3bb`.
+- The Pi pulled that exact merge with a clean `main` worktree.
+- `WILDCARD-v6.9.14.apk`, `WILDCARD-v6.9.14-release.apk` and
+  `WILDCARD-latest.apk` all hash to the verified release APK SHA-256 above.
+- A fresh Windows download of the public latest APK produced the same hash.
+- Pi API health reports `authenticated-v2` Daily Board writes and
+  `aggregate-v1` privacy-minimised analytics ready.
+- Public APK: <https://raspberrypi.tail20f574.ts.net/WILDCARD-latest.apk>

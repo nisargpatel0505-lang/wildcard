@@ -54,3 +54,9 @@ The Android package and release certificates are registered with Firebase App Ch
 ## Raspberry Pi deployment
 
 The Pi keeps a private read-only clone and runs `deploy/update-pi.sh`. That script pulls `main`, deploys `www/`, the privacy page and its external artwork/audio/fonts/video through the existing GoatCounter-aware deployer, installs the source-controlled Daily Board/aggregate analytics API, and publishes the current APK as `WILDCARD-v6.9.14.apk`, `WILDCARD-v6.9.14-release.apk` and `WILDCARD-latest.apk`.
+
+The v6.9.14 Pi deployment is live from GitHub merge `569ccbd5fafeb2e86ddbc96d81c16b8d955eb3bb`. All three APK aliases hash to `51e9f6257497145076bb47aeaf09bb1c2956df9161549e1bc1506e42bd63428d`.
+
+- Game: <https://raspberrypi.tail20f574.ts.net/>
+- Latest APK: <https://raspberrypi.tail20f574.ts.net/WILDCARD-latest.apk>
+- Versioned APK: <https://raspberrypi.tail20f574.ts.net/WILDCARD-v6.9.14.apk>
