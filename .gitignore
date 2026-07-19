@@ -17,3 +17,6 @@ __pycache__/
 artifacts/
 firestore-audit-working-*.md
 releases/*-developer.apk
+.firebase/
+output/
+releases/WILDCARD-v6.9.6.apk

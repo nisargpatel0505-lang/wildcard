@@ -40,6 +40,22 @@ ssh wildcard-pi '~/wildcard-analytics-report --days 14'
 
 These counters can support event totals and rough run-start/run-end ratios. They cannot support daily active users, unique installs, retention, cohorts or per-player funnels because no stable identity exists. Client events are forgeable, so they must never grant rewards or establish leaderboard results.
 
+## Daily Board security boundary
+
+Anonymous analytics and the custom Daily Board share one small HTTP service but
+not one trust model. Public clients can read `/api/daily`; public score writes
+are rejected. Authenticated, App Check protected Firebase Functions validate
+the account, current UTC date, board-name ownership, rate window and
+idempotency key before forwarding an HMAC-signed server-to-server write to
+`/api/internal/daily`. The Pi stores only a SHA-256 account reference, board
+name, best score and bounded idempotency ledger. It never receives a Firebase
+UID or email address.
+
+This prevents anonymous posting, casual name impersonation, date-window abuse,
+browser CORS abuse and simple flooding. It does not make a client-computed
+score authoritative. Daily Board coin prizes remain disabled until a reviewed
+server-verifiable run attestation or replay design exists.
+
 ## Website page counts and transport logs
 
 The Pi web deployer separately injects self-hosted GoatCounter for website page-load counts. GoatCounter page loads and the product events above are different measurements and must not be added together as “users”.

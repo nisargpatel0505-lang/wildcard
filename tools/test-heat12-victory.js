@@ -479,11 +479,14 @@ function testContinueEndlessIsSingleUse() {
   assert.equal(h.adCount, 1);
 }
 
-function testDailyVictorySettlesWithoutChoiceOrSave() {
+function testDailyVictorySettlesWithoutChoiceAndKeepsCheckpoint() {
   const h = createHarness({ dailyMode: true });
   startAndFinishVideo(h, 'onended');
 
-  assert.equal(h.events.filter((event) => event === 'save:wincomplete').length, 0);
+  assert.ok(
+    h.events.filter((event) => event === 'save:wincomplete').length >= 1,
+    'Daily victory must checkpoint before its cinematic/ad transition'
+  );
   assert.equal(h.adCount, 1);
   h.settleAd(true);
   h.clock.tick(120);
@@ -501,6 +504,6 @@ testNoAdsSkipsInterstitial();
 testResumeSkipsCinematicAndAd();
 testEndRunDoesNotShowSecondAd();
 testContinueEndlessIsSingleUse();
-testDailyVictorySettlesWithoutChoiceOrSave();
+testDailyVictorySettlesWithoutChoiceAndKeepsCheckpoint();
 
 console.log('Heat-12 cinematic, interstitial, choice, resume, and Daily flow tests passed.');

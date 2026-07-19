@@ -1,15 +1,40 @@
 apply plugin: 'com.android.application'
 
+def ownedAdmobAppId = 'ca-app-pub-3855192091371080~7622357185'
+def productionAdmobAppId = (findProperty('WILDCARD_ADMOB_APP_ID') ?: ownedAdmobAppId).toString().trim()
+def ownedRewardedAdId = 'ca-app-pub-3855192091371080/3551964243'
+def ownedInterstitialAdId = 'ca-app-pub-3855192091371080/2034300223'
+def productionRewardedAdId = (findProperty('WILDCARD_ADMOB_REWARDED_ID') ?: ownedRewardedAdId).toString().trim()
+def productionInterstitialAdId = (findProperty('WILDCARD_ADMOB_INTERSTITIAL_ID') ?: ownedInterstitialAdId).toString().trim()
+def validAdmobAppId = productionAdmobAppId ==~ /ca-app-pub-\d{16}~\d{10}/
+def validAdmobUnitId = { value -> value ==~ /ca-app-pub-\d{16}\/\d{10}/ }
+def productionAdsReady = validAdmobAppId &&
+    validAdmobUnitId(productionRewardedAdId) &&
+    validAdmobUnitId(productionInterstitialAdId)
+def javaStringLiteral = { value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+def googleDemoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
+def googleDemoRewardedId = 'ca-app-pub-3940256099942544/5224354917'
+def googleDemoInterstitialId = 'ca-app-pub-3940256099942544/1033173712'
+
 android {
     namespace = "com.nisarg.wildcard"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId "com.nisarg.wildcard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 33
-        versionName "6.9.13"
+        versionCode 34
+        versionName "6.9.14"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Debug and any unrecognised variants remain ad-free by default.
+        manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
+        buildConfigField "boolean", "WILDCARD_ADS_ENABLED", "false"
+        buildConfigField "boolean", "WILDCARD_ADS_TESTING", "false"
+        buildConfigField "String", "WILDCARD_REWARDED_AD_ID", '""'
+        buildConfigField "String", "WILDCARD_INTERSTITIAL_AD_ID", '""'
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -31,11 +56,32 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+            // Public releases use the owner-created WILDCARD units. Gradle
+            // properties may override them for a future unit rotation.
+            manifestPlaceholders = [
+                // The owner app ID is safe to ship while units remain disabled.
+                // Never put Google's demonstration app ID in a public variant.
+                wildcardAdmobAppId: validAdmobAppId ? productionAdmobAppId : ownedAdmobAppId
+            ]
+            buildConfigField "boolean", "WILDCARD_ADS_ENABLED", productionAdsReady.toString()
+            buildConfigField "boolean", "WILDCARD_ADS_TESTING", "false"
+            buildConfigField "String", "WILDCARD_REWARDED_AD_ID",
+                javaStringLiteral(productionAdsReady ? productionRewardedAdId : '')
+            buildConfigField "String", "WILDCARD_INTERSTITIAL_AD_ID",
+                javaStringLiteral(productionAdsReady ? productionInterstitialAdId : '')
         }
         developer {
             initWith release
             matchingFallbacks = ['release']
             signingConfig signingConfigs.release
+            // Developer APKs deliberately use Google's demonstration units.
+            manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
+            buildConfigField "boolean", "WILDCARD_ADS_ENABLED", "true"
+            buildConfigField "boolean", "WILDCARD_ADS_TESTING", "true"
+            buildConfigField "String", "WILDCARD_REWARDED_AD_ID",
+                javaStringLiteral(googleDemoRewardedId)
+            buildConfigField "String", "WILDCARD_INTERSTITIAL_AD_ID",
+                javaStringLiteral(googleDemoInterstitialId)
         }
     }
 }
@@ -45,7 +91,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("developer")) { variant ->
         variant.outputs.each { output ->
-            output.versionCode.set(32)
+            output.versionCode.set(33)
         }
     }
 }
@@ -72,6 +118,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:34.15.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-functions'
     implementation 'com.google.firebase:firebase-appcheck-playintegrity'
 
     // Current Sign in with Google flow for Android.

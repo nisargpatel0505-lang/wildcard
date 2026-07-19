@@ -2,8 +2,9 @@ const fs = require('fs');
 
 const expected = {
   packageName: 'com.nisarg.wildcard',
-  versionName: '6.9.13',
-  versionCode: 33,
+  versionName: '6.9.14',
+  versionCode: 34,
+  developerVersionCode: 33,
   projectId: 'wildcard-31d50',
   projectNumber: '420107184674',
   leaderboardId: 'CgkIotTbgp0MEAIQAQ',
@@ -39,6 +40,7 @@ const sha1s = [...new Set(androidOauth.map(client => normalizeSha(client.android
 const packageName = match(gradle, /applicationId\s+["']([^"']+)["']/);
 const versionName = match(gradle, /versionName\s+["']([^"']+)["']/);
 const versionCode = Number(match(gradle, /versionCode\s+(\d+)/));
+const developerVersionCode = Number(match(gradle, /withBuildType\("developer"\)[\s\S]*?versionCode\.set\((\d+)\)/));
 const appId = match(strings, /name="game_services_project_id"[^>]*>([^<]+)</);
 const leaderboardId = match(strings, /name="leaderboard_high_score"[^>]*>([^<]+)</);
 const firebasePackages = (services.client || []).map(client =>
@@ -48,16 +50,18 @@ const firebasePackages = (services.client || []).map(client =>
 const hardChecks = {
   packageName: packageName === expected.packageName,
   releaseVersion: versionName === expected.versionName && versionCode === expected.versionCode,
+  developerVersion: developerVersionCode === expected.developerVersionCode,
   firebasePackage: firebasePackages.includes(expected.packageName),
   firebaseProject: services.project_info && services.project_info.project_id === expected.projectId,
   projectNumber: services.project_info && services.project_info.project_number === expected.projectNumber,
   playGamesAppId: appId === expected.projectNumber,
   leaderboardId: leaderboardId === expected.leaderboardId,
-  manifestAppIdReference: manifest.includes('android:name="com.google.android.gms.games.APP_ID"') && manifest.includes('android:value="@string/game_services_project_id"')
+  manifestAppIdReference: manifest.includes('android:name="com.google.android.gms.games.APP_ID"') && manifest.includes('android:value="@string/game_services_project_id"'),
+  responsiveActivity: manifest.includes('android:screenOrientation="unspecified"') && manifest.includes('android:resizeableActivity="true"')
 };
 
 const report = {
-  repositoryRelease: { versionName, versionCode },
+  repositoryRelease: { versionName, versionCode, developerVersionCode },
   identifiers: {
     packageName,
     firebaseProject: services.project_info && services.project_info.project_id,

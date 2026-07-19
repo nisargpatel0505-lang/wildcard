@@ -36,20 +36,21 @@ import com.google.android.gms.games.leaderboard.LeaderboardScoreBuffer;
 import com.google.android.gms.games.leaderboard.LeaderboardVariant;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.FirebaseFunctionsException;
+import com.google.firebase.functions.HttpsCallableOptions;
 
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Small native bridge for optional Firebase accounts/cloud saves and Google
@@ -61,14 +62,55 @@ public class WildcardCloudPlugin extends Plugin {
     private static final int LEADERBOARD_REQUEST = 6904;
 
     private FirebaseAuth auth;
-    private FirebaseFirestore firestore;
+    private FirebaseFunctions functions;
     private CredentialManager credentialManager;
 
     @Override
     public void load() {
         auth = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance();
+        functions = FirebaseFunctions.getInstance("europe-west2");
         credentialManager = CredentialManager.create(getContext());
+    }
+
+    private JSObject callableResult(Object value) {
+        try {
+            if (value instanceof Map<?, ?> map) {
+                return JSObject.fromJSONObject(new JSONObject(map));
+            }
+        } catch (JSONException ignored) {}
+        return new JSObject();
+    }
+
+    private void rejectCallable(PluginCall call, String operation, Exception error) {
+        String status = "UNKNOWN";
+        if (error instanceof FirebaseFunctionsException functionsError) {
+            status = functionsError.getCode().name();
+        }
+        JSObject data = new JSObject();
+        data.put("operation", operation);
+        data.put("status", status);
+        data.put("retryable", status.equals("UNAVAILABLE") || status.equals("DEADLINE_EXCEEDED"));
+        call.reject(
+            operation + " could not be completed",
+            "FUNCTION_" + status,
+            error,
+            data
+        );
+    }
+
+    private Map<String, Object> purchaseRequest(PluginCall call) {
+        String productId = call.getString("productId");
+        String purchaseToken = call.getString("purchaseToken");
+        if (productId == null || productId.isBlank()
+            || purchaseToken == null || purchaseToken.length() < 16
+            || purchaseToken.length() > 4096) {
+            return null;
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("packageName", getContext().getPackageName());
+        data.put("productId", productId);
+        data.put("purchaseToken", purchaseToken);
+        return data;
     }
 
     private JSObject authResult(FirebaseUser user) {
@@ -272,45 +314,21 @@ public class WildcardCloudPlugin extends Plugin {
         );
     }
 
-    private DocumentReference saveRef(FirebaseUser user) {
-        return firestore.collection("users")
-            .document(user.getUid())
-            .collection("saves")
-            .document("main");
-    }
-
     @PluginMethod
     public void readCloudSave(PluginCall call) {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
+        if (auth.getCurrentUser() == null) {
             call.reject("Sign in before reading a cloud save");
             return;
         }
-
-        saveRef(user).get()
-            .addOnSuccessListener(doc -> call.resolve(cloudSaveResult(doc)))
-            .addOnFailureListener(error -> reject(call, "Cloud save could not be read", error));
-    }
-
-    private JSObject cloudSaveResult(DocumentSnapshot doc) {
-        JSObject out = new JSObject();
-        out.put("exists", doc.exists());
-        out.put("fromCache", doc.getMetadata().isFromCache());
-        if (doc.exists()) {
-            out.put("accountJson", doc.getString("accountJson"));
-            out.put("runJson", doc.getString("runJson"));
-            Long savedAt = doc.getLong("clientSavedAt");
-            out.put("clientSavedAt", savedAt == null ? 0 : savedAt);
-            Timestamp updatedAt = doc.getTimestamp("updatedAt");
-            out.put("serverUpdatedAt", updatedAt == null ? 0 : updatedAt.toDate().getTime());
-        }
-        return out;
+        functions.getHttpsCallable("readSecureCloudSave")
+            .call(new HashMap<String, Object>())
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Cloud save read", error));
     }
 
     @PluginMethod
     public void writeCloudSave(PluginCall call) {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
+        if (auth.getCurrentUser() == null) {
             call.reject("Sign in before writing a cloud save");
             return;
         }
@@ -326,21 +344,190 @@ public class WildcardCloudPlugin extends Plugin {
         }
 
         Map<String, Object> data = new HashMap<>();
-        data.put("uid", user.getUid());
-        data.put("schemaVersion", 1L);
-        data.put("appVersion", "6.9.13");
         data.put("accountJson", accountJson);
         data.put("runJson", runJson);
         data.put("clientSavedAt", clientSavedAt == null ? 0L : Math.max(0L, clientSavedAt));
-        data.put("updatedAt", FieldValue.serverTimestamp());
+        Long expectedProgressVersion = call.getLong("expectedProgressVersion");
+        Long billingAdjustmentApplied = call.getLong("billingAdjustmentApplied");
+        data.put(
+            "expectedProgressVersion",
+            expectedProgressVersion == null ? 0L : Math.max(0L, expectedProgressVersion)
+        );
+        data.put(
+            "billingAdjustmentApplied",
+            billingAdjustmentApplied == null ? 0L : Math.max(0L, billingAdjustmentApplied)
+        );
 
-        saveRef(user).set(data)
-            .addOnSuccessListener(ignored -> {
-                JSObject out = new JSObject();
-                out.put("queued", true);
-                call.resolve(out);
+        functions.getHttpsCallable("writeSecureCloudSave")
+            .call(data)
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Cloud save write", error));
+    }
+
+    /**
+     * Ask the protected Firebase backend to verify an Android one-time product
+     * directly with the Google Play Developer API. The client never treats the
+     * Billing Library callback by itself as proof of payment.
+     */
+    @PluginMethod
+    public void verifyPlayPurchase(PluginCall call) {
+        if (auth.getCurrentUser() == null) {
+            call.reject("Sign in with Google before purchasing", "FUNCTION_UNAUTHENTICATED");
+            return;
+        }
+        Map<String, Object> data = purchaseRequest(call);
+        if (data == null) {
+            call.reject("Invalid Play purchase", "FUNCTION_INVALID_ARGUMENT");
+            return;
+        }
+        functions.getHttpsCallable("verifyPlayPurchase")
+            .call(data)
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Purchase verification", error));
+    }
+
+    /**
+     * Mark a verified token delivered only after the web layer has persisted
+     * the local recovery claim and the resulting ordinary balance through the
+     * protected cloud callable. Paid-only fields never enter accountJson.
+     * The Billing receipt is consumed/acknowledged after this resolves.
+     */
+    @PluginMethod
+    public void markPlayPurchaseDelivered(PluginCall call) {
+        if (auth.getCurrentUser() == null) {
+            call.reject("Sign in with Google before delivering a purchase", "FUNCTION_UNAUTHENTICATED");
+            return;
+        }
+        Map<String, Object> data = purchaseRequest(call);
+        if (data == null) {
+            call.reject("Invalid Play purchase", "FUNCTION_INVALID_ARGUMENT");
+            return;
+        }
+        functions.getHttpsCallable("markPlayPurchaseDelivered")
+            .call(data)
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Purchase delivery", error));
+    }
+
+    /** Return server-backed durable entitlements such as Remove Ads. */
+    @PluginMethod
+    public void getPlayEntitlements(PluginCall call) {
+        if (auth.getCurrentUser() == null) {
+            call.reject("Sign in with Google before restoring purchases", "FUNCTION_UNAUTHENTICATED");
+            return;
+        }
+        functions.getHttpsCallable("getPlayEntitlements")
+            .call(new HashMap<String, Object>())
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Purchase restore", error));
+    }
+
+    /**
+     * Return variant-scoped monetization configuration. Release builds expose
+     * no ad-unit IDs unless all owner-created AdMob properties were supplied
+     * at build time; developer builds expose only Google's demonstration IDs.
+     */
+    @PluginMethod
+    public void serviceConfig(PluginCall call) {
+        JSObject out = new JSObject();
+        out.put("adsEnabled", BuildConfig.WILDCARD_ADS_ENABLED);
+        out.put("adTesting", BuildConfig.WILDCARD_ADS_TESTING);
+        out.put("rewardedAdId", BuildConfig.WILDCARD_REWARDED_AD_ID);
+        out.put("interstitialAdId", BuildConfig.WILDCARD_INTERSTITIAL_AD_ID);
+        out.put("billingVerificationRequired", true);
+        call.resolve(out);
+    }
+
+    /**
+     * Submit a completed Daily score through the authenticated Firebase
+     * callable. The backend assigns the UTC board date and consumes a
+     * limited-use App Check token, so neither the phone clock nor a replayed
+     * App Check assertion can choose a different board day.
+     */
+    @PluginMethod
+    public void submitDailyScore(PluginCall call) {
+        if (auth.getCurrentUser() == null) {
+            call.reject("Sign in with Google before posting a Daily score", "FUNCTION_UNAUTHENTICATED");
+            return;
+        }
+
+        String nameValue = call.getString("name");
+        Long scoreValue = call.getLong("score");
+        String idempotencyKey = call.getString("idempotencyKey");
+        String name = nameValue == null ? "" : nameValue.trim().toUpperCase(Locale.ROOT);
+        if (!name.matches("^[A-Z0-9]{1,8}$")
+            || scoreValue == null || scoreValue < 0L || scoreValue > 10_000_000L
+            || idempotencyKey == null
+            || !idempotencyKey.matches("^[A-Za-z0-9_-]{16,80}$")) {
+            call.reject("Invalid Daily score", "FUNCTION_INVALID_ARGUMENT");
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name);
+        data.put("score", scoreValue);
+        data.put("idempotencyKey", idempotencyKey);
+        HttpsCallableOptions options = new HttpsCallableOptions.Builder()
+            .setLimitedUseAppCheckTokens(true)
+            .build();
+        functions.getHttpsCallable("submitDailyScore", options)
+            .call(data)
+            .addOnSuccessListener(result -> call.resolve(callableResult(result.getData())))
+            .addOnFailureListener(error -> rejectCallable(call, "Daily score submission", error));
+    }
+
+    /**
+     * Delete the signed-in Firebase account through the backend. Server-side
+     * deletion avoids the unsafe sequence where Auth is deleted before its
+     * Firestore save, or a stale login deletes the save but cannot delete Auth.
+     */
+    @PluginMethod
+    public void deleteAccount(PluginCall call) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            JSObject out = new JSObject();
+            out.put("deleted", false);
+            out.put("signedIn", false);
+            out.put("status", "ALREADY_SIGNED_OUT");
+            call.resolve(out);
+            return;
+        }
+
+        Map<String, Object> confirmation = new HashMap<>();
+        confirmation.put("confirm", "DELETE");
+        HttpsCallableOptions options = new HttpsCallableOptions.Builder()
+            .setLimitedUseAppCheckTokens(true)
+            .build();
+        functions.getHttpsCallable("deleteMyAccount", options)
+            .call(confirmation)
+            .addOnSuccessListener(result -> {
+                auth.signOut();
+                JSObject out = callableResult(result.getData());
+                out.put("signedIn", false);
+                out.put("status", "DELETED");
+
+                credentialManager.clearCredentialStateAsync(
+                    new ClearCredentialStateRequest(),
+                    new CancellationSignal(),
+                    ContextCompat.getMainExecutor(getContext()),
+                    new CredentialManagerCallback<Void, ClearCredentialException>() {
+                        @Override
+                        public void onResult(Void ignored) {
+                            call.resolve(out);
+                        }
+
+                        @Override
+                        public void onError(@NonNull ClearCredentialException error) {
+                            // The Firebase account and cloud data are already
+                            // deleted. A stale chooser hint is not a deletion
+                            // failure and is cleared on the next sign-in/out.
+                            out.put("credentialChooserCleared", false);
+                            call.resolve(out);
+                        }
+                    }
+                );
             })
-            .addOnFailureListener(error -> reject(call, "Cloud save could not be written", error));
+            .addOnFailureListener(error -> rejectCallable(call, "Account deletion", error));
     }
 
     @PluginMethod

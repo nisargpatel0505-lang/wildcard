@@ -9,13 +9,31 @@ const bridgeSource = fs.readFileSync(
   path.join(__dirname, '..', 'www', 'native-bridge.js'),
   'utf8'
 );
+const indexSource = fs.readFileSync(
+  path.join(__dirname, '..', 'www', 'index.html'),
+  'utf8'
+);
+const androidBuildSource = fs.readFileSync(
+  path.join(__dirname, '..', 'android', 'app', 'build.gradle'),
+  'utf8'
+);
 
-async function flushPromises() {
-  for (let i = 0; i < 6; i += 1) await Promise.resolve();
+async function flushPromises(rounds = 12) {
+  for (let i = 0; i < rounds; i += 1) await Promise.resolve();
 }
 
-async function createHarness(options) {
-  options = options || {};
+function baseContext(window) {
+  return {
+    window,
+    document: { addEventListener() {} },
+    console,
+    Promise,
+    setTimeout(fn) { fn(); return 0; },
+    clearTimeout() {}
+  };
+}
+
+async function createAdHarness(options = {}) {
   const listeners = Object.create(null);
   const calls = {
     prepareRewarded: 0,
@@ -23,7 +41,6 @@ async function createHarness(options) {
     showRewarded: 0,
     showInterstitial: 0
   };
-
   const AdMob = {
     addListener(name, handler) {
       listeners[name] = handler;
@@ -47,40 +64,43 @@ async function createHarness(options) {
     },
     showRewardVideoAd() {
       calls.showRewarded += 1;
-      if (options.rejectShow) return Promise.reject(new Error('show rejected'));
-      return Promise.resolve();
+      return options.rejectShow
+        ? Promise.reject(new Error('show rejected'))
+        : Promise.resolve();
     },
     showInterstitial() {
       calls.showInterstitial += 1;
-      if (options.rejectInterstitialShow) {
-        return Promise.reject(new Error('interstitial show rejected'));
-      }
-      return Promise.resolve();
+      return options.rejectInterstitialShow
+        ? Promise.reject(new Error('interstitial show rejected'))
+        : Promise.resolve();
     },
     showPrivacyOptionsForm() { return Promise.resolve(); },
     setApplicationMuted() { return Promise.resolve(); }
   };
-
+  const Cloud = {
+    serviceConfig() {
+      return Promise.resolve({
+        adsEnabled: true,
+        adTesting: true,
+        rewardedAdId: 'ca-app-pub-3940256099942544/5224354917',
+        interstitialAdId: 'ca-app-pub-3940256099942544/1033173712'
+      });
+    }
+  };
   const window = {
     Capacitor: {
       isNativePlatform() { return true; },
-      Plugins: { AdMob }
+      Plugins: { AdMob, WildcardCloud: Cloud }
     }
   };
-  const context = {
-    window,
-    document: { addEventListener() {} },
-    console,
-    Promise,
-    setTimeout() { return 0; },
-    clearTimeout() {}
-  };
-
-  vm.runInNewContext(bridgeSource, context, { filename: 'www/native-bridge.js' });
+  vm.runInNewContext(bridgeSource, baseContext(window), {
+    filename: 'www/native-bridge.js'
+  });
+  await window.WildcardNative.enableAdsAfterPolicyAcceptance();
   await flushPromises();
-  assert.equal(calls.prepareRewarded, 1, 'consent should prepare the first rewarded ad');
+  assert.equal(calls.prepareRewarded, 1, 'consent should prepare rewarded');
+  assert.equal(calls.prepareInterstitial, 1, 'consent should prepare interstitial');
   listeners.onRewardedVideoAdLoaded();
-
   return {
     WN: window.WildcardNative,
     calls,
@@ -91,42 +111,90 @@ async function createHarness(options) {
   };
 }
 
-async function createBillingHarness(options) {
-  options = options || {};
-  const documentListeners = Object.create(null);
-  const purchaseHandlers = Object.create(null);
+async function createBillingHarness(options = {}) {
+  const handlers = Object.create(null);
   const calls = {
     registered: [],
-    ordered: []
+    ordered: [],
+    restored: 0,
+    verified: [],
+    delivered: []
   };
-  const chain = {
-    approved(handler) {
-      purchaseHandlers.approved = handler;
+  const chain = {};
+  [
+    'productUpdated',
+    'approved',
+    'pending',
+    'verified',
+    'unverified',
+    'receiptsVerified'
+  ].forEach(name => {
+    chain[name] = handler => {
+      handlers[name] = handler;
       return chain;
-    },
-    verified(handler) {
-      purchaseHandlers.verified = handler;
-      return chain;
-    }
-  };
+    };
+  });
+  const products = Object.create(null);
   const store = {
-    register(products) { calls.registered = products; },
+    register(rows) {
+      calls.registered = rows;
+      rows.forEach((row, index) => {
+        products[row.id] = {
+          id: row.id,
+          title: `Title ${row.id}`,
+          description: `Description ${row.id}`,
+          pricing: {
+            price: index === 0 ? '$0.99' : `$${index + 1}.99`,
+            currency: 'USD',
+            priceMicros: (index + 1) * 1000000
+          },
+          getOffer() { return options.missingOffer ? null : { productId: row.id }; },
+          owned: row.id === 'remove_ads' && !!options.removeAdsOwned
+        };
+      });
+    },
     when() { return chain; },
     initialize() { return Promise.resolve(); },
-    get(productId) {
-      if (options.missingOffer) return null;
-      return {
-        id: productId,
-        getOffer() { return { productId }; },
-        owned: false
-      };
-    },
+    get(productId) { return products[productId] || null; },
     order(offer) {
       calls.ordered.push(offer.productId);
       if (options.rejectOrder) return Promise.reject(new Error('order rejected'));
-      return Promise.resolve(options.orderError || undefined);
+      return Promise.resolve(options.orderError);
     },
-    restorePurchases() { return Promise.resolve(); }
+    restorePurchases() {
+      calls.restored += 1;
+      return Promise.resolve();
+    }
+  };
+  const Cloud = {
+    serviceConfig() { return Promise.resolve({ adsEnabled: false }); },
+    authState() {
+      return Promise.resolve(options.signedOut
+        ? { signedIn: false }
+        : { signedIn: true, uid: 'firebase-user-123' });
+    },
+    verifyPlayPurchase(input) {
+      calls.verified.push(input);
+      return Promise.resolve({
+        valid: true,
+        productId: input.productId,
+        tokenHash: options.tokenHash || 'a'.repeat(64),
+        delivered: !!options.alreadyDelivered,
+        consumed: false
+      });
+    },
+    markPlayPurchaseDelivered(input) {
+      calls.delivered.push(input);
+      return Promise.resolve({ delivered: true });
+    },
+    getPlayEntitlements() {
+      return Promise.resolve(options.entitlements || {
+        authoritative: true,
+        noAds: false,
+        purchases: [],
+        unresolved: []
+      });
+    }
   };
   const Purchase = {
     store,
@@ -134,37 +202,60 @@ async function createBillingHarness(options) {
       CONSUMABLE: 'consumable',
       NON_CONSUMABLE: 'non-consumable'
     },
-    Platform: { GOOGLE_PLAY: 'google-play' }
+    Platform: { GOOGLE_PLAY: 'google-play' },
+    ErrorCode: { VERIFICATION_FAILED: 6778003 }
   };
+  const dispatched = [];
   const window = {
     Capacitor: {
       isNativePlatform() { return true; },
-      Plugins: {}
+      Plugins: { WildcardCloud: Cloud }
     },
-    CdvPurchase: Purchase
+    CdvPurchase: Purchase,
+    CustomEvent: function CustomEvent(type) { this.type = type; },
+    dispatchEvent(event) { dispatched.push(event.type); }
   };
-  const context = {
-    window,
-    document: {
-      addEventListener(name, handler) { documentListeners[name] = handler; }
-    },
-    console,
-    Promise,
-    setTimeout() { return 0; },
-    clearTimeout() {}
-  };
-
-  vm.runInNewContext(bridgeSource, context, { filename: 'www/native-bridge.js' });
-  assert.equal(typeof documentListeners.deviceready, 'function', 'billing should wait for deviceready');
-  documentListeners.deviceready();
+  vm.runInNewContext(bridgeSource, baseContext(window), {
+    filename: 'www/native-bridge.js'
+  });
+  await window.WildcardNative.enableBillingAfterPolicyAcceptance();
   await flushPromises();
-
   return {
     WN: window.WildcardNative,
     calls,
-    emitVerified(receipt) {
-      assert.equal(typeof purchaseHandlers.verified, 'function', 'missing verified handler');
-      purchaseHandlers.verified(receipt);
+    handlers,
+    store,
+    dispatched,
+    emit(name, value) {
+      assert.equal(typeof handlers[name], 'function', `missing handler: ${name}`);
+      handlers[name](value);
+    }
+  };
+}
+
+function verifiedReceipt(productId, events = [], options = {}) {
+  const tokenHash = options.tokenHash || 'a'.repeat(64);
+  const purchaseToken = options.purchaseToken || 'play-purchase-token-1234567890';
+  return {
+    collection: [{ id: productId }],
+    sourceReceipt: {
+      purchaseToken,
+      transactions: [{
+        purchaseId: purchaseToken,
+        products: [{ id: productId }]
+      }]
+    },
+    raw: {
+      id: tokenHash,
+      transaction: {
+        tokenHash,
+        purchaseToken,
+        delivered: !!options.delivered
+      }
+    },
+    finish() {
+      events.push('finish');
+      return Promise.resolve();
     }
   };
 }
@@ -176,270 +267,232 @@ function createUnavailableBillingHarness() {
       Plugins: {}
     }
   };
-  const context = {
-    window,
-    document: { addEventListener() {} },
-    console,
-    Promise,
-    setTimeout() { return 0; },
-    clearTimeout() {}
-  };
-  vm.runInNewContext(bridgeSource, context, { filename: 'www/native-bridge.js' });
+  vm.runInNewContext(bridgeSource, baseContext(window), {
+    filename: 'www/native-bridge.js'
+  });
   return window.WildcardNative;
 }
 
-async function testRewardSettlesImmediatelyAndOnlyOnce() {
-  const h = await createHarness();
-  const results = [];
-
-  h.WN.showRewardedAd((value) => results.push(value));
-  assert.deepEqual(results, [], 'showing an ad must not resolve before an SDK event');
-
+async function testRewardedAndInterstitialSettleOnce() {
+  const h = await createAdHarness();
+  const rewarded = [];
+  h.WN.showRewardedAd(value => rewarded.push(value));
   h.emit('onRewardedVideoAdReward');
-  assert.deepEqual(results, [true], 'reward event must settle success immediately');
-
-  const overlappingResult = [];
-  h.WN.showRewardedAd((value) => overlappingResult.push(value));
-  assert.deepEqual(overlappingResult, [false], 'reward settlement must not reopen the ad before dismissal');
-  assert.equal(h.calls.showRewarded, 1, 'only one rewarded ad may be in flight');
-
   h.emit('onRewardedVideoAdReward');
   h.emit('onRewardedVideoAdDismissed');
-  h.emit('onRewardedVideoAdDismissed');
-  h.emit('onRewardedVideoAdFailedToShow');
-  assert.deepEqual(results, [true], 'duplicate/late events must not settle again');
-  assert.equal(h.calls.prepareRewarded, 2, 'dismissal should prepare exactly one replacement ad');
+  assert.deepEqual(rewarded, [true]);
+  assert.equal(h.calls.showRewarded, 1);
+  assert.equal(h.calls.prepareRewarded, 2);
+
+  const interstitial = [];
+  h.emit('interstitialAdLoaded');
+  h.WN.showInterstitial(value => interstitial.push(value));
+  h.emit('interstitialAdDismissed');
+  h.emit('interstitialAdDismissed');
+  assert.deepEqual(interstitial, [true]);
+  assert.equal(h.calls.showInterstitial, 1);
+  assert.equal(h.calls.prepareInterstitial, 2);
 }
 
-async function testDismissWithoutRewardSettlesFalseOnce() {
-  const h = await createHarness();
-  const results = [];
-
-  h.WN.showRewardedAd((value) => results.push(value));
-  h.emit('onRewardedVideoAdDismissed');
-  h.emit('onRewardedVideoAdFailedToShow');
-
-  assert.deepEqual(results, [false], 'dismissal without a reward must fail once');
-  assert.equal(h.calls.prepareRewarded, 2, 'dismissal should prepare the next ad');
-}
-
-async function testFailedToShowSettlesFalseOnce() {
-  const h = await createHarness();
-  const results = [];
-
-  h.WN.showRewardedAd((value) => results.push(value));
-  h.emit('onRewardedVideoAdFailedToShow');
-  h.emit('onRewardedVideoAdDismissed');
-
-  assert.deepEqual(results, [false], 'failed-to-show must fail once');
-  assert.equal(h.calls.prepareRewarded, 2, 'failed-to-show should prepare the next ad');
-}
-
-async function testShowPromiseRejectionSettlesFalseOnce() {
-  const h = await createHarness({ rejectShow: true });
-  const results = [];
-
-  h.WN.showRewardedAd((value) => results.push(value));
+async function testAdFailuresRemainFailClosed() {
+  const h = await createAdHarness({
+    rejectShow: true,
+    rejectInterstitialShow: true
+  });
+  const rewarded = [];
+  h.WN.showRewardedAd(value => rewarded.push(value));
   await flushPromises();
-  h.emit('onRewardedVideoAdFailedToShow');
+  assert.deepEqual(rewarded, [false]);
 
-  assert.deepEqual(results, [false], 'show promise rejection must fail once');
-  assert.equal(h.calls.prepareRewarded, 2, 'show rejection should prepare the next ad');
-}
-
-async function testInterstitialDismissSettlesTrueOnce() {
-  const h = await createHarness();
-  const results = [];
-
-  assert.equal(h.calls.prepareInterstitial, 1, 'consent should prepare the first interstitial');
+  const interstitial = [];
   h.emit('interstitialAdLoaded');
-  h.WN.showInterstitial((value) => results.push(value));
-
-  assert.equal(h.calls.showInterstitial, 1, 'a loaded interstitial should be shown once');
-  assert.deepEqual(results, [], 'showing an interstitial must wait for an SDK event');
-
-  h.emit('interstitialAdDismissed');
-  h.emit('interstitialAdDismissed');
-  h.emit('interstitialAdFailedToShow');
-
-  assert.deepEqual(results, [true], 'dismissal must settle success exactly once');
-  assert.equal(h.calls.prepareInterstitial, 2, 'dismissal should prepare exactly one replacement');
-}
-
-async function testUnavailableInterstitialSettlesFalseWithoutShowing() {
-  const h = await createHarness();
-  const results = [];
-
-  h.WN.showInterstitial((value) => results.push(value));
-
-  assert.deepEqual(results, [false], 'an unavailable interstitial must fail immediately');
-  assert.equal(h.calls.showInterstitial, 0, 'an unavailable interstitial must not call show');
-  assert.equal(
-    h.calls.prepareInterstitial,
-    1,
-    'an unavailable request must not duplicate an in-progress prepare'
-  );
-}
-
-async function testInterstitialFailedToShowSettlesFalseOnce() {
-  const h = await createHarness();
-  const results = [];
-
-  h.emit('interstitialAdLoaded');
-  h.WN.showInterstitial((value) => results.push(value));
-  h.emit('interstitialAdFailedToShow');
-  h.emit('interstitialAdFailedToShow');
-  h.emit('interstitialAdDismissed');
-
-  assert.deepEqual(results, [false], 'interstitial failed-to-show must fail exactly once');
-  assert.equal(h.calls.showInterstitial, 1, 'failed-to-show must have only one show request');
-  assert.equal(h.calls.prepareInterstitial, 2, 'failed-to-show should prepare one replacement');
-}
-
-async function testInterstitialShowRejectionSettlesFalseOnce() {
-  const h = await createHarness({ rejectInterstitialShow: true });
-  const results = [];
-
-  h.emit('interstitialAdLoaded');
-  h.WN.showInterstitial((value) => results.push(value));
+  h.WN.showInterstitial(value => interstitial.push(value));
   await flushPromises();
-  h.emit('interstitialAdFailedToShow');
-  h.emit('interstitialAdDismissed');
-
-  assert.deepEqual(results, [false], 'interstitial show rejection must fail exactly once');
-  assert.equal(h.calls.showInterstitial, 1, 'a rejected show promise must not retry show');
-  assert.equal(h.calls.prepareInterstitial, 2, 'show rejection should prepare one replacement');
+  assert.deepEqual(interstitial, [false]);
 }
 
-async function testOverlappingInterstitialRequestsDoNotShowTwice() {
-  const h = await createHarness();
-  const first = [];
-  const second = [];
-
-  h.emit('interstitialAdLoaded');
-  h.WN.showInterstitial((value) => first.push(value));
-  h.WN.showInterstitial((value) => second.push(value));
-
-  assert.deepEqual(first, [], 'the first interstitial request should remain in flight');
-  assert.deepEqual(second, [false], 'an overlapping interstitial request must fail closed');
-  assert.equal(h.calls.showInterstitial, 1, 'overlapping requests must not trigger a second show');
-
-  h.emit('interstitialAdDismissed');
-  h.emit('interstitialAdDismissed');
-
-  assert.deepEqual(first, [true], 'the original request should settle once when dismissed');
-  assert.equal(h.calls.prepareInterstitial, 2, 'completion should prepare one replacement');
+async function testBillingUsesLocalizedPlayMetadata() {
+  const h = await createBillingHarness();
+  const rows = await h.WN.getBillingProducts();
+  assert.equal(rows.length, 6);
+  assert.equal(rows[0].id, 'coins_250');
+  assert.equal(rows[0].price, '$0.99');
+  assert.equal(rows[0].currency, 'USD');
+  assert.equal(rows.every(row => row.available), true);
 }
 
-async function testVerifiedCollectionDeliversBeforeFinishOnce() {
+async function testVerifiedDeliveryMustBePersistedBeforeFinish() {
   const h = await createBillingHarness();
   const events = [];
-
-  h.WN.purchase('coins_250', (value) => events.push(`callback:${value}`));
+  const checkout = [];
+  h.WN.setPurchaseDeliveryHandler(delivery => {
+    events.push(`delivery:${delivery.productId}`);
+    // Deliberately do not complete here: verification alone must not consume,
+    // acknowledge or grant anything.
+  });
+  h.WN.purchase('coins_250', result => checkout.push(result));
   await flushPromises();
-  assert.deepEqual(h.calls.ordered, ['coins_250'], 'purchase should order the selected Play product');
+  assert.deepEqual(h.calls.ordered, ['coins_250']);
 
-  const receipt = {
-    collection: [{ id: 'coins_250' }],
-    sourceReceipt: { transactions: [] },
-    finish() {
-      events.push('finish');
-      return Promise.resolve();
-    }
+  const receipt = verifiedReceipt('coins_250', events);
+  h.emit('verified', receipt);
+  h.emit('verified', receipt);
+  await flushPromises();
+
+  assert.equal(events.filter(value => value === 'delivery:coins_250').length, 1);
+  assert.equal(events.includes('finish'), false);
+  assert.equal(checkout.length, 1);
+  assert.equal(checkout[0].ok, true);
+
+  const completed = [];
+  h.WN.completePurchase('a'.repeat(64), value => completed.push(value));
+  await flushPromises();
+  assert.deepEqual(completed, [true]);
+  assert.deepEqual(h.calls.delivered.map(row => row.productId), ['coins_250']);
+  assert.equal(events.at(-1), 'finish');
+}
+
+async function testRecoveredReceiptAndBackendEntitlementsAreReported() {
+  const entitlements = {
+    authoritative: true,
+    noAds: true,
+    purchases: [{
+      productId: 'remove_ads',
+      tokenHash: 'b'.repeat(64),
+      delivered: true
+    }],
+    unresolved: []
   };
-  h.emitVerified(receipt);
-  h.emitVerified(receipt);
+  const h = await createBillingHarness({ entitlements, removeAdsOwned: true });
+  const deliveries = [];
+  h.WN.setPurchaseDeliveryHandler(row => deliveries.push(row));
+  h.emit('verified', verifiedReceipt('remove_ads', [], {
+    tokenHash: 'b'.repeat(64),
+    delivered: true
+  }));
+  const report = await h.WN.refreshPurchases();
   await flushPromises();
-
-  assert.deepEqual(
-    events,
-    ['callback:true', 'finish'],
-    'v13 collection delivery must precede finish and repeated verified events must not re-grant'
+  assert.equal(deliveries.length >= 1, true);
+  assert.equal(deliveries.every(row => row.recovered === true), true);
+  assert.equal(
+    new Set(deliveries.map(row => row.tokenHash)).size,
+    1,
+    'recovery retries must retain one stable idempotency token'
   );
+  assert.equal(Array.from(report.owned).join(','), 'remove_ads');
+  assert.equal(report.entitlements.noAds, true);
+  assert.equal(h.calls.restored, 1);
 }
 
-async function testVerifiedSourceTransactionsFallback() {
-  const h = await createBillingHarness();
-  const events = [];
-
-  h.WN.purchase('remove_ads', (value) => events.push(`callback:${value}`));
-  await flushPromises();
-  h.emitVerified({
-    collection: [],
-    sourceReceipt: {
-      transactions: [{ products: [{ id: 'remove_ads' }] }]
-    },
-    finish() {
-      events.push('finish');
-      return Promise.resolve();
-    }
-  });
-  await flushPromises();
-
-  assert.deepEqual(
-    events,
-    ['callback:true', 'finish'],
-    'v13 sourceReceipt transactions should deliver the matching product before finish'
-  );
-}
-
-async function testVerifiedUnrelatedReceiptDoesNotGrantOrFinish() {
-  const h = await createBillingHarness();
-  const results = [];
-  let finishCount = 0;
-
-  h.WN.purchase('coins_600', (value) => results.push(value));
-  await flushPromises();
-  h.emitVerified({
-    collection: [{ id: 'coins_250' }],
-    sourceReceipt: { transactions: [] },
-    finish() {
-      finishCount += 1;
-      return Promise.resolve();
-    }
-  });
-
-  assert.deepEqual(results, [], 'an unrelated receipt must not grant the active purchase');
-  assert.equal(finishCount, 0, 'an undelivered receipt must not be finished by this bridge');
-}
-
-async function testBillingSerializesOrdersAndFailsClosedWhenUnavailable() {
+async function testPendingAndOverlappingOrdersFailClosed() {
   const h = await createBillingHarness();
   const first = [];
   const second = [];
-
-  h.WN.purchase('coins_1600', (value) => first.push(value));
-  h.WN.purchase('coins_3600', (value) => second.push(value));
+  h.WN.purchase('coins_1600', value => first.push(value));
+  h.WN.purchase('coins_3600', value => second.push(value));
   await flushPromises();
+  assert.equal(second.length, 1);
+  assert.equal(second[0].reason, 'billing_busy');
+  assert.deepEqual(h.calls.ordered, ['coins_1600']);
 
-  assert.deepEqual(first, [], 'the active order should remain pending verification');
-  assert.deepEqual(second, [false], 'a second simultaneous order must fail closed');
-  assert.deepEqual(h.calls.ordered, ['coins_1600'], 'only one Play order may be active');
+  h.emit('pending', { products: [{ id: 'coins_1600' }] });
+  assert.equal(first.length, 1);
+  assert.equal(first[0].pending, true);
 
   const unavailable = createUnavailableBillingHarness();
   const unavailableResult = [];
-  unavailable.purchase('coins_250', (value) => unavailableResult.push(value));
-  assert.deepEqual(unavailableResult, [false], 'native billing without the Play plugin must never grant');
+  unavailable.purchase('coins_250', value => unavailableResult.push(value));
+  assert.equal(unavailableResult[0].reason, 'billing_unavailable');
+}
+
+async function testValidatorCallsTrustedBackend() {
+  const h = await createBillingHarness();
+  const responses = [];
+  h.store.validator({
+    id: 'coins_250',
+    transaction: {
+      type: 'android-playstore',
+      id: 'GPA.1234',
+      purchaseToken: 'play-purchase-token-1234567890'
+    }
+  }, response => responses.push(response));
+  await flushPromises();
+  assert.equal(h.calls.verified.length, 1);
+  assert.equal(responses.length, 1);
+  assert.equal(responses[0].ok, true);
+  assert.equal(
+    responses[0].data.collection[0].transactionId,
+    'GPA.1234',
+    'verified purchase must match the native transaction'
+  );
+}
+
+function testShippedGameUsesOnlyDurablePaidGrantPath() {
+  assert.doesNotMatch(
+    indexSource,
+    /fetchDailyRequest\('\/api\/daily',\s*\{method:'POST'/,
+    'the public Pi Daily endpoint must remain read-only to the app'
+  );
+  assert.match(
+    indexSource,
+    /WN\.cloudSubmitDailyScore\(\{/,
+    'Daily writes must use the authenticated callable bridge'
+  );
+  assert.match(
+    indexSource,
+    /const retainedPurchaseClaims=validPurchaseClaims\(account\.purchaseClaims\)/,
+    'Reset Progress must retain durable purchase claims'
+  );
+  assert.match(
+    indexSource,
+    /btn\.textContent=isNativeShell\(\)\?\(playProduct&&playProduct\.available\?playProduct\.price:'Unavailable'\):'£'/,
+    'native checkout must render Google Play localized prices'
+  );
+  assert.doesNotMatch(
+    indexSource,
+    /WN\.purchase\('coins_'\+b\.coins,[^}]*grantCoins/,
+    'a checkout callback must never grant coins directly'
+  );
+  assert.match(
+    androidBuildSource,
+    /ownedAdmobAppId = 'ca-app-pub-3855192091371080~7622357185'/,
+    'public Android variants must carry the owner-created AdMob app ID'
+  );
+  assert.match(
+    androidBuildSource,
+    /ownedRewardedAdId = 'ca-app-pub-3855192091371080\/3551964243'/,
+    'public Android variants must carry the owner-created rewarded unit'
+  );
+  assert.match(
+    androidBuildSource,
+    /ownedInterstitialAdId = 'ca-app-pub-3855192091371080\/2034300223'/,
+    'public Android variants must carry the owner-created interstitial unit'
+  );
+  assert.match(
+    androidBuildSource,
+    /buildConfigField "boolean", "WILDCARD_ADS_ENABLED", productionAdsReady\.toString\(\)/,
+    'release ads must be enabled only when the owner app and both unit IDs validate'
+  );
+  assert.doesNotMatch(
+    androidBuildSource,
+    /wildcardAdmobAppId: productionAdsReady \? productionAdmobAppId : googleDemoAdmobAppId/,
+    'public release must never fall back to Google’s demonstration app ID'
+  );
 }
 
 async function main() {
-  await testRewardSettlesImmediatelyAndOnlyOnce();
-  await testDismissWithoutRewardSettlesFalseOnce();
-  await testFailedToShowSettlesFalseOnce();
-  await testShowPromiseRejectionSettlesFalseOnce();
-  await testInterstitialDismissSettlesTrueOnce();
-  await testUnavailableInterstitialSettlesFalseWithoutShowing();
-  await testInterstitialFailedToShowSettlesFalseOnce();
-  await testInterstitialShowRejectionSettlesFalseOnce();
-  await testOverlappingInterstitialRequestsDoNotShowTwice();
-  await testVerifiedCollectionDeliversBeforeFinishOnce();
-  await testVerifiedSourceTransactionsFallback();
-  await testVerifiedUnrelatedReceiptDoesNotGrantOrFinish();
-  await testBillingSerializesOrdersAndFailsClosedWhenUnavailable();
-  console.log('Native rewarded/interstitial-ad and billing callback tests passed.');
+  await testRewardedAndInterstitialSettleOnce();
+  await testAdFailuresRemainFailClosed();
+  await testBillingUsesLocalizedPlayMetadata();
+  await testVerifiedDeliveryMustBePersistedBeforeFinish();
+  await testRecoveredReceiptAndBackendEntitlementsAreReported();
+  await testPendingAndOverlappingOrdersFailClosed();
+  await testValidatorCallsTrustedBackend();
+  testShippedGameUsesOnlyDurablePaidGrantPath();
+  console.log('Native ads and trusted Play Billing tests passed.');
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });

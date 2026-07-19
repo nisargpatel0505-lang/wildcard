@@ -11,24 +11,28 @@ h1,h2{color:#f0b94b}h1{line-height:1.1}h2{font-size:18px;margin-top:28px}a{color
 </head>
 <body>
 <h1>WILDCARD Privacy Policy</h1>
-<p class="muted">Publisher: 145 Studios. Last updated: 17 July 2026.</p>
+<p class="muted">Publisher: 145 Studios. Last updated: 19 July 2026.</p>
+<h2>First-launch acknowledgement</h2>
+<p>WILDCARD asks each player to open and accept this policy before the game starts any cloud, advertising or product-analytics service. This acknowledgement is separate from any advertising-consent choices required by Google and can be reviewed again from Settings.</p>
 <h2>Local progress</h2>
-<p>Runs, unlocks, virtual coins, settings and cosmetics are stored on the player's device. The Android app maintains a WebView save and a mirrored Android Preferences copy. Uninstalling the app may remove local data. The Export Save feature creates a portable backup chosen by the player.</p>
+<p>Runs, unlocks, virtual coins, settings, cosmetics and purchase-delivery claims are stored on the player's device. The Android app maintains a WebView save and a mirrored Android Preferences copy. Uninstalling the app may remove local data. The optional diagnostic export is a human-readable support snapshot and cannot be imported to restore or alter progress.</p>
 <h2>Daily leaderboard</h2>
-<p>Posting to the Daily Board is optional. When a player posts, WILDCARD sends the board name they choose, the challenge date and their score to the WILDCARD leaderboard service.</p>
+<p>Posting to the custom Daily Board is optional and requires Google sign-in. WILDCARD sends the short board name chosen by the player, the score and a retry identifier to an authenticated Firebase Function. The server assigns the UTC challenge date, applies ownership and rate controls, and forwards a signed pseudonymous record to the WILDCARD leaderboard service. The score is calculated by the app, so the board is cosmetic and does not award virtual coins.</p>
 <h2>Anonymous aggregate analytics</h2>
 <p>WILDCARD sends small, fail-soft counters for app opens, runs started and runs ended to a service hosted on the publisher's Raspberry Pi. A run-end counter contains only the run mode, outcome and a broad Heat band. The analytics payload does not contain a player or board name, Google/Firebase identity, email, install or session identifier, device identifier, cards, Jokers, virtual coins, save data or exact score. The analytics database stores daily totals rather than raw event records. The app sends a tiny batch only when idle or moving to the background; analytics never gate or delay gameplay.</p>
 <p>The Pi-hosted web edition also uses a self-hosted GoatCounter page-load counter. This is separate from the product-event totals above. Standard web-server security logs may temporarily process connection and browser request information.</p>
 <h2>Advertising</h2>
 <p>The Android app uses Google AdMob. Google and its advertising partners may process advertising identifiers, ad interactions, diagnostics and approximate location to provide, measure and protect advertising. Where required, WILDCARD presents Google's consent flow. Players can review privacy choices from the in-app Settings screen.</p>
 <h2>Purchases</h2>
-<p>Google Play processes purchases. WILDCARD receives purchase status and product identifiers but does not receive payment card or bank details.</p>
+<p>Google Play processes purchases. WILDCARD receives the product, order status and purchase token needed to verify and deliver an item, but does not receive payment-card or bank details. A server-only ledger prevents the same purchase being granted twice and supports recovery, refunds and revocations. Account deletion removes the Firebase user ID and raw token from that ledger; a pseudonymised product, order reference and one-way token hash may be retained for fraud prevention, duplicate-grant prevention and accounting.</p>
 <h2>Optional Google account and cloud backup</h2>
 <p>An account is optional. If a player chooses Google sign-in, Google and Firebase provide the account identifier, display name, email address and profile photo. Private progress is stored under that account in Firebase Firestore for backup and synchronization. Guest play and the local phone save remain available without signing in.</p>
 <h2>Official rankings</h2>
 <p>If a player uses official rankings, Google Play Games processes the player's Play Games identity and submitted high score for daily, weekly and all-time leaderboards.</p>
 <h2>Accounts and identity</h2>
 <p>WILDCARD does not require an account or ask for a player's real name. An optional short board name can be used for Daily Board posts.</p>
+<h2>Deleting an account</h2>
+<p>Signed-in players can permanently delete their WILDCARD account from Settings. This removes the Firebase Authentication identity, cloud save and custom Daily Board records. A player who no longer has the app can use the public instructions at <a href="https://wildcard-31d50.web.app/account-deletion.html">wildcard-31d50.web.app/account-deletion.html</a>. Deleting an account does not erase an offline device save or records retained separately by Google Play.</p>
 <h2>Contact</h2>
 <p>Privacy and support enquiries can be sent using the developer contact displayed on WILDCARD's Google Play listing.</p>
 </body>

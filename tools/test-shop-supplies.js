@@ -493,7 +493,7 @@ function testDailyAndGauntletUseSameRuntimeRules() {
   daily.api.openShop();
   assert.equal(daily.api.supplyBoughtInShop(dailyScalpel), false);
   assert.equal(daily.api.supplyPrice(dailyScalpel), 5);
-  assert.equal(daily.events.saves, 0, 'Daily shop unexpectedly created a resumable save');
+  assert.equal(daily.events.saves, 1, 'Daily shop did not create its resumable checkpoint');
 
   const gauntlet = createSupplyHarness({ gauntlet: true });
   const gauntletScalpel = supply(gauntlet.api, 'scalpel');
