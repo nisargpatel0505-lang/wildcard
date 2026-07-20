@@ -1,0 +1,436 @@
+{
+  "generatedAt": "2026-07-20T18:17:22.925Z",
+  "sourceSha256": "067ba57ee4587e55e51e8aa7d4ccab1bf2fb503a6e6ebe74485a94d24bbe6d1b",
+  "runsPerCohort": 500,
+  "seedOffset": 0,
+  "cohorts": {
+    "new_player": {
+      "name": "new_player",
+      "runs": 500,
+      "wins": 4,
+      "winRate": 0.8,
+      "avgCleared": 9.86,
+      "medianCleared": 10,
+      "p90Cleared": 11,
+      "avgScore": 8491.9,
+      "avgBestPlay": 638.9,
+      "avgFinalXMultJokers": 1,
+      "avgWinnerXMultJokers": 1,
+      "failAt": {
+        "6": 5,
+        "7": 5,
+        "8": 7,
+        "9": 91,
+        "10": 52,
+        "11": 112,
+        "12": 224
+      },
+      "topJokerBuys": [
+        {
+          "id": "uniform",
+          "n": 495
+        },
+        {
+          "id": "fulltable",
+          "n": 484
+        },
+        {
+          "id": "opening_act",
+          "n": 484
+        },
+        {
+          "id": "even",
+          "n": 199
+        },
+        {
+          "id": "presser",
+          "n": 190
+        },
+        {
+          "id": "triple3",
+          "n": 178
+        },
+        {
+          "id": "lowball",
+          "n": 41
+        },
+        {
+          "id": "retainer",
+          "n": 33
+        }
+      ],
+      "topFinalJokers": [
+        {
+          "id": "copper",
+          "n": 500
+        },
+        {
+          "id": "polish",
+          "n": 500
+        },
+        {
+          "id": "uniform",
+          "n": 495
+        },
+        {
+          "id": "fulltable",
+          "n": 484
+        },
+        {
+          "id": "opening_act",
+          "n": 484
+        },
+        {
+          "id": "presser",
+          "n": 13
+        },
+        {
+          "id": "even",
+          "n": 11
+        },
+        {
+          "id": "triple3",
+          "n": 10
+        },
+        {
+          "id": "retainer",
+          "n": 2
+        },
+        {
+          "id": "lowball",
+          "n": 1
+        }
+      ],
+      "supplies": {
+        "scalpel": 1061,
+        "dye": 850,
+        "copier": 302,
+        "boost": 881,
+        "enhance": 313
+      }
+    },
+    "progression": {
+      "name": "progression",
+      "runs": 500,
+      "wins": 1,
+      "winRate": 0.2,
+      "avgCleared": 8.6,
+      "medianCleared": 9,
+      "p90Cleared": 11,
+      "avgScore": 6280.1,
+      "avgBestPlay": 565.6,
+      "avgFinalXMultJokers": 3.69,
+      "avgWinnerXMultJokers": 4,
+      "failAt": {
+        "6": 22,
+        "7": 17,
+        "8": 44,
+        "9": 164,
+        "10": 118,
+        "11": 80,
+        "12": 54
+      },
+      "topJokerBuys": [
+        {
+          "id": "panic_button",
+          "n": 205
+        },
+        {
+          "id": "couple",
+          "n": 203
+        },
+        {
+          "id": "flushfund",
+          "n": 187
+        },
+        {
+          "id": "sniper",
+          "n": 172
+        },
+        {
+          "id": "wire",
+          "n": 164
+        },
+        {
+          "id": "guillotine",
+          "n": 150
+        },
+        {
+          "id": "frequency_meter",
+          "n": 143
+        },
+        {
+          "id": "cold_adapter",
+          "n": 142
+        },
+        {
+          "id": "copper",
+          "n": 142
+        },
+        {
+          "id": "storm_harness",
+          "n": 127
+        },
+        {
+          "id": "opening_act",
+          "n": 113
+        },
+        {
+          "id": "fulltable",
+          "n": 108
+        },
+        {
+          "id": "uniform",
+          "n": 107
+        },
+        {
+          "id": "piggy",
+          "n": 104
+        },
+        {
+          "id": "clutch_gear",
+          "n": 103
+        }
+      ],
+      "topFinalJokers": [
+        {
+          "id": "polish",
+          "n": 500
+        },
+        {
+          "id": "panic_button",
+          "n": 205
+        },
+        {
+          "id": "couple",
+          "n": 203
+        },
+        {
+          "id": "flushfund",
+          "n": 187
+        },
+        {
+          "id": "sniper",
+          "n": 172
+        },
+        {
+          "id": "wire",
+          "n": 164
+        },
+        {
+          "id": "guillotine",
+          "n": 149
+        },
+        {
+          "id": "frequency_meter",
+          "n": 138
+        },
+        {
+          "id": "storm_harness",
+          "n": 126
+        },
+        {
+          "id": "cold_adapter",
+          "n": 115
+        },
+        {
+          "id": "copper",
+          "n": 95
+        },
+        {
+          "id": "uniform",
+          "n": 64
+        },
+        {
+          "id": "piggy",
+          "n": 61
+        },
+        {
+          "id": "opening_act",
+          "n": 54
+        },
+        {
+          "id": "practice_mode",
+          "n": 53
+        }
+      ],
+      "supplies": {
+        "scalpel": 789,
+        "dye": 243,
+        "boost": 612,
+        "copier": 203,
+        "enhance": 181
+      }
+    },
+    "full_unlock": {
+      "name": "full_unlock",
+      "runs": 500,
+      "wins": 55,
+      "winRate": 11,
+      "avgCleared": 9.09,
+      "medianCleared": 9,
+      "p90Cleared": 12,
+      "avgScore": 8339.3,
+      "avgBestPlay": 1110.3,
+      "avgFinalXMultJokers": 3.75,
+      "avgWinnerXMultJokers": 4.8,
+      "failAt": {
+        "4": 2,
+        "5": 3,
+        "6": 16,
+        "7": 20,
+        "8": 45,
+        "9": 120,
+        "10": 87,
+        "11": 63,
+        "12": 89
+      },
+      "topJokerBuys": [
+        {
+          "id": "polish",
+          "n": 137
+        },
+        {
+          "id": "wire",
+          "n": 127
+        },
+        {
+          "id": "flushfund",
+          "n": 116
+        },
+        {
+          "id": "sniper",
+          "n": 109
+        },
+        {
+          "id": "boostfiend",
+          "n": 100
+        },
+        {
+          "id": "panic_button",
+          "n": 95
+        },
+        {
+          "id": "cold_adapter",
+          "n": 95
+        },
+        {
+          "id": "tailor",
+          "n": 91
+        },
+        {
+          "id": "redline",
+          "n": 85
+        },
+        {
+          "id": "frequency_meter",
+          "n": 85
+        },
+        {
+          "id": "couple",
+          "n": 84
+        },
+        {
+          "id": "guillotine",
+          "n": 82
+        },
+        {
+          "id": "danger_music",
+          "n": 82
+        },
+        {
+          "id": "allin",
+          "n": 81
+        },
+        {
+          "id": "survivor",
+          "n": 80
+        }
+      ],
+      "topFinalJokers": [
+        {
+          "id": "polish",
+          "n": 137
+        },
+        {
+          "id": "wire",
+          "n": 127
+        },
+        {
+          "id": "flushfund",
+          "n": 116
+        },
+        {
+          "id": "sniper",
+          "n": 103
+        },
+        {
+          "id": "glass_joystick",
+          "n": 99
+        },
+        {
+          "id": "boostfiend",
+          "n": 93
+        },
+        {
+          "id": "panic_button",
+          "n": 91
+        },
+        {
+          "id": "tailor",
+          "n": 88
+        },
+        {
+          "id": "redline",
+          "n": 85
+        },
+        {
+          "id": "danger_music",
+          "n": 82
+        },
+        {
+          "id": "couple",
+          "n": 81
+        },
+        {
+          "id": "allin",
+          "n": 81
+        },
+        {
+          "id": "survivor",
+          "n": 80
+        },
+        {
+          "id": "frequency_meter",
+          "n": 79
+        },
+        {
+          "id": "master_class",
+          "n": 75
+        }
+      ],
+      "supplies": {
+        "copier": 215,
+        "boost": 581,
+        "scalpel": 759,
+        "dye": 147,
+        "enhance": 214
+      }
+    }
+  },
+  "exploitProbe": {
+    "handTypeOpen": "Straight",
+    "openScore": 6671,
+    "openTarget": 240175,
+    "handsNeededOpen": 37,
+    "handTypeLocked": "Straight",
+    "lockedScore": 384,
+    "lockedTarget": 300219,
+    "handsNeededLocked": 782,
+    "modifierIds": [
+      "blackout",
+      "rich"
+    ]
+  },
+  "failures": []
+}
