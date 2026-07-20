@@ -98,6 +98,10 @@ android {
             applicationIdSuffix ".chatgptfix"
             versionNameSuffix "-chatgpt-5.6-fix-20260720"
             resValue "string", "app_name", "WILDCARD ChatGPT Fix"
+            // WildcardCloudPlugin references this generated resource at compile
+            // time. The tester deliberately supplies a nonfunctional value so
+            // Google sign-in stays disabled without importing production config.
+            resValue "string", "default_web_client_id", "disabled-for-chatgpt-fix"
             manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
             buildConfigField "boolean", "WILDCARD_ADS_ENABLED", "false"
             buildConfigField "boolean", "WILDCARD_ADS_TESTING", "false"
