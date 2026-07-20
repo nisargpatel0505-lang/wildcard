@@ -65,7 +65,20 @@ jobs:
 
       - name: Build side-installable tester APK
         working-directory: android
-        run: ./gradlew :app:assembleChatgptfix --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ../.tmp
+          ./gradlew :app:assembleChatgptfix --no-daemon --stacktrace 2>&1 | tee ../.tmp/chatgpt-gradle.log
+
+      - name: Upload Gradle diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-ChatGPT-Fix-Gradle-Diagnostics
+          path: .tmp/chatgpt-gradle.log
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Verify package, signature and embedded source
         shell: bash
