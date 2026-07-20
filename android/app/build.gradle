@@ -15,6 +15,9 @@ def javaStringLiteral = { value -> '"' + value.replace('\\', '\\\\').replace('"'
 def googleDemoAdmobAppId = 'ca-app-pub-3940256099942544~3347511713'
 def googleDemoRewardedId = 'ca-app-pub-3940256099942544/5224354917'
 def googleDemoInterstitialId = 'ca-app-pub-3940256099942544/1033173712'
+def releaseKeystoreFile = file('../../wildcard-release.keystore')
+def releasePasswordFile = new File("${rootDir}/../keystore-password.txt")
+def releaseSigningAvailable = releaseKeystoreFile.exists() && releasePasswordFile.exists()
 
 android {
     namespace = "com.nisarg.wildcard"
@@ -43,19 +46,22 @@ android {
     }
     signingConfigs {
         release {
-            // Keystore + password generated 2026-07-12; password lives in ../../keystore-password.txt
-            // KEEP BOTH SAFE — losing them means you can never update the app on Play.
-            storeFile file('../../wildcard-release.keystore')
-            storePassword new File("${rootDir}/../keystore-password.txt").text.trim()
-            keyAlias 'wildcard'
-            keyPassword new File("${rootDir}/../keystore-password.txt").text.trim()
+            // The isolated tester does not require production signing secrets.
+            // Production/developer variants retain their normal signing when the
+            // private files are present in the trusted release environment.
+            if (releaseSigningAvailable) {
+                storeFile releaseKeystoreFile
+                storePassword releasePasswordFile.text.trim()
+                keyAlias 'wildcard'
+                keyPassword releasePasswordFile.text.trim()
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (releaseSigningAvailable) signingConfig signingConfigs.release
             // Public releases use the owner-created WILDCARD units. Gradle
             // properties may override them for a future unit rotation.
             manifestPlaceholders = [
@@ -73,7 +79,7 @@ android {
         developer {
             initWith release
             matchingFallbacks = ['release']
-            signingConfig signingConfigs.release
+            if (releaseSigningAvailable) signingConfig signingConfigs.release
             // Developer APKs deliberately use Google's demonstration units.
             manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
             buildConfigField "boolean", "WILDCARD_ADS_ENABLED", "true"
@@ -82,6 +88,21 @@ android {
                 javaStringLiteral(googleDemoRewardedId)
             buildConfigField "String", "WILDCARD_INTERSTITIAL_AD_ID",
                 javaStringLiteral(googleDemoInterstitialId)
+        }
+        // Isolated tester APK for this branch. It installs beside production,
+        // uses the standard debug key, disables ads and cannot update the
+        // public com.nisarg.wildcard package.
+        chatgptfix {
+            initWith debug
+            matchingFallbacks = ['debug', 'release']
+            applicationIdSuffix ".chatgptfix"
+            versionNameSuffix "-chatgpt-5.6-fix-20260720"
+            resValue "string", "app_name", "WILDCARD ChatGPT Fix"
+            manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
+            buildConfigField "boolean", "WILDCARD_ADS_ENABLED", "false"
+            buildConfigField "boolean", "WILDCARD_ADS_TESTING", "false"
+            buildConfigField "String", "WILDCARD_REWARDED_AD_ID", '""'
+            buildConfigField "String", "WILDCARD_INTERSTITIAL_AD_ID", '""'
         }
     }
 }
@@ -92,6 +113,11 @@ androidComponents {
     onVariants(selector().withBuildType("developer")) { variant ->
         variant.outputs.each { output ->
             output.versionCode.set(33)
+        }
+    }
+    onVariants(selector().withBuildType("chatgptfix")) { variant ->
+        variant.outputs.each { output ->
+            output.versionCode.set(1)
         }
     }
 }
