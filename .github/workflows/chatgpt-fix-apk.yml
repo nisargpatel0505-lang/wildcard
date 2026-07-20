@@ -2,6 +2,9 @@ name: ChatGPT 5.6 fix APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - "chatgpt-5.6-fix-2026-07-20"
