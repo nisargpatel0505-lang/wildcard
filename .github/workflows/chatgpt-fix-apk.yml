@@ -50,7 +50,7 @@ jobs:
       - name: Targeted exploit, persistence and modifier regressions
         run: npm run test:chatgpt-fix
 
-      - name: Live-source full-unlock bot smoke test
+      - name: Requested new-player, progression and full-unlock bot cohorts
         run: npm run test:chatgpt-sim
 
       - name: Sync patched web source into Android
@@ -82,7 +82,7 @@ jobs:
           esac
           apksigner verify --verbose "$src"
           embedded_sha="$(unzip -p "$src" assets/public/index.html | sha256sum | awk '{print $1}')"
-          test "$embedded_sha" = "5cf29ef723d0f4e4e5035d46af0515e52bdc196858aa044c19d39b0e15c72835"
+          test "$embedded_sha" = "fb10cbc090e35296ece6de3c84d94100538de80fb7782f1ef54e67da1284944a"
           mkdir -p dist
           cp "$src" "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk"
           sha256sum "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk" | tee dist/SHA256SUMS.txt
@@ -92,9 +92,10 @@ jobs:
             echo "embeddedIndexSha256=$embedded_sha"
             echo "sourceCommit=${GITHUB_SHA}"
           } > dist/BUILD-INFO.txt
-          cp docs/release/chatgpt-5.6-fix-2026-07-20.md dist/
-          cp docs/release/chatgpt-5.6-fix-2026-07-20-sim.json dist/
-          cp .tmp/chatgpt-fix-sim.json dist/chatgpt-fix-smoke-sim.json
+          cp docs/release/CHATGPT-5.6-fix-2026-07-20.md dist/
+          cp patches/chatgpt-5.6-fix-2026-07-20.patch dist/
+          cp .tmp/chatgpt-fix-sim.json dist/chatgpt-fix-sim.json
+          cp .tmp/chatgpt-fix-sim.md dist/chatgpt-fix-sim.md
 
       - name: Upload isolated APK
         uses: actions/upload-artifact@v4
