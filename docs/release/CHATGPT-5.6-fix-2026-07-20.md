@@ -1,6 +1,6 @@
 # WILDCARD — ChatGPT 5.6 balance hotfix (20 July 2026)
 
-This is an isolated test branch. It does not update `main`, the Raspberry Pi deployment, Google Play, or any public `WILDCARD-latest.apk` alias.
+This is an isolated test branch. It does not update `main`, the Raspberry Pi deployment, Google Play, GitHub Releases, or any public `WILDCARD-latest.apk` alias.
 
 ## Player reports addressed
 
@@ -44,10 +44,14 @@ A source-backed greedy bot probe ran 100 deterministic runs for each requested c
 
 The progression cohort underperformed the free pool in this greedy policy because its larger offer pool dilutes the compact starter synergies; this is a bot-policy finding, not evidence that human progression is harmful. The full-unlock rate fell materially from the latest committed v6.9.14 quick baseline (42% in 300 runs), mainly because Blackout/Sudden Death can appear at Heat 9 and the global supply surcharge removes repeated cheap boosts. The sample is useful for regression direction, but should be followed by the repository's larger paired simulator before merging.
 
-## Local test artifact
+## APK isolation and provenance
 
-- Baseline APK SHA-256: `51e9f6257497145076bb47aeaf09bb1c2956df9161549e1bc1506e42bd63428d`
-- Patched HTML SHA-256: `fb10cbc090e35296ece6de3c84d94100538de80fb7782f1ef54e67da1284944a`
-- Locally rebuilt test APK SHA-256: `347481693ddc2ce1483d3e6ea8ffdca7a095ffcb52531c6ae2c325c56580a7ee`
+- Baseline APK SHA-256: `51e9f6257497145076bb47aeaf09bb1c2956df9161549e1bc1506e42bd63428d`.
+- Baseline canonical HTML SHA-256: `b34c7cd44834a6468b058b0250c5d6810479f5e299b167a09e8cb5eabd46478b`.
+- Patched canonical HTML SHA-256: `fb10cbc090e35296ece6de3c84d94100538de80fb7782f1ef54e67da1284944a`.
+- The branch keeps the verified v6.9.14 HTML unchanged in Git and applies `patches/chatgpt-5.6-fix-2026-07-20.patch` only inside a local or CI checkout.
+- The Android `chatgptfix` build type uses application ID `com.nisarg.wildcard.chatgptfix`, version name `6.9.14-chatgpt-5.6-fix-20260720`, version code `1`, debug/test signing, ads disabled, and no Firebase/Google service configuration.
+- The tester therefore installs beside the production game and cannot replace or update `com.nisarg.wildcard`. Cloud save, Google sign-in and public leaderboards are intentionally unavailable in this APK.
+- `.github/workflows/chatgpt-fix-apk.yml` verifies the focused tests, all three bot cohorts, APK signature, package identity and embedded HTML hash before uploading a private workflow artifact. It does not publish or deploy the APK.
 
-The local APK is JAR-signed with a separate test certificate, not the production Play certificate. Android will not treat it as an update to an installed production-signed copy; uninstall the production package first or use a separate test device/profile. A GitHub Actions build using the repository signing secrets should be used for an in-place test update.
+A locally rebuilt fallback APK was also verified with patched HTML hash `fb10cbc090e35296ece6de3c84d94100538de80fb7782f1ef54e67da1284944a` and APK SHA-256 `347481693ddc2ce1483d3e6ea8ffdca7a095ffcb52531c6ae2c325c56580a7ee`; the GitHub Actions side-installable build is preferred because its package isolation is explicit and machine-checked.
