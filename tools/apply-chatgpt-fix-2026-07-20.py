@@ -2,8 +2,8 @@
 """Apply the isolated ChatGPT 5.6 WILDCARD balance patch deterministically.
 
 The branch keeps the production v6.9.14 HTML unchanged in git. CI and local
-reviewers apply the compressed, source-controlled patch before tests and APK
-packaging. The operation is idempotent and refuses unknown source states.
+reviewers assemble the chunked compressed patch before tests and APK packaging.
+The operation is idempotent and refuses unknown source or payload states.
 """
 
 from __future__ import annotations
@@ -19,9 +19,14 @@ from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "www" / "index.html"
-PATCH_B64 = ROOT / "patches" / "chatgpt-5.6-fix-2026-07-20.patch.gz.b64"
+PATCH_PARTS = tuple(
+    ROOT / "patches" / f"chatgpt-5.6-fix-2026-07-20.part-{index:02d}.b64"
+    for index in range(1, 7)
+)
 BASELINE_SHA256 = "b34c7cd44834a6468b058b0250c5d6810479f5e299b167a09e8cb5eabd46478b"
 PATCHED_SHA256 = "5cf29ef723d0f4e4e5035d46af0515e52bdc196858aa044c19d39b0e15c72835"
+PATCH_B64_SHA256 = "9a8c621c009f5275c40b78451c973824a62d0263c5be9a6c9d47b84bb8bfc7e8"
+PATCH_GZIP_SHA256 = "deb02971043570cddb24b4ef2793031dab76ff1eaa5e92d6b144a758c31d9446"
 PATCH_SHA256 = "4024c3edf4cfcbc685103061469f1e08c1257aecb9e078fda4250b62466ac4d4"
 
 
@@ -38,11 +43,34 @@ def fail(message: str) -> NoReturn:
     raise SystemExit(1)
 
 
+def read_patch_payload() -> bytes:
+    missing = [path.relative_to(ROOT) for path in PATCH_PARTS if not path.is_file()]
+    if missing:
+        fail("missing patch chunks: " + ", ".join(map(str, missing)))
+
+    encoded = "".join(path.read_text(encoding="ascii").strip() for path in PATCH_PARTS).encode("ascii")
+    if sha256_bytes(encoded) != PATCH_B64_SHA256:
+        fail("assembled base64 patch payload hash mismatch")
+
+    try:
+        compressed = base64.b64decode(encoded, validate=True)
+    except Exception as exc:
+        fail(f"invalid assembled base64 patch payload: {exc}")
+    if sha256_bytes(compressed) != PATCH_GZIP_SHA256:
+        fail("compressed patch payload hash mismatch")
+
+    try:
+        patch = gzip.decompress(compressed)
+    except Exception as exc:
+        fail(f"invalid gzip patch payload: {exc}")
+    if sha256_bytes(patch) != PATCH_SHA256:
+        fail("plain patch payload hash mismatch")
+    return patch
+
+
 def main() -> None:
     if not SOURCE.is_file():
         fail(f"missing source file: {SOURCE.relative_to(ROOT)}")
-    if not PATCH_B64.is_file():
-        fail(f"missing patch payload: {PATCH_B64.relative_to(ROOT)}")
 
     before = sha256(SOURCE)
     if before == PATCHED_SHA256:
@@ -54,13 +82,7 @@ def main() -> None:
             f"{BASELINE_SHA256}, found {before}"
         )
 
-    try:
-        patch = gzip.decompress(base64.b64decode(PATCH_B64.read_text().strip(), validate=True))
-    except Exception as exc:
-        fail(f"invalid compressed patch payload: {exc}")
-    if sha256_bytes(patch) != PATCH_SHA256:
-        fail("compressed patch payload hash mismatch")
-
+    patch = read_patch_payload()
     with tempfile.NamedTemporaryFile(prefix="wildcard-chatgpt-fix-", suffix=".patch", delete=False) as tmp:
         tmp.write(patch)
         patch_path = Path(tmp.name)
