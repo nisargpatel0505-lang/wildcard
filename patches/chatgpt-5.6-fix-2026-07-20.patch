@@ -1,0 +1,393 @@
+--- a/www/index.html
++++ b/www/index.html
+@@ -3298,8 +3298,17 @@
+ // Tuned v4.1: Heats 1–3 unchanged; Heat 4 onward reduced and the ramp stretched across 12 Heats (clear Heat 12 to win, then Endless).
+ const HEAT_TARGETS = [90,135,205,280,380,520,700,920,1150,1400,1700,2050];   // v4.9.1: 9-12 softened — sims had a 2.8% win rate at the old wall
+ const ENDLESS_STEP = 600;
++const ENDLESS_ACCEL_START = 30;
++const ENDLESS_ACCEL_PER_HEAT = 45;
++const ENDLESS_DOUBLE_MODIFIER_AFTER = 50;
++const CHATGPT_FIX_2026_07_20 = true;
+ const WIN_BONUS_ACCOUNT = 10;
+-function runReward(heat){ return 3 + heat; }
++function runReward(heat){
++  if(heat<=12) return 3 + heat;
++  // Endless income used to grow without bound (Heat 74 paid 77 coins). Keep
++  // early Endless familiar, then cap the faucet so supplies remain decisions.
++  return 16 + Math.min(8, Math.floor((heat-13)/8));
++}
+ function acctReward(heat){ return 2 + Math.floor(heat/3); }
+ // v6.9.8 economy tuning lives in one auditable block. The free starter roster and
+ // coin bundles stay unchanged; paid collection progression now lasts for weeks
+@@ -3311,6 +3320,7 @@
+   rewardedCoin:Object.freeze({amount:25, dailyCap:5})
+ });
+ const INTEREST_PER = 5, INTEREST_CAP = 5;
++function interestCapForHeat(){ return run&&run.stage>20 ? 3 : INTEREST_CAP; }
+ const REROLL_COST = 2;
+ // Boss-prep armory: the shop right before the boss (Heat 12, or Gauntlet Heat 8)
+ // offers 4 jokers and allows 2 purchases instead of the usual 2-and-1.
+@@ -3343,6 +3353,8 @@
+ const HAND_SIZE = 9;        // cards held
+ const MAX_SELECT = 5;       // still play/discard at most 5
+ const MAX_JOKERS = 5;
++const MIN_RUN_DECK_SIZE = 24;
++const MAX_EXACT_CARD_COPIES = 2;
+ const BASE_MULT = 1.1;
+ const RANK_SCALE = 0.6;     // rank sum counts at 60% so hand type dominates
+ 
+@@ -3358,9 +3370,36 @@
+   {id:'fog',      name:'Dead Air',     desc:'Jokers give no ×Mult this Heat — lean on rank and +Mult.'},
+   {id:'famine',   name:'Famine',       desc:'Hold 7 cards instead of 9 this Heat.'},
+   {id:'frostbite',name:'Frostbite',    desc:'Spades score 0 rank this Heat.'},
++  {id:'blackout', name:'Blackout',     desc:'Joker +Mult and ×Mult are disabled this Heat; rank effects and etched cards still work.'},
++  {id:'rush',     name:'Sudden Death', desc:'One fewer play this Heat.'},
++  {id:'drain',    name:'Power Drain',  desc:'Hand Boost levels count 2 lower this Heat.'},
++  {id:'shakedown',name:'Shakedown',    desc:'No interest, and the Heat clear reward is halved.'},
+ ];
+ const BOSS_MOD={id:'boss_house', name:'THE HOUSE', desc:'★ BOSS ★ The House takes a 10% bigger cut and blocks 2 randomly selected equipped Jokers for this Heat. Beat the house to win the run.', boss:true};
+-function mod(id){ return run && run.modifier && run.modifier.id===id; }
++function makeModifierStack(modifiers){
++  const unique=[];
++  for(const modifier of modifiers||[]) if(modifier&&!unique.some(m=>m.id===modifier.id)) unique.push(modifier);
++  if(unique.length<=1) return unique[0]||null;
++  return {
++    id:'stacked:'+unique.map(m=>m.id).join(','),
++    name:unique.map(m=>m.name).join(' + '),
++    desc:unique.map(m=>m.desc).join(' • '),
++    mods:unique
++  };
++}
++function modifierFromSaveId(id){
++  if(!id) return null;
++  if(id==='boss_house') return BOSS_MOD;
++  if(String(id).startsWith('stacked:')){
++    return makeModifierStack(String(id).slice(8).split(',').map(mid=>MODIFIERS.find(m=>m.id===mid)).filter(Boolean));
++  }
++  return MODIFIERS.find(m=>m.id===id)||null;
++}
++function mod(id){
++  const active=run&&run.modifier;
++  return !!active && (active.id===id || (Array.isArray(active.mods)&&active.mods.some(m=>m.id===id)));
++}
++function effHands(){ return HANDS_PER_STAGE - (mod('rush')?1:0); }
+ function effDiscards(){ return DISCARDS_PER_STAGE - (mod('cold')?1:0); }
+ function effHandSize(){ return HAND_SIZE - (mod('short')?1:0) - (mod('famine')?2:0); }
+ function effMaxSelect(){
+@@ -3542,6 +3581,9 @@
+ const WILD_PITY_AFTER_SHOPS = 6; // after 6 Heat shops without WILD, the next Heat shop forces one if available
+ 
+ // ---------- Supplies (deck sculpting + hand upgrades) ----------
++const SUPPLY_PRICE_STEP_EARLY=5;
++const SUPPLY_PRICE_STEP_LATE=10;
++const SUPPLY_PRICE_STEP_LATE_AFTER_HEAT=20;
+ const SUPPLIES = [
+   {id:'scalpel', name:'Scalpel',    desc:'Destroy 1 card from your deck — takes effect from next Heat onward.', price:3},
+   {id:'copier',  name:'Copier',     desc:'Add a duplicate of any card — joins the deck from next Heat onward.', price:5},
+@@ -4784,7 +4826,7 @@
+     stageScore:0, handsLeft:HANDS_PER_STAGE, discardsLeft:DISCARDS_PER_STAGE,
+     handsPlayedThisStage:0,
+     runCoins:0, jokers:[], jokerState:{}, deck:[], hand:[],
+-    supplyPurchaseCounts:{}, suppliesBoughtThisShop:[],
++    supplyPurchaseCounts:{}, supplyPriceEscalation:0, suppliesBoughtThisShop:[],
+     cards:baseCardSet(),           // the run's sculptable deck list
+     handLevels:{},                 // hand type -> boost level
+     destroyedCount:0, copiedCount:0,
+@@ -4813,19 +4855,76 @@
+     d.push({rank:rk.r, value:rk.v, suit:su.s, red:su.red});
+   return d;
+ }
++function exactCardKey(card){ return card ? card.rank+'|'+card.suit : ''; }
++function exactCardCopyCount(card){
++  const key=exactCardKey(card);
++  return run&&Array.isArray(run.cards) ? run.cards.filter(c=>exactCardKey(c)===key).length : 0;
++}
++function copierCardBlockedReason(card){
++  if(!card) return 'Card unavailable.';
++  if(card.enh) return 'Enhanced cards cannot be duplicated.';
++  if(exactCardCopyCount(card)>=MAX_EXACT_CARD_COPIES) return 'This exact card already has the maximum 2 copies.';
++  return '';
++}
++function normalizeSculptedDeck(){
++  if(!run||!Array.isArray(run.cards)) return;
++  const validRanks=new Set(RANKS.map(r=>r.r)), validSuits=new Set(SUITS.map(s=>s.s));
++  const counts=new Map(), enhancedKeys=new Set(), repaired=[];
++  let removedCopies=0;
++  for(const original of run.cards){
++    if(!original||!validRanks.has(original.rank)||!validSuits.has(original.suit)) continue;
++    const key=exactCardKey(original), count=counts.get(key)||0;
++    if(count>=MAX_EXACT_CARD_COPIES){ removedCopies++; continue; }
++    const card={...original};
++    if(card.enh&&enhancedKeys.has(key)) delete card.enh;
++    if(card.enh) enhancedKeys.add(key);
++    counts.set(key,count+1);
++    repaired.push(card);
++  }
++  let restored=0;
++  if(repaired.length<MIN_RUN_DECK_SIZE){
++    for(const card of baseCardSet()){
++      if(repaired.length>=MIN_RUN_DECK_SIZE) break;
++      const key=exactCardKey(card);
++      if((counts.get(key)||0)>0) continue;
++      repaired.push(card); counts.set(key,1); restored++;
++    }
++  }
++  if(removedCopies>0) run.copiedCount=Math.max(0,(run.copiedCount||0)-removedCopies);
++  if(restored>0){
++    const undoDestroyed=Math.min(restored,Math.max(0,run.destroyedCount||0));
++    run.destroyedCount=Math.max(0,(run.destroyedCount||0)-undoDestroyed);
++    const undoShattered=restored-undoDestroyed;
++    if(undoShattered>0) run.shatteredCount=Math.max(0,(run.shatteredCount||0)-undoShattered);
++  }
++  run.cards=repaired;
++}
+ function stageTarget(){
+-  let t = run.stage<=12 ? HEAT_TARGETS[run.stage-1] : HEAT_TARGETS[11] + ENDLESS_STEP*(run.stage-12);
++  let t;
++  if(run.stage<=12) t=HEAT_TARGETS[run.stage-1];
++  else {
++    t=HEAT_TARGETS[11] + ENDLESS_STEP*(run.stage-12);
++    if(run.stage>ENDLESS_ACCEL_START){
++      const accelerated=run.stage-ENDLESS_ACCEL_START;
++      t += Math.round(ENDLESS_ACCEL_PER_HEAT*accelerated*(accelerated+1)/2);
++    }
++  }
+   if(run.gauntlet) t = Math.round(HEAT_TARGETS[Math.min(run.stage,GAUNTLET_HEATS)-1] * 1.20);   // 8-heat curve, +20%
+   if(mod('tax')) t = Math.round(t*1.15);
+   if(mod('rich')) t = Math.round(t*1.25);
+   if(run.modifier && run.modifier.boss) t = Math.round(t*1.10);   // v4.9.1: boss tax 20%→10% — the ×Mult jam is the real fight
+   return t;
+ }
+-function handBase(type){ return HAND_BASE[type] + LEVEL_BUMP[type]*Math.min(MAX_HAND_LEVEL, run.handLevels[type]||0); }
++function handBase(type){
++  const rawLevel=Math.min(MAX_HAND_LEVEL,run.handLevels[type]||0);
++  const effectiveLevel=Math.max(0,rawLevel-(mod('drain')?2:0));
++  return HAND_BASE[type] + LEVEL_BUMP[type]*effectiveLevel;
++}
+ 
+ // ---------- Deck / dealing ----------
+ function buildDeck(){
+-  // shuffled copy of the run's sculpted card set
++  // Repair legacy/exploit saves before each Heat, then shuffle the legal run deck.
++  normalizeSculptedDeck();
+   const d = run.cards.map(c=>({...c, selected:false}));
+   for(let i=d.length-1;i>0;i--){const j=Math.floor(rnd('deck')*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+   return d;
+@@ -4874,7 +4973,6 @@
+   const flushFour = cards.length===4 && (mod('ceiling') || hasJoker('pocketflush'));
+   const nonWild = cards.filter(c=>c.enh!=='wildsuit');
+   const sameSuit = nonWild.length===0 || nonWild.every(c=>c.suit===nonWild[0].suit);
+-  const flushThree = cards.length===3 && hasJoker('shortcut') && sameSuit;   // only upgrades a valid Shortcut Straight below
+   const flush = (five||flushFour) && sameSuit;
+ 
+   const uniq=[...new Set(vals)].sort((a,b)=>a-b);
+@@ -4897,7 +4995,7 @@
+   }
+ 
+   let type='High Card';
+-  if(straight&&(flush||flushThree)) type= royal ? 'Royal Flush' : 'Straight Flush';
++  if(straight&&flush) type= royal ? 'Royal Flush' : 'Straight Flush';
+   else if(groups[0]===4) type='Four of a Kind';
+   else if(groups[0]===3&&groups[1]===2) type='Full House';
+   else if(flush) type='Flush';
+@@ -5040,6 +5138,7 @@
+   cards.forEach((c,idx)=>{   // Neon cards: +0.20 each while scoring (cards, not jokers, so fog/boss can't jam them)
+     if(flags[idx] && c.enh==='neon'){ mult+=0.20; events.push({type:'mult', jokerIdx:-1, cardIdx:idx, label:'NEON +0.20', amount:0.20, mult}); }
+   });
++  if(!mod('blackout')){
+   for(const j of run.jokers){
+     if(!isJokerBlocked(j)&&j.addMult){
+       const a=j.addMult(ctx);
+@@ -5047,7 +5146,8 @@
+       else mult+=a;
+     }
+   }
+-  if(!mod('fog')){
++  }
++  if(!mod('fog')&&!mod('blackout')){
+   for(const j of run.jokers){
+     if(!isJokerBlocked(j)&&j.xMult){
+       const x=j.xMult(ctx);
+@@ -5515,22 +5615,37 @@
+     grid.appendChild(el);
+   });
+ }
++function modifierPoolForStage(){
++  // Keep the first two modifier Heats readable for new players. The hard set
++  // enters at Heat 9, throughout Gauntlet/Endless, and in every post-50 stack.
++  if(run.gauntlet||run.endless||run.stage>=9) return MODIFIERS;
++  return MODIFIERS.filter(m=>!['blackout','rush','drain','shakedown'].includes(m.id));
++}
++function drawModifier(pool){ return pool[Math.floor(rnd('mods')*pool.length)]; }
+ function assignModifier(){
+   run.bossBlockedJokerIds=[];
++  const pool=modifierPoolForStage();
+   if(run.gauntlet){
+     if(run.stage===GAUNTLET_HEATS){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // Gauntlet finale
+-    let m=MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)];
+-    if(run.prevGauntletMod && MODIFIERS.length>1){
++    let m=drawModifier(pool);
++    if(run.prevGauntletMod && pool.length>1){
+       let guard=0;
+-      while(m.name===run.prevGauntletMod && guard++<8) m=MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)];
++      while(m.name===run.prevGauntletMod && guard++<8) m=drawModifier(pool);
+     }
+     run.prevGauntletMod=m.name;
+     run.modifier=m;
+     return;
+   }
+   if(run.stage===12 && !run.endless){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // named boss Heat
++  if(run.endless&&run.stage>ENDLESS_DOUBLE_MODIFIER_AFTER){
++    const first=drawModifier(pool);
++    let second=drawModifier(pool), guard=0;
++    while(second.id===first.id&&guard++<12) second=drawModifier(pool);
++    run.modifier=makeModifierStack([first,second]);
++    return;
++  }
+   const qualifies = run.stage>0 && run.stage%3===0;
+-  run.modifier = qualifies ? MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)] : null;
++  run.modifier = qualifies ? drawModifier(pool) : null;
+ }
+ function beginRun(startJokerId=null){
+   const canProgress=progressionEnabled();
+@@ -5571,6 +5686,7 @@
+     run.startBoostCost=cost;
+   }
+   assignModifier();
++  run.handsLeft = effHands();
+   run.discardsLeft = effDiscards();
+   run.deck = buildDeck();
+   run.heatDeck = [...run.deck];   // snapshot: everything this Heat can draw from
+@@ -5828,7 +5944,7 @@
+   if(sel.filter((c,i)=>c.enh==='glass' && res.flags[i]).length>=2) run.glassDouble=true;
+   let shattered=0;
+   sel.forEach((c,i)=>{
+-    if(c.enh==='glass' && res.flags[i] && run.cards.length-shattered>HAND_SIZE && rnd('luck')<0.2){
++    if(c.enh==='glass' && res.flags[i] && run.cards.length-shattered>MIN_RUN_DECK_SIZE && rnd('luck')<0.2){
+       const k=run.cards.findIndex(x=>x.rank===c.rank && x.suit===c.suit && x.enh==='glass');
+       if(k>=0){ run.cards.splice(k,1); shattered++; }
+     }
+@@ -5904,8 +6020,9 @@
+   const heat = run.stage;
+   const grade = GRADES[Math.min(4, Math.max(1, run.handsPlayedThisStage))];
+   run.lastGrade = grade;
+-  run.lastInterest = Math.min(INTEREST_CAP, Math.floor(run.runCoins/INTEREST_PER));
+-  run.lastRunReward = runReward(heat);
++  run.lastInterest = mod('shakedown') ? 0 : Math.min(interestCapForHeat(), Math.floor(run.runCoins/INTEREST_PER));
++  const baseRunReward=runReward(heat);
++  run.lastRunReward = mod('shakedown') ? Math.max(1,Math.floor(baseRunReward/2)) : baseRunReward;
+   run.lastAcctReward = canProgress?acctReward(heat):0;
+   run.runCoins += run.lastRunReward + run.lastInterest + grade.bonus;
+   creditRunAccountOnce('heat:'+heat,run.lastAcctReward);
+@@ -5972,6 +6089,7 @@
+   run.animating=false;
+   run.abortAfterAnimation=false;
+   assignModifier();
++  run.handsLeft=effHands();
+   run.discardsLeft=effDiscards();
+   run.deck=buildDeck();
+   run.heatDeck = [...run.deck];   // fresh snapshot each Heat
+@@ -6269,6 +6387,10 @@
+     if(n>0) counts[id]=n;
+   }
+   run.supplyPurchaseCounts=counts;
++  const existing=Number(run.supplyPriceEscalation);
++  run.supplyPriceEscalation=Number.isFinite(existing)&&existing>=0
++    ? Math.floor(existing)
++    : Object.values(counts).reduce((sum,n)=>sum+n,0)*SUPPLY_PRICE_STEP_EARLY;
+   const bought=Array.isArray(run.suppliesBoughtThisShop) ? run.suppliesBoughtThisShop : [];
+   run.suppliesBoughtThisShop=[...new Set(bought.filter(id=>valid.has(id)))];
+ }
+@@ -6279,7 +6401,12 @@
+ function supplyBoughtInShop(s){
+   return !!(run&&Array.isArray(run.suppliesBoughtThisShop)&&run.suppliesBoughtThisShop.includes(s.id));
+ }
+-function supplyPrice(s){ return shopPrice(s.price) + 2*supplyPurchaseCount(s); }
++function supplySurcharge(){
++  const n=run ? Number(run.supplyPriceEscalation) : 0;
++  return Number.isFinite(n)&&n>0 ? Math.floor(n) : 0;
++}
++function supplyEscalationStep(){ return run&&run.stage>SUPPLY_PRICE_STEP_LATE_AFTER_HEAT ? SUPPLY_PRICE_STEP_LATE : SUPPLY_PRICE_STEP_EARLY; }
++function supplyPrice(s){ return shopPrice(s.price) + supplySurcharge(); }
+ 
+ function rarityWeight(j){
+   const w=RARITY_WEIGHT[j.rarity];
+@@ -6478,7 +6605,7 @@
+     el.className='shop-card supply'+(bought?' supply-bought':'');
+     el.innerHTML=`<div class="jname">${s.name}</div><div class="jdesc">${s.desc}</div>
+       <div class="price">${bought?'Next shop: ':''}${price} run coins</div>
+-      <div class="supply-next">${bought?'Price increase saved for this run':'Buy once in this shop · next purchase +2'}</div>`;
++      <div class="supply-next">${bought?'Global supply surcharge saved: +'+supplySurcharge():'Buy once in this shop · every supply rises +'+supplyEscalationStep()}</div>`;
+     const b=document.createElement('button');
+     b.className='btn alt'; b.textContent=bought?'✓ Bought this shop':(run.pendingShopJoker?'Finish swap first':'Buy & use');
+     b.disabled=bought || run.runCoins<price || !!run.pendingShopJoker;
+@@ -6615,6 +6742,7 @@
+ }
+ 
+ function openCardPicker(s){
++  normalizeSculptedDeck();
+   const titles={scalpel:'Destroy a card', copier:'Duplicate a card', dye:'Re-suit a card', enhance:'Enhance a card'};
+   const body=openOverlay(titles[s.id], s.desc+' Your deck: '+run.cards.length+' cards.');
+   const grid=document.createElement('div');
+@@ -6622,7 +6750,11 @@
+   for(const idx of sortedCardIndices()){
+     const c=run.cards[idx];
+     const b=miniCardBtn(c);
+-    if(s.id==='scalpel' && run.cards.length<=HAND_SIZE){ b.disabled=true; b.style.opacity='.35'; b.title='Deck too thin — you need at least '+HAND_SIZE+' cards to deal a hand.'; }
++    if(s.id==='scalpel' && run.cards.length<=MIN_RUN_DECK_SIZE){ b.disabled=true; b.style.opacity='.35'; b.title='Deck floor reached — WILDCARD keeps at least '+MIN_RUN_DECK_SIZE+' cards in a run.'; }
++    if(s.id==='copier'){
++      const blocked=copierCardBlockedReason(c);
++      if(blocked){ b.disabled=true; b.style.opacity='.35'; b.title=blocked; b.setAttribute('aria-label',c.rank+c.suit+' unavailable: '+blocked); }
++    }
+     b.onclick=()=>{
+       if(s.id==='scalpel'){
+         finishSupply(s, 'Destroyed the '+c.rank+c.suit+'.', ()=>{
+@@ -6630,8 +6762,10 @@
+           run.destroyedCount++;
+         });
+       } else if(s.id==='copier'){
++        if(copierCardBlockedReason(c)) return;
+         finishSupply(s, 'Added a second '+c.rank+c.suit+'.', ()=>{
+-          run.cards.push({...c});
++          const copy={...c}; delete copy.uid; delete copy.selected; delete copy.isNew;
++          run.cards.push(copy);
+           run.copiedCount++;
+         });
+       } else if(s.id==='dye'){
+@@ -6723,6 +6857,7 @@
+   }
+   run.runCoins-=price;
+   run.supplyPurchaseCounts[s.id]=supplyPurchaseCount(s)+1;
++  run.supplyPriceEscalation=supplySurcharge()+supplyEscalationStep();
+   chord([523,659]);
+   closeOverlay();
+   updateShopSub();
+@@ -7111,7 +7246,7 @@
+   if(!run) return '';
+   const plays=Math.max(1, Object.values(run.handTypeCounts||{}).reduce((a,b)=>a+b,0));
+   const avg=Math.round(run.totalScore/plays);
+-  const need=Math.ceil(stageTarget()/HANDS_PER_STAGE);
++  const need=Math.ceil(stageTarget()/Math.max(1,effHands()));
+   const profile=buildProfile();
+   const rows=[
+     ['Engine read', profile.name+' — '+profile.tip],
+@@ -8706,7 +8841,7 @@
+  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
+  'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','heat12SequenceStarted','heat12InterstitialAttempted','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
+  'stakeNet','enhancedCount','shatteredCount','glassDouble','inflation','sortMode','lastRunReward','lastAcctReward',
+- 'lastInterest','supplyPurchaseCounts','suppliesBoughtThisShop','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
++ 'lastInterest','supplyPurchaseCounts','supplyPriceEscalation','suppliesBoughtThisShop','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
+ function currentRunPhase(){
+   if(run&&run.terminalPending) return 'revive';
+   const active=document.querySelector('.screen.active');
+@@ -8793,8 +8928,9 @@
+     }
+     if(typeof normalizeRunRng==='function') normalizeRunRng(run);
+     normalizeSupplyState();
++    normalizeSculptedDeck();
+     run.jokers=(d.jokerIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
+-    run.modifier = d.modId==='boss_house' ? BOSS_MOD : (MODIFIERS.find(m=>m.id===d.modId)||null);
++    run.modifier = modifierFromSaveId(d.modId);
+     run.animating=false; run.abortAfterAnimation=false; run.pendingShopJoker=null;
+     if(run.modifier&&run.modifier.id==='boss_house') ensureBossBlocks();
+     if(d.phase==='revive' || run.terminalPending){
