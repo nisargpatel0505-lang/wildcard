@@ -23,6 +23,9 @@
     "test:decision": "node tools/deep-sim-v57.js --decision-lab",
     "test:economy": "node tools/economy-sim-v69.js",
     "test:revenue": "node tools/revenue-model-v6910.js",
+    "apply:chatgpt-fix": "python tools/apply-chatgpt-fix-2026-07-20.py",
+    "test:chatgpt-fix": "npm run apply:chatgpt-fix && node tools/test-chatgpt-balance-fix.js",
+    "test:chatgpt-sim": "npm run apply:chatgpt-fix && node tools/chatgpt-balance-sim.js --runs=50 --cohort=all --assert-fix --output=.tmp/chatgpt-fix-sim.json",
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project wildcard-31d50 \"node tools/test-firestore-rules.js\""
   },
   "keywords": [],
