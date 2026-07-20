@@ -92,22 +92,43 @@ jobs:
           exit 1
 
       - name: Verify package, signature and embedded source
+        id: verify_apk
         if: steps.gradle_build.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
+          exec > >(tee verify-apk.log) 2>&1
           set -euo pipefail
-          src="android/app/build/outputs/apk/chatgptfix/app-chatgptfix.apk"
+
+          src="$(find android/app/build/outputs/apk -type f -name '*.apk' | grep '/chatgptfix/' | sort | head -n 1 || true)"
+          test -n "$src"
           test -f "$src"
-          app_id="$(apkanalyzer manifest application-id "$src")"
-          version_name="$(apkanalyzer manifest version-name "$src")"
+          echo "APK: $src"
+
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$sdk_root"
+          build_tools="$(find "$sdk_root/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -n "$build_tools"
+          aapt_bin="$build_tools/aapt"
+          apksigner_bin="$build_tools/apksigner"
+          test -x "$aapt_bin"
+          test -x "$apksigner_bin"
+          echo "Build tools: $build_tools"
+
+          badging="$("$aapt_bin" dump badging "$src" | head -n 1)"
+          echo "$badging"
+          app_id="$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" <<< "$badging")"
+          version_name="$(sed -n "s/.* versionName='\([^']*\)'.*/\1/p" <<< "$badging")"
+          echo "applicationId=$app_id"
+          echo "versionName=$version_name"
           test "$app_id" = "com.nisarg.wildcard.chatgptfix"
-          case "$version_name" in
-            6.9.14-chatgpt-5.6-fix-20260720) ;;
-            *) echo "Unexpected version name: $version_name" >&2; exit 1 ;;
-          esac
-          apksigner verify --verbose "$src"
+          test "$version_name" = "6.9.14-chatgpt-5.6-fix-20260720"
+
+          "$apksigner_bin" verify --verbose "$src"
           embedded_sha="$(unzip -p "$src" assets/public/index.html | sha256sum | awk '{print $1}')"
+          echo "embeddedIndexSha256=$embedded_sha"
           test "$embedded_sha" = "5cf29ef723d0f4e4e5035d46af0515e52bdc196858aa044c19d39b0e15c72835"
+
           mkdir -p dist
           cp "$src" "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk"
           sha256sum "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk" | tee dist/SHA256SUMS.txt
@@ -121,8 +142,24 @@ jobs:
           cp docs/release/chatgpt-5.6-fix-2026-07-20-sim.json dist/
           cp .tmp/chatgpt-fix-sim.json dist/chatgpt-fix-smoke-sim.json
 
+      - name: Upload APK verification failure log
+        if: steps.verify_apk.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-ChatGPT-5.6-Fix-Verification-Failure
+          path: verify-apk.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Stop after APK verification failure
+        if: steps.verify_apk.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "APK verification failed; see the verification artifact." >&2
+          exit 1
+
       - name: Upload isolated APK
-        if: steps.gradle_build.outcome == 'success'
+        if: steps.verify_apk.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: WILDCARD-ChatGPT-5.6-Fix-2026-07-20
