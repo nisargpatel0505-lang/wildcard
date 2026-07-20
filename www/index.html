@@ -2080,6 +2080,58 @@ body:is(
 @media(max-width:359px){
   #hand .card{flex-basis:38px!important;width:38px!important;min-width:38px!important;margin-left:-6.5px!important}
 }
+
+/* ==================== v7.0.0 accessibility + UI release pass ====================
+   Measured on the live build at 360x800 and 320x568. Earlier versions made the
+   layout fit by forcing text down to 7-9.5px with !important; these floors are
+   ID-scoped so they win the cascade (specificity decides among !important rules,
+   and the old .game-grid .hud .lbl is (0,3,0)). */
+#game .hud .lbl, #game .cell .lbl{ font-size:11px !important; letter-spacing:.05em; }
+#game .eq-chip .small{ font-size:10px !important; }
+#game .eq-hand{ font-size:11px !important; }
+#game .mascot .m-name{ font-size:10px !important; }
+#game .joker-strip-head b{ font-size:11px !important; }
+#joker-live-status{ font-size:11px !important; }
+#shop .shop-inspect-hint b, #shop .shop-section-lbl{ font-size:11px !important; }
+#missions .mission-refresh-copy span{ font-size:11px !important; }
+
+/* Touch targets. Measured: back arrow 40px, shop reroll 30px, toolbar 37px,
+   ad buttons 34-36px. Play's pre-launch accessibility scan flags these. */
+.btn{ min-height:44px; }
+#game .btn.small, #game .btn.ghost.small,
+#shop .btn.small, #shop .btn.ghost, #shop .btn.ghost.small{
+  min-height:44px !important; font-size:11px !important;
+}
+#btn-reroll, #btn-sort, #chest-ad-btn, #ward-ad-btn, #mission-refresh-ad{ min-height:44px !important; }
+.top-back{ min-width:44px !important; min-height:44px !important; }
+#game #btn-abandon{ font-size:11px !important; }   /* stays de-emphasised: destructive */
+
+/* WCAG AA: white on --violet measured 3.15:1, needs 4.5:1. Scoped to this tile
+   only - --violet is a brand colour used by theme swatches and joker tags. */
+#daily-btn{ background:#7A5AEB !important; }       /* 3.15:1 -> 4.68:1 */
+
+/* Safe areas on all four sides, and overlays must never exceed the screen. */
+.overlay{ padding:calc(10px + var(--sat,0px)) calc(10px + var(--sar,0px)) calc(10px + var(--sab,0px)) calc(10px + var(--sal,0px)); }
+.overlay .panel{ max-height:calc(100svh - var(--sat,0px) - var(--sab,0px) - 24px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+
+/* Short screens only (<=600px tall). Height-scoped on purpose: keying this off
+   max-width:360px would hide Sly's coaching on 360x800, the most common Android
+   size, which has ample vertical room. */
+@media (max-height:600px){
+  #game .mascot-panel{ display:none !important; }
+  #game .joker-strip-head, #joker-live-status{ display:none !important; }
+  #game .targetbar{ padding:3px 8px !important; margin-bottom:3px !important; }
+  #game .equation{ padding:4px 6px !important; margin-bottom:3px !important; }
+  #game .table-area{ padding:3px 4px !important; }
+  #game .actions{ margin-top:4px !important; }
+  #game.screen{ padding-top:calc(4px + var(--sat,0px)); padding-bottom:calc(8px + var(--sab,0px)); }
+}
+@media (max-width:360px){
+  .table-area{ padding-left:4px; padding-right:4px; }
+  .actions{ gap:6px; }
+}
+
+.menu-best-hero{ font-size:11px !important; }   /* was 9px */
 </style>
 </head>
 <body>
@@ -2142,7 +2194,7 @@ body:is(
 <section class="screen active" id="menu">
   <div class="wrap" style="text-align:center">
     <div class="brand-logo"><img id="brand-logo-img" alt="WILDCARD"></div>
-    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v6.9.14</b></p>
+    <p class="tag">Arcade roguelike poker · 12 Heats · build your engine · <b style="color:var(--mint)">v7.0.0</b></p>
     <div class="menu-progress"><span class="menu-best-hero" id="menu-best-hero">BEST HEAT —</span><span id="menu-title" class="menu-title"></span></div>
     <div class="menu-btns">
       <button class="btn" id="btn-resume" data-menu-icon="▶" style="display:none;background:var(--mint);color:#04120e;box-shadow:0 5px 0 #2a8a75,0 10px 18px var(--shadow)" onclick="resumeRun()">Resume Run</button>
@@ -2167,7 +2219,7 @@ body:is(
     <div class="stat-list" style="font-size:14px">
       <div class="stat-row"><span>You hold <b>9 cards</b>. Select up to <b>5</b>, then <b>Play</b> to score them or <b>Discard</b> to redraw. One 52-card deck per Heat — binned cards stay gone until the next Heat.</span></div>
       <div class="stat-row"><span>Score = (Hand Base + rank sum <b>×0.6</b>) × Multiplier. <b>Only cards forming the hand score</b> — a Pair scores 2 cards, kickers score nothing. Ace is always <b>15</b>. Tap ♠ Hands in-game for the full table.</span></div>
-      <div class="stat-row"><span>Each Heat: a target, <b>4 plays</b>, <b>5 discards</b>. Every 3rd Heat twists the rules with a <b>Heat Modifier</b>. Heat 12 is the boss — <b>THE HOUSE</b> randomly blocks exactly 2 equipped Jokers for that Heat (enhanced cards still work).</span></div>
+      <div class="stat-row"><span>Each Heat: a target, <b>4 plays</b>, <b>5 discards</b>. Every 3rd Heat twists the rules with a <b>Heat Modifier</b>; after Heat 50, every Heat stacks two modifiers. Heat 12 is the boss — <b>THE HOUSE</b> randomly blocks exactly 2 equipped Jokers for that Heat (enhanced cards still work).</span></div>
       <div class="stat-row"><span>Shops sell <b>jokers</b> (max 1 per shop, 5 slots, swap when buying at full slots, sell in any shop) and <b>supplies</b>: destroy, copy or re-suit deck cards, and <b>Hand Boosts</b> that permanently level up a hand type's base value.</span></div>
       <div class="stat-row"><span>Money earns <b>interest</b>: +1 run coin per 5 held when you clear a Heat (max +5). Spend or compound — your call. Reroll the joker offer for 2 coins.</span></div>
       <div class="stat-row"><span>Clearing a Heat in fewer plays earns a better <b>grade</b>: S (+3 coins), A (+2), B (+1), C. Top 5 runs make the high score board.</span></div>
@@ -2385,9 +2437,9 @@ body:is(
     <div class="jokers" id="shop-joker-row" style="margin-bottom:16px"></div>
     <p class="sub" id="swap-hint" style="display:none;color:var(--gold)">Your joker slots are full — tap one of your jokers above to replace it.</p>
     <div class="shop-inspect-hint"><b>JOKER EFFECTS</b><span>Names and effects stay visible. Tap a Joker to see which engine it fits best.</span></div>
-    <div class="shop-section-lbl">Jokers — buy at most 1 <button class="btn ghost" id="btn-reroll" onclick="rerollShop()" style="padding:5px 12px;font-size:12px;margin-left:8px">Reroll · 2</button></div>
+    <div class="shop-section-lbl">Jokers — buy at most 1 <button class="btn ghost" id="btn-reroll" onclick="rerollShop()" style="padding:5px 12px;font-size:12px;margin-left:8px">Reroll · 3</button></div>
     <div class="shop-items" id="shop-items"></div>
-    <div class="shop-section-lbl">Supplies — each offer once · that supply costs +2 for the run
+    <div class="shop-section-lbl">Supplies — each offer once · same supply +5 per use, +10 after Heat 20
       <button class="btn ghost small" onclick="openDeckView()" style="margin-left:8px;padding:5px 12px;font-size:12px">🃏 View Deck</button></div>
     <div class="shop-items" id="shop-supplies"></div>
     <button class="btn alt" onclick="nextStage()">Next Heat →</button>
@@ -3298,8 +3350,12 @@ const LEVEL_BUMP = {
 // Tuned v4.1: Heats 1–3 unchanged; Heat 4 onward reduced and the ramp stretched across 12 Heats (clear Heat 12 to win, then Endless).
 const HEAT_TARGETS = [90,135,205,280,380,520,700,920,1150,1400,1700,2050];   // v4.9.1: 9-12 softened — sims had a 2.8% win rate at the old wall
 const ENDLESS_STEP = 600;
+const ENDLESS_ACCEL_AFTER = 20;
+const ENDLESS_SECOND_ACCEL_AFTER = 35;
 const WIN_BONUS_ACCOUNT = 10;
-function runReward(heat){ return 3 + heat; }
+// Run coins are deliberately tighter than account progression. Supply prices now
+// persist and rise sharply, so the reward curve must not refill every shop.
+function runReward(heat){ return 2 + Math.ceil(heat*0.75); }
 function acctReward(heat){ return 2 + Math.floor(heat/3); }
 // v6.9.8 economy tuning lives in one auditable block. The free starter roster and
 // coin bundles stay unchanged; paid collection progression now lasts for weeks
@@ -3310,8 +3366,8 @@ const ECONOMY = Object.freeze({
   jokerVaultPrice:Object.freeze({wood:100, gold:300}),
   rewardedCoin:Object.freeze({amount:25, dailyCap:5})
 });
-const INTEREST_PER = 5, INTEREST_CAP = 5;
-const REROLL_COST = 2;
+const INTEREST_PER = 8, INTEREST_CAP = 3;
+const REROLL_COST = 3;
 // Boss-prep armory: the shop right before the boss (Heat 12, or Gauntlet Heat 8)
 // offers 4 jokers and allows 2 purchases instead of the usual 2-and-1.
 function bossPrepShop(){
@@ -3324,9 +3380,9 @@ function shopBuyLimit(){ return bossPrepShop() ? 2 : 1; }
 // Arcade grades: fewer plays to clear a Heat = better grade = bonus coins
 const GRADES = [
   null,
-  {g:'S', bonus:3, color:'var(--gold)'},
-  {g:'A', bonus:2, color:'var(--mint)'},
-  {g:'B', bonus:1, color:'var(--violet)'},
+  {g:'S', bonus:2, color:'var(--gold)'},
+  {g:'A', bonus:1, color:'var(--mint)'},
+  {g:'B', bonus:0, color:'var(--violet)'},
   {g:'C', bonus:0, color:'var(--cream-dim)'},
 ];
 // Callout tiers by play size relative to target
@@ -3341,6 +3397,8 @@ function calloutFor(total, target){
 const HANDS_PER_STAGE = 4;
 const DISCARDS_PER_STAGE = 5;
 const HAND_SIZE = 9;        // cards held
+const MIN_DECK_SIZE = 24;   // deck sculpting remains useful without collapsing into a deterministic loop
+const MAX_EXACT_CARD_COPIES = 2;
 const MAX_SELECT = 5;       // still play/discard at most 5
 const MAX_JOKERS = 5;
 const BASE_MULT = 1.1;
@@ -3348,21 +3406,52 @@ const RANK_SCALE = 0.6;     // rank sum counts at 60% so hand type dominates
 
 // ---------- Heat modifiers ----------
 const MODIFIERS = [
-  {id:'cold',     name:'Cold Deck',   desc:'One fewer discard this Heat.'},
-  {id:'heartless',name:'Heartless',   desc:'Hearts score 0 rank this Heat.'},
-  {id:'inflation',name:'Inflation',   desc:'Shop prices +2 after this Heat.'},
-  {id:'short',    name:'Short Stack', desc:'Hold 8 cards instead of 9 this Heat.'},
-  {id:'tax',      name:'The Tax',     desc:'Target +15% this Heat.'},
-  {id:'ceiling',  name:'Low Ceiling', desc:'Play at most 4 cards this Heat — 4-card straights and flushes count.'},
-  {id:'rich',     name:'High Stakes',  desc:'Target +25% this Heat.'},
-  {id:'fog',      name:'Dead Air',     desc:'Jokers give no ×Mult this Heat — lean on rank and +Mult.'},
-  {id:'famine',   name:'Famine',       desc:'Hold 7 cards instead of 9 this Heat.'},
-  {id:'frostbite',name:'Frostbite',    desc:'Spades score 0 rank this Heat.'},
+  {id:'cold',       name:'Cold Deck',    desc:'One fewer discard this Heat.', minHeat:3},
+  {id:'heartless',  name:'Heartless',    desc:'Hearts score 0 rank this Heat.', minHeat:3},
+  {id:'inflation',  name:'Inflation',    desc:'Shop prices +2 after this Heat.', minHeat:3},
+  {id:'short',      name:'Short Stack',  desc:'Hold 8 cards instead of 9 this Heat.', minHeat:3},
+  {id:'tax',        name:'The Tax',      desc:'Target +15% this Heat.', minHeat:3},
+  {id:'ceiling',    name:'Low Ceiling',  desc:'Play at most 4 cards this Heat — 4-card straights and flushes count.', minHeat:6},
+  {id:'rich',       name:'High Stakes',  desc:'Target +25% this Heat.', minHeat:6},
+  {id:'fog',        name:'Dead Air',     desc:'Jokers give no ×Mult this Heat — lean on rank and +Mult.', minHeat:6},
+  {id:'famine',     name:'Famine',       desc:'Hold 7 cards instead of 9 this Heat.', minHeat:9},
+  {id:'frostbite',  name:'Frostbite',    desc:'Spades score 0 rank this Heat.', minHeat:9},
+  {id:'blackout',   name:'Null Field',   desc:'All +Mult and ×Mult effects are disabled this Heat, including Neon and Glass.', minHeat:13, hard:true},
+  {id:'echo',       name:'Echo Chamber', desc:'Repeat the previous hand type and your final Mult is halved.', minHeat:15, hard:true},
+  {id:'boost_lock', name:'Level Lock',   desc:'Hand Boost levels are disabled this Heat.', minHeat:18, hard:true},
+  {id:'pressure',   name:'Closing Time', desc:'One fewer hand this Heat.', minHeat:21, hard:true},
+  {id:'counterfeit',name:'Counterfeit',  desc:'Copied cards score 0 rank this Heat.', minHeat:24, hard:true},
+  {id:'thin_ice',   name:'Thin Ice',     desc:'A deck below 30 cards raises the target by 40%.', minHeat:27, hard:true},
 ];
 const BOSS_MOD={id:'boss_house', name:'THE HOUSE', desc:'★ BOSS ★ The House takes a 10% bigger cut and blocks 2 randomly selected equipped Jokers for this Heat. Beat the house to win the run.', boss:true};
-function mod(id){ return run && run.modifier && run.modifier.id===id; }
+function modifierParts(modifier=run&&run.modifier){
+  if(!modifier) return [];
+  return Array.isArray(modifier.mods) ? modifier.mods.filter(Boolean) : [modifier];
+}
+function modifierIds(modifier=run&&run.modifier){ return modifierParts(modifier).map(m=>m.id); }
+function stackModifiers(parts){
+  const clean=[];
+  const seen=new Set();
+  for(const m of parts||[]) if(m&&!seen.has(m.id)){ seen.add(m.id); clean.push(m); }
+  if(clean.length<=1) return clean[0]||null;
+  return {
+    id:clean.map(m=>m.id).join('+'),
+    name:clean.map(m=>m.name).join(' + '),
+    desc:clean.map(m=>m.desc).join(' • '),
+    mods:clean,
+    stacked:true,
+    boss:clean.some(m=>m.boss)
+  };
+}
+function restoreModifier(ids){
+  const list=(Array.isArray(ids)?ids:[ids]).filter(Boolean).map(id=>id==='boss_house'?BOSS_MOD:MODIFIERS.find(m=>m.id===id)).filter(Boolean);
+  return stackModifiers(list);
+}
+function eligibleModifiers(stage){ return MODIFIERS.filter(m=>stage>=(m.minHeat||1)); }
+function mod(id){ return modifierParts().some(m=>m.id===id); }
 function effDiscards(){ return DISCARDS_PER_STAGE - (mod('cold')?1:0); }
 function effHandSize(){ return HAND_SIZE - (mod('short')?1:0) - (mod('famine')?2:0); }
+function effHandsPerStage(){ return Math.max(1,HANDS_PER_STAGE-(mod('pressure')?1:0)); }
 function effMaxSelect(){
   if(mod('ceiling')) return 4;
   return hasJoker('cheat') ? 6 : MAX_SELECT;
@@ -3543,8 +3632,8 @@ const WILD_PITY_AFTER_SHOPS = 6; // after 6 Heat shops without WILD, the next He
 
 // ---------- Supplies (deck sculpting + hand upgrades) ----------
 const SUPPLIES = [
-  {id:'scalpel', name:'Scalpel',    desc:'Destroy 1 card from your deck — takes effect from next Heat onward.', price:3},
-  {id:'copier',  name:'Copier',     desc:'Add a duplicate of any card — joins the deck from next Heat onward.', price:5},
+  {id:'scalpel', name:'Scalpel',    desc:'Destroy 1 card from your deck (minimum '+MIN_DECK_SIZE+') — takes effect from next Heat onward.', price:3},
+  {id:'copier',  name:'Copier',     desc:'Duplicate one original, unenhanced card (maximum '+MAX_EXACT_CARD_COPIES+' exact copies) — joins next Heat.', price:5},
   {id:'dye',     name:'Dye Kit',    desc:'Change one card\u2019s suit — applies from next Heat onward.', price:4},
   {id:'enhance', name:'Enhancer',   desc:'Etch a permanent enhancement onto one card — joins the deck from next Heat onward.', price:6},
   {id:'boost',   name:'Hand Boost', desc:'Permanently raise one hand type\u2019s base value this run.', price:5},
@@ -3702,7 +3791,7 @@ function toggleMusic(){   // background arcade music + modifier ambience
 }
 const reducedMotion = (typeof matchMedia!=='undefined') && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ffwd=false;   // used only by the explicit "finish then abandon" action
-const sleep = ms => new Promise(res=>setTimeout(res, reducedMotion?Math.min(ms,160):(ffwd?Math.min(ms,40):ms)));
+const sleep = ms => new Promise(res=>setTimeout(res, /* v7: reduced motion removes MOVEMENT, not reading time */ (ffwd?Math.min(ms,40):ms)));
 // v6.9.11: the previous Normal pace is now Fast. Normal deliberately gives
 // cards and Joker effects enough time to be understood without adding heavy FX.
 const SCORE_PACE={normal:1.85,fast:1.04};
@@ -4784,7 +4873,7 @@ function newRunState(){
     stageScore:0, handsLeft:HANDS_PER_STAGE, discardsLeft:DISCARDS_PER_STAGE,
     handsPlayedThisStage:0,
     runCoins:0, jokers:[], jokerState:{}, deck:[], hand:[],
-    supplyPurchaseCounts:{}, suppliesBoughtThisShop:[],
+    supplyPurchaseCounts:{}, supplyPurchaseLedger:[], suppliesBoughtThisShop:[],
     cards:baseCardSet(),           // the run's sculptable deck list
     handLevels:{},                 // hand type -> boost level
     destroyedCount:0, copiedCount:0,
@@ -4813,15 +4902,64 @@ function baseCardSet(){
     d.push({rank:rk.r, value:rk.v, suit:su.s, red:su.red});
   return d;
 }
+function normalizeDeckIntegrity(){
+  if(!run||!Array.isArray(run.cards)) return {changed:false,removed:0,restored:0};
+  const cleaned=[],counts=new Map();
+  let removed=0,changed=false;
+  for(const raw of run.cards){
+    if(!raw||!RANKS.some(r=>r.r===raw.rank)||!SUITS.some(s=>s.s===raw.suit)){ removed++; changed=true; continue; }
+    const c={...raw};
+    const key=c.rank+'|'+c.suit;
+    const seen=counts.get(key)||0;
+    if(seen>=MAX_EXACT_CARD_COPIES){ removed++; changed=true; continue; }
+    // A copied card can never carry an enhancement, including legacy saves
+    // where the copied card happens to be the first instance encountered.
+    if(c.copied&&c.enh){ delete c.enh; changed=true; }
+    if(seen>0){
+      if(!c.copied){ c.copied=true; changed=true; }
+      if(c.enh){ delete c.enh; changed=true; }
+    }
+    counts.set(key,seen+1);
+    cleaned.push(c);
+  }
+  let restored=0;
+  if(cleaned.length<MIN_DECK_SIZE){
+    for(const base of baseCardSet()){
+      if(cleaned.length>=MIN_DECK_SIZE) break;
+      const key=base.rank+'|'+base.suit;
+      if((counts.get(key)||0)>0) continue;
+      cleaned.push({...base}); counts.set(key,1); restored++; changed=true;
+    }
+  }
+  if(changed){
+    run.cards=cleaned;
+    run.copiedCount=cleaned.filter(c=>c.copied).length;
+    run.enhancedCount=cleaned.filter(c=>c.enh).length;
+    run.destroyedCount=Math.max(0,52+run.copiedCount-(run.shatteredCount||0)-cleaned.length);
+  }
+  return {changed,removed,restored};
+}
 function stageTarget(){
-  let t = run.stage<=12 ? HEAT_TARGETS[run.stage-1] : HEAT_TARGETS[11] + ENDLESS_STEP*(run.stage-12);
+  let t;
+  if(run.stage<=12){
+    t=HEAT_TARGETS[run.stage-1];
+  }else{
+    t=HEAT_TARGETS[11] + ENDLESS_STEP*(run.stage-12);
+    const over20=Math.max(0,run.stage-ENDLESS_ACCEL_AFTER);
+    const over35=Math.max(0,run.stage-ENDLESS_SECOND_ACCEL_AFTER);
+    t += 35*over20*over20 + 65*over35*over35;
+  }
   if(run.gauntlet) t = Math.round(HEAT_TARGETS[Math.min(run.stage,GAUNTLET_HEATS)-1] * 1.20);   // 8-heat curve, +20%
   if(mod('tax')) t = Math.round(t*1.15);
   if(mod('rich')) t = Math.round(t*1.25);
-  if(run.modifier && run.modifier.boss) t = Math.round(t*1.10);   // v4.9.1: boss tax 20%→10% — the ×Mult jam is the real fight
+  if(mod('thin_ice') && run.cards.length<30) t = Math.round(t*1.40);
+  if(run.modifier && run.modifier.boss) t = Math.round(t*1.10);   // the ×Mult jam is the real fight
   return t;
 }
-function handBase(type){ return HAND_BASE[type] + LEVEL_BUMP[type]*Math.min(MAX_HAND_LEVEL, run.handLevels[type]||0); }
+function handBase(type){
+  const level=mod('boost_lock')?0:Math.min(MAX_HAND_LEVEL,run.handLevels[type]||0);
+  return HAND_BASE[type] + LEVEL_BUMP[type]*level;
+}
 
 // ---------- Deck / dealing ----------
 function buildDeck(){
@@ -4874,7 +5012,6 @@ function evaluateHand(cards){
   const flushFour = cards.length===4 && (mod('ceiling') || hasJoker('pocketflush'));
   const nonWild = cards.filter(c=>c.enh!=='wildsuit');
   const sameSuit = nonWild.length===0 || nonWild.every(c=>c.suit===nonWild[0].suit);
-  const flushThree = cards.length===3 && hasJoker('shortcut') && sameSuit;   // only upgrades a valid Shortcut Straight below
   const flush = (five||flushFour) && sameSuit;
 
   const uniq=[...new Set(vals)].sort((a,b)=>a-b);
@@ -4897,7 +5034,7 @@ function evaluateHand(cards){
   }
 
   let type='High Card';
-  if(straight&&(flush||flushThree)) type= royal ? 'Royal Flush' : 'Straight Flush';
+  if(straight&&flush) type= royal ? 'Royal Flush' : 'Straight Flush';
   else if(groups[0]===4) type='Four of a Kind';
   else if(groups[0]===3&&groups[1]===2) type='Full House';
   else if(flush) type='Flush';
@@ -4911,7 +5048,7 @@ function evaluateHand(cards){
 // Effective raw rank contribution for deciding which High Card / 6-card Cheat subset is actually best.
 // This mirrors the rank phase without rolling random jokers.
 function cardEffectiveRankForScoring(c){
-  if((mod('heartless') && c.suit==='♥') || (mod('frostbite') && c.suit==='♠')) return 0;
+  if((mod('heartless') && c.suit==='♥') || (mod('frostbite') && c.suit==='♠') || (mod('counterfeit')&&c.copied)) return 0;
   let v=c.value;
   for(const j of run.jokers) if(!isJokerBlocked(j)&&j.rankMod) v += j.rankMod(c)||0;
   if(c.enh==='gild') v+=8;
@@ -5000,7 +5137,7 @@ function scoreHand(cards, commit=false, resolvedHand=null){
     flags.push(scores);
     if(!scores){ perCard.push(0); return; }
     let v=0;
-    if(!((mod('heartless') && c.suit==='\u2665') || (mod('frostbite') && c.suit==='\u2660'))){
+    if(!((mod('heartless') && c.suit==='\u2665') || (mod('frostbite') && c.suit==='\u2660') || (mod('counterfeit')&&c.copied))){
       // 1) the card itself fires
       v = c.value;
       rankSum += c.value;
@@ -5037,17 +5174,17 @@ function scoreHand(cards, commit=false, resolvedHand=null){
 
   // ---- multiplier phase ----
   let mult = BASE_MULT;
-  cards.forEach((c,idx)=>{   // Neon cards: +0.20 each while scoring (cards, not jokers, so fog/boss can't jam them)
+  if(!mod('blackout')) cards.forEach((c,idx)=>{   // Null Field shuts down every Mult source.
     if(flags[idx] && c.enh==='neon'){ mult+=0.20; events.push({type:'mult', jokerIdx:-1, cardIdx:idx, label:'NEON +0.20', amount:0.20, mult}); }
   });
-  for(const j of run.jokers){
+  if(!mod('blackout')) for(const j of run.jokers){
     if(!isJokerBlocked(j)&&j.addMult){
       const a=j.addMult(ctx);
       if(a>0.001){ mult+=a; events.push({type:'mult', jokerIdx:run.jokers.indexOf(j), label:'+'+a.toFixed(2)+' Mult', amount:a, mult}); }
       else mult+=a;
     }
   }
-  if(!mod('fog')){
+  if(!mod('fog')&&!mod('blackout')){
   for(const j of run.jokers){
     if(!isJokerBlocked(j)&&j.xMult){
       const x=j.xMult(ctx);
@@ -5057,9 +5194,13 @@ function scoreHand(cards, commit=false, resolvedHand=null){
   }
   }
 
-  cards.forEach((c,idx)=>{   // Glass cards: \u00d71.5 each while scoring (also immune to fog/boss)
+  if(!mod('blackout')) cards.forEach((c,idx)=>{
     if(flags[idx] && c.enh==='glass'){ mult*=1.5; events.push({type:'xmult', jokerIdx:-1, cardIdx:idx, label:'GLASS \u00d71.5', amount:1.5, mult}); }
   });
+  if(mod('echo')&&run.prevHandType&&run.prevHandType===handType){
+    mult*=0.5;
+    events.push({type:'xmult',jokerIdx:-1,label:'ECHO \u00d70.5',amount:0.5,mult});
+  }
 
   return {handType, base, rankSum, rankScore, vp, mult, total: Math.round(vp*mult), ctx, perCard, flags, scoringCount:scoring.size, events};
 }
@@ -5285,7 +5426,7 @@ function chooseRunMode(){
     '<button class="mode-card" id="mode-normal">'
       +'<div class="mode-emoji">🃏</div>'
       +'<div class="mode-name">Normal Run</div>'
-      +'<div class="mode-desc">The main event. Clear all 12 Heats, then break into <b>Endless</b> (Heat 13+; modifier every third Heat). Counts toward your Best Heat, high scores and stake unlocks.</div>'
+      +'<div class="mode-desc">The main event. Clear all 12 Heats, then break into <b>Endless</b> (Heat 13+; every third Heat until 50, then two modifiers every Heat). Counts toward your Best Heat, high scores and stake unlocks.</div>'
     +'</button>'
     +'<button class="mode-card'+(gUnlocked?'':' locked')+'" id="mode-gauntlet">'
       +'<div class="mode-emoji">🔥</div>'
@@ -5515,22 +5656,47 @@ function renderStartBoost(){
     grid.appendChild(el);
   });
 }
+function drawDistinctModifiers(count,requireHard=false){
+  const pool=eligibleModifiers(run.stage).slice();
+  const out=[];
+  if(requireHard){
+    const hard=pool.filter(m=>m.hard);
+    if(hard.length){
+      const chosen=hard[Math.floor(rnd('mods')*hard.length)];
+      out.push(chosen);
+      const at=pool.findIndex(m=>m.id===chosen.id);
+      if(at>=0) pool.splice(at,1);
+    }
+  }
+  while(out.length<count&&pool.length){
+    const i=Math.floor(rnd('mods')*pool.length);
+    out.push(pool.splice(i,1)[0]);
+  }
+  return out;
+}
 function assignModifier(){
   run.bossBlockedJokerIds=[];
   if(run.gauntlet){
     if(run.stage===GAUNTLET_HEATS){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // Gauntlet finale
-    let m=MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)];
-    if(run.prevGauntletMod && MODIFIERS.length>1){
+    const pool=eligibleModifiers(Math.min(12,run.stage+5));
+    let m=pool[Math.floor(rnd('mods')*pool.length)];
+    if(run.prevGauntletMod && pool.length>1){
       let guard=0;
-      while(m.name===run.prevGauntletMod && guard++<8) m=MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)];
+      while(m.name===run.prevGauntletMod && guard++<8) m=pool[Math.floor(rnd('mods')*pool.length)];
     }
     run.prevGauntletMod=m.name;
     run.modifier=m;
     return;
   }
   if(run.stage===12 && !run.endless){ run.modifier=BOSS_MOD; ensureBossBlocks(); return; }   // named boss Heat
-  const qualifies = run.stage>0 && run.stage%3===0;
-  run.modifier = qualifies ? MODIFIERS[Math.floor(rnd('mods')*MODIFIERS.length)] : null;
+  if(run.endless&&run.stage>50){
+    // Every late-Endless Heat stacks two distinct modifiers and always includes
+    // at least one hard counter, so a lucky sequence cannot roll only soft rules.
+    run.modifier=stackModifiers(drawDistinctModifiers(2,true));
+    return;
+  }
+  const qualifies=run.stage>0&&run.stage%3===0;
+  run.modifier=qualifies?stackModifiers(drawDistinctModifiers(1)):null;
 }
 function beginRun(startJokerId=null){
   const canProgress=progressionEnabled();
@@ -5571,6 +5737,7 @@ function beginRun(startJokerId=null){
     run.startBoostCost=cost;
   }
   assignModifier();
+  run.handsLeft = effHandsPerStage();
   run.discardsLeft = effDiscards();
   run.deck = buildDeck();
   run.heatDeck = [...run.deck];   // snapshot: everything this Heat can draw from
@@ -5828,7 +5995,7 @@ async function playHand(){
   if(sel.filter((c,i)=>c.enh==='glass' && res.flags[i]).length>=2) run.glassDouble=true;
   let shattered=0;
   sel.forEach((c,i)=>{
-    if(c.enh==='glass' && res.flags[i] && run.cards.length-shattered>HAND_SIZE && rnd('luck')<0.2){
+    if(c.enh==='glass' && res.flags[i] && run.cards.length-shattered>MIN_DECK_SIZE && rnd('luck')<0.2){
       const k=run.cards.findIndex(x=>x.rank===c.rank && x.suit===c.suit && x.enh==='glass');
       if(k>=0){ run.cards.splice(k,1); shattered++; }
     }
@@ -5910,7 +6077,7 @@ function clearStage(){
   run.runCoins += run.lastRunReward + run.lastInterest + grade.bonus;
   creditRunAccountOnce('heat:'+heat,run.lastAcctReward);
   for(const j of run.jokers) if(!isJokerBlocked(j)&&j.onHeatClear) j.onHeatClear();
-  if(run.modifier) run.modifiersSurvived.push(run.modifier.name);
+  if(run.modifier) modifierParts().forEach(m=>run.modifiersSurvived.push(m.name));
   run.inflation = mod('inflation');   // this Heat's modifier hits the next shop
   if(canProgress&&!run.gauntlet) account.bestHeat = Math.max(account.bestHeat, run.stage);   // furthest Heat reached (standard runs only)
   checkAchievements();
@@ -5972,7 +6139,9 @@ function nextStage(){
   run.animating=false;
   run.abortAfterAnimation=false;
   assignModifier();
+  run.handsLeft=effHandsPerStage();
   run.discardsLeft=effDiscards();
+  normalizeDeckIntegrity();
   run.deck=buildDeck();
   run.heatDeck = [...run.deck];   // fresh snapshot each Heat
   dealFreshHand();
@@ -6260,14 +6429,31 @@ function showAdBreak(next){
 // ---------- Shop ----------
 let shopOffers=[], supplyOffers=[];
 function shopPrice(base){ return base + (run.inflation?2:0); }
+function supplyIncreaseForStage(stage){ return Number(stage)>20?10:5; }
+function nextSupplyIncrease(){ return supplyIncreaseForStage(run&&run.stage); }
 function normalizeSupplyState(){
   const valid=new Set(SUPPLIES.map(s=>s.id));
-  const source=run&&run.supplyPurchaseCounts&&typeof run.supplyPurchaseCounts==='object' ? run.supplyPurchaseCounts : {};
-  const counts={};
-  for(const id of valid){
-    const n=Math.floor(Number(source[id])||0);
-    if(n>0) counts[id]=n;
+  const legacy=run&&run.supplyPurchaseCounts&&typeof run.supplyPurchaseCounts==='object' ? run.supplyPurchaseCounts : {};
+  const ledger=[];
+  if(run&&Array.isArray(run.supplyPurchaseLedger)){
+    for(const raw of run.supplyPurchaseLedger){
+      const id=raw&&valid.has(raw.id)?raw.id:null;
+      if(!id) continue;
+      const stage=Math.max(0,Math.floor(Number(raw.stage)||0));
+      const step=Number(raw.step)===10?10:5;
+      ledger.push({id,stage,step});
+    }
   }
+  // v6.9.13/v6.9.14 saves only stored counts. Migrate every missing purchase
+  // into the durable ledger rather than resetting the visible price.
+  for(const id of valid){
+    const wanted=Math.max(0,Math.floor(Number(legacy[id])||0));
+    let have=ledger.filter(e=>e.id===id).length;
+    while(have<wanted){ ledger.push({id,stage:0,step:5}); have++; }
+  }
+  const counts={};
+  for(const e of ledger) counts[e.id]=(counts[e.id]||0)+1;
+  run.supplyPurchaseLedger=ledger;
   run.supplyPurchaseCounts=counts;
   const bought=Array.isArray(run.suppliesBoughtThisShop) ? run.suppliesBoughtThisShop : [];
   run.suppliesBoughtThisShop=[...new Set(bought.filter(id=>valid.has(id)))];
@@ -6276,10 +6462,14 @@ function supplyPurchaseCount(s){
   const n=run&&run.supplyPurchaseCounts ? Number(run.supplyPurchaseCounts[s.id]) : 0;
   return Number.isFinite(n)&&n>0 ? Math.floor(n) : 0;
 }
+function supplySurcharge(s){
+  if(!run||!Array.isArray(run.supplyPurchaseLedger)) return 0;
+  return run.supplyPurchaseLedger.reduce((sum,e)=>sum+(e&&e.id===s.id?(Number(e.step)||0):0),0);
+}
 function supplyBoughtInShop(s){
   return !!(run&&Array.isArray(run.suppliesBoughtThisShop)&&run.suppliesBoughtThisShop.includes(s.id));
 }
-function supplyPrice(s){ return shopPrice(s.price) + 2*supplyPurchaseCount(s); }
+function supplyPrice(s){ return shopPrice(s.price + supplySurcharge(s)); }
 
 function rarityWeight(j){
   const w=RARITY_WEIGHT[j.rarity];
@@ -6478,7 +6668,7 @@ function renderShop(){
     el.className='shop-card supply'+(bought?' supply-bought':'');
     el.innerHTML=`<div class="jname">${s.name}</div><div class="jdesc">${s.desc}</div>
       <div class="price">${bought?'Next shop: ':''}${price} run coins</div>
-      <div class="supply-next">${bought?'Price increase saved for this run':'Buy once in this shop · next purchase +2'}</div>`;
+      <div class="supply-next">${bought?'Price increase saved in the run ledger':'Buy once in this shop · next '+s.name+' purchase +'+nextSupplyIncrease()}</div>`;
     const b=document.createElement('button');
     b.className='btn alt'; b.textContent=bought?'✓ Bought this shop':(run.pendingShopJoker?'Finish swap first':'Buy & use');
     b.disabled=bought || run.runCoins<price || !!run.pendingShopJoker;
@@ -6611,10 +6801,24 @@ function miniCardBtn(c){
   b.className='mini-card'+(c.red?' red':'')+(c.enh?' enh-'+c.enh:'');
   b.innerHTML=`<span>${c.rank}</span><span>${c.suit}</span>`;
   if(c.enh) b.innerHTML+='<span class="mini-enh">'+ENHANCEMENTS[c.enh].icon+'</span>';
+  if(c.copied) b.innerHTML+='<span class="mini-enh" title="Copied card">⧉</span>';
   return b;
 }
+function exactCardCount(rank,suit,ignoreIndex=-1){
+  return run.cards.reduce((n,c,i)=>n+(i!==ignoreIndex&&c.rank===rank&&c.suit===suit?1:0),0);
+}
+function copyCardBlockReason(c){
+  if(c.enh) return 'Enhanced cards cannot be duplicated.';
+  if(c.copied) return 'A copied card cannot be copied again.';
+  if(exactCardCount(c.rank,c.suit)>=MAX_EXACT_CARD_COPIES) return 'Exact-copy cap reached ('+MAX_EXACT_CARD_COPIES+').';
+  return '';
+}
+function canCopyCard(c){ return !copyCardBlockReason(c); }
+function canEnhanceCard(c){ return !!c&&!c.copied; }
+function canDyeCard(c,targetSuit,cardIdx){ return targetSuit!==c.suit&&exactCardCount(c.rank,targetSuit,cardIdx)<MAX_EXACT_CARD_COPIES; }
 
 function openCardPicker(s){
+  normalizeDeckIntegrity();
   const titles={scalpel:'Destroy a card', copier:'Duplicate a card', dye:'Re-suit a card', enhance:'Enhance a card'};
   const body=openOverlay(titles[s.id], s.desc+' Your deck: '+run.cards.length+' cards.');
   const grid=document.createElement('div');
@@ -6622,22 +6826,35 @@ function openCardPicker(s){
   for(const idx of sortedCardIndices()){
     const c=run.cards[idx];
     const b=miniCardBtn(c);
-    if(s.id==='scalpel' && run.cards.length<=HAND_SIZE){ b.disabled=true; b.style.opacity='.35'; b.title='Deck too thin — you need at least '+HAND_SIZE+' cards to deal a hand.'; }
+    if(s.id==='scalpel' && run.cards.length<=MIN_DECK_SIZE){ b.disabled=true; b.style.opacity='.35'; b.title='Deck floor reached — keep at least '+MIN_DECK_SIZE+' cards.'; }
+    if(s.id==='copier'){
+      const reason=copyCardBlockReason(c);
+      if(reason){ b.disabled=true; b.style.opacity='.35'; b.title=reason; b.setAttribute('aria-label',c.rank+c.suit+' unavailable: '+reason); }
+    }
+    if(s.id==='enhance'&&!canEnhanceCard(c)){
+      b.disabled=true; b.style.opacity='.35'; b.title='Copied cards cannot be enhanced.';
+    }
     b.onclick=()=>{
       if(s.id==='scalpel'){
+        if(run.cards.length<=MIN_DECK_SIZE) return;
         finishSupply(s, 'Destroyed the '+c.rank+c.suit+'.', ()=>{
+          if(run.cards.length<=MIN_DECK_SIZE) throw new Error('Deck floor reached');
           run.cards.splice(idx,1);
           run.destroyedCount++;
         });
       } else if(s.id==='copier'){
+        if(!canCopyCard(c)) return;
         finishSupply(s, 'Added a second '+c.rank+c.suit+'.', ()=>{
-          run.cards.push({...c});
+          if(!canCopyCard(c)) throw new Error('Card can no longer be copied');
+          const copy={...c,copied:true,selected:false};
+          delete copy.isNew;
+          run.cards.push(copy);
           run.copiedCount++;
         });
       } else if(s.id==='dye'){
         openSuitPicker(s, idx);
       } else if(s.id==='enhance'){
-        openEnhancePicker(s, idx);
+        if(canEnhanceCard(c)) openEnhancePicker(s, idx);
       }
     };
     grid.appendChild(b);
@@ -6646,6 +6863,7 @@ function openCardPicker(s){
 }
 function openEnhancePicker(s, cardIdx){
   const c=run.cards[cardIdx];
+  if(!canEnhanceCard(c)) return;
   const body=openOverlay('Enhance the '+c.rank+c.suit, c.enh ? ('Currently '+ENHANCEMENTS[c.enh].name+' \u2014 etching again replaces it.') : 'Pick an enhancement. It is permanent for this run.');
   Object.entries(ENHANCEMENTS).forEach(([key,e])=>{
     const rowEl=document.createElement('div');
@@ -6657,6 +6875,7 @@ function openEnhancePicker(s, cardIdx){
     b.disabled = c.enh===key;
     b.onclick=()=>{
       finishSupply(s, e.icon+' '+e.name+' etched onto the '+c.rank+c.suit+'.', ()=>{
+        if(!canEnhanceCard(c)) throw new Error('Copied cards cannot be enhanced');
         c.enh=key;
         run.enhancedCount=(run.enhancedCount||0)+1;
       });
@@ -6674,10 +6893,15 @@ function openSuitPicker(s, cardIdx){
     const b=document.createElement('button');
     b.textContent=su.s;
     if(su.s===c.suit){ b.disabled=true; b.title='Already this suit.'; }
+    else if(!canDyeCard(c,su.s,cardIdx)){ b.disabled=true; b.title='That would exceed the exact-copy cap of '+MAX_EXACT_CARD_COPIES+'.'; }
     if(su.red) b.className='red';
     b.onclick=()=>{
+      if(!canDyeCard(c,su.s,cardIdx)) return;
       finishSupply(s, 'Dyed it into the '+c.rank+su.s+'.', ()=>{
+        if(!canDyeCard(c,su.s,cardIdx)) throw new Error('Exact-copy cap reached');
+        const createsExactCopy=exactCardCount(c.rank,su.s,cardIdx)>0;
         c.suit=su.s; c.red=su.red;
+        if(createsExactCopy){ c.copied=true; delete c.enh; }
       });
     };
     rowEl.appendChild(b);
@@ -6722,7 +6946,10 @@ function finishSupply(s, msg, apply){
     throw e;
   }
   run.runCoins-=price;
+  const step=nextSupplyIncrease();
+  run.supplyPurchaseLedger.push({id:s.id,stage:run.stage,step});
   run.supplyPurchaseCounts[s.id]=supplyPurchaseCount(s)+1;
+  saveRunState('shop');
   chord([523,659]);
   closeOverlay();
   updateShopSub();
@@ -8674,12 +8901,12 @@ const TUT_STEPS=[
   {face:'🤓', expr:'thoughtful', say:'Now the maths — pay attention, this is where the money is. Base points plus your card ranks, times the MULTIPLIER. Kickers score nothing. The multiplier is everything. EVERYTHING.',
    body:'<div class="tut-step"><span class="tut-num">✖️</span><div><b>Score = (Hand Base + rank sum ×0.6) × Multiplier.</b> Only cards forming the hand score — a Pair scores 2 cards. Jokers grow the Multiplier, and that’s what carries you past Heat 5.</div></div>'},
   {face:'🤑', expr:'triumphant', say:'Between Heats I open my shop. Jokers, deck surgery, hand boosts — and I pay INTEREST on coins you hold. Build one engine and commit. Tourists who buy a bit of everything die at Heat 7.',
-   body:'<div class="tut-step"><span class="tut-num">🛒</span><div><b>The shop.</b> Up to <b>5 joker slots</b>. Destroy / copy / re-suit cards, boost hand types, etch <b>enhancements</b>. Held coins earn interest each Heat clear.</div></div>'
+   body:'<div class="tut-step"><span class="tut-num">🛒</span><div><b>The shop.</b> Up to <b>5 joker slots</b>. Destroy / copy / re-suit cards, boost hand types, etch <b>enhancements</b>. Held coins earn limited interest each Heat clear; repeated supplies become much more expensive.</div></div>'
        +'<div class="tut-builds" style="margin-top:8px">'
        +'<div class="tut-build"><div class="tb-name" style="color:var(--mint)">🌊 Flush Machine</div><div>One suit, re-suit stragglers, stack <b>Flush Fund</b>.</div></div>'
-       +'<div class="tut-build"><div class="tb-name" style="color:var(--rare)">✊ Pair Snowball</div><div>Pairs every hand — <b>Pair Trainer</b> compounds forever.</div></div>'
+       +'<div class="tut-build"><div class="tb-name" style="color:var(--rare)">✊ Pair Snowball</div><div>Pairs every hand — <b>Pair Trainer</b> compounds, but late Endless Null Fields can shut multiplier engines down.</div></div>'
        +'<div class="tut-build"><div class="tb-name" style="color:var(--wild)">👑 High-Roller Ranks</div><div><b>Ace Magnet</b> + rank boosters, multiplied by <b>High Roller</b>.</div></div></div>'},
-  {face:'😈', expr:'angry', say:'Last thing. Every 3rd Heat I twist the rules. Daily Challenge, Weekly Missions, the Gauntlet when you’re good enough — all pay account coins for permanent unlocks. Now I’ll sit through your first table. When the run ends, I’ll show you the comeback chest.',
+  {face:'😈', expr:'angry', say:'Last thing. Every 3rd Heat I twist the rules. After Heat 50, two modifiers stack on every deal. Daily Challenge, Weekly Missions, the Gauntlet when you’re good enough — all pay account coins for permanent unlocks. Now I’ll sit through your first table. When the run ends, I’ll show you the comeback chest.',
    body:'<div class="tut-step"><span class="tut-num">🎁</span><div><b>Starter gift:</b> your starter collection of <b>10 readable jokers</b> is unlocked, plus <b>200 coins</b>. Your first run begins with <b>Copper Chip + Pair Polisher</b>, and Sly coaches the table, shop and post-loss chest.</div></div>'},
 ];
 function renderTutorial(){
@@ -8706,7 +8933,7 @@ const RUN_FIELDS=['runId','telemetryMode','dailyDate','rngSeed','rngCounters','p
  'bestPlayType','boostsBought','modifiersSurvived','jokerScore','prevHandType','bestPlay','totalScore','stagesCleared',
  'accountEarned','accountRewardIds','reviveUsed','terminalPending','failureReason','leaderboardEligible','heat12SequenceStarted','heat12InterstitialAttempted','doubleBaseCoins','coinDoubleClaimed','wildMissShops','lastWildPityForced','startBoostJoker','startBoostCost','stake','stakePaid','stakePayout',
  'stakeNet','enhancedCount','shatteredCount','glassDouble','inflation','sortMode','lastRunReward','lastAcctReward',
- 'lastInterest','supplyPurchaseCounts','suppliesBoughtThisShop','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
+ 'lastInterest','supplyPurchaseCounts','supplyPurchaseLedger','suppliesBoughtThisShop','boughtThisShop','shopBuysUsed','guidedFirstRun','guideStep','shopGuideShown','winPlacement','provisionalWinScore','provisionalWinStamp'];
 function currentRunPhase(){
   if(run&&run.terminalPending) return 'revive';
   const active=document.querySelector('.screen.active');
@@ -8717,7 +8944,7 @@ function currentRunPhase(){
 function saveRunState(phase){
   try{
     if(!run || run.abandoned || !['game','shop','revive','wincomplete'].includes(phase)) return;
-    const d={v:1, _savedAt:Date.now(), phase:phase||'game', modId:(run.modifier?run.modifier.id:null),
+    const d={v:1, _savedAt:Date.now(), phase:phase||'game', modId:(run.modifier?run.modifier.id:null), modIds:modifierIds(),
       jokerIds:run.jokers.map(j=>j.id),
       shopOfferIds:(phase==='shop'&&typeof shopOffers!=='undefined')?shopOffers.map(j=>j.id):null,
       supplyOfferIds:(phase==='shop'&&typeof supplyOffers!=='undefined')?supplyOffers.map(x=>x.id):null};
@@ -8793,8 +9020,9 @@ function resumeRun(){
     }
     if(typeof normalizeRunRng==='function') normalizeRunRng(run);
     normalizeSupplyState();
+    const deckRepair=normalizeDeckIntegrity();
     run.jokers=(d.jokerIds||[]).map(id=>JOKERS.find(j=>j.id===id)).filter(Boolean);
-    run.modifier = d.modId==='boss_house' ? BOSS_MOD : (MODIFIERS.find(m=>m.id===d.modId)||null);
+    run.modifier = restoreModifier(Array.isArray(d.modIds)&&d.modIds.length?d.modIds:[d.modId]);
     run.animating=false; run.abortAfterAnimation=false; run.pendingShopJoker=null;
     if(run.modifier&&run.modifier.id==='boss_house') ensureBossBlocks();
     if(d.phase==='revive' || run.terminalPending){
@@ -8820,6 +9048,7 @@ function resumeRun(){
       if(run.pendingTransition) recoverPendingRunTransition();
     }
     toast((savedDaily?'Daily resumed':'Run resumed')+' — Heat '+run.stage+(run.gauntlet?' (Gauntlet)':''),'var(--mint)');
+    if(deckRepair.changed) setTimeout(()=>toast('Deck safety repair: '+deckRepair.removed+' excess/invalid removed, '+deckRepair.restored+' fair cards restored.','var(--gold)'),120);
   }catch(e){
     dailyMode=false; dailyChallengeDate='';
     clearRunState(); toast('Saved run was unreadable — starting fresh.','var(--coral)'); showScreen('menu'); updateMenuAccount();

@@ -29,8 +29,8 @@ android {
         applicationId "com.nisarg.wildcard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 34
-        versionName "6.9.14"
+        versionCode 40
+        versionName "7.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Debug and any unrecognised variants remain ad-free by default.
         manifestPlaceholders = [wildcardAdmobAppId: googleDemoAdmobAppId]
@@ -116,12 +116,12 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("developer")) { variant ->
         variant.outputs.each { output ->
-            output.versionCode.set(33)
+            output.versionCode.set(41)
         }
     }
     onVariants(selector().withBuildType("chatgptfix")) { variant ->
         variant.outputs.each { output ->
-            output.versionCode.set(1)
+            output.versionCode.set(41)
         }
     }
 }
