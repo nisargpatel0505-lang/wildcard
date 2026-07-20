@@ -64,10 +64,35 @@ jobs:
           chmod +x android/gradlew
 
       - name: Build side-installable tester APK
+        id: gradle_build
+        continue-on-error: true
         working-directory: android
-        run: ./gradlew :app:assembleChatgptfix --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set +e
+          ./gradlew :app:assembleChatgptfix --no-daemon --stacktrace --console=plain > "$GITHUB_WORKSPACE/gradle-build.log" 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload Gradle failure log
+        if: steps.gradle_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-ChatGPT-5.6-Fix-Gradle-Failure
+          path: gradle-build.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Stop after Gradle failure
+        if: steps.gradle_build.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "Gradle build failed with exit code ${{ steps.gradle_build.outputs.exit_code }}" >&2
+          exit 1
 
       - name: Verify package, signature and embedded source
+        if: steps.gradle_build.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -97,6 +122,7 @@ jobs:
           cp .tmp/chatgpt-fix-sim.json dist/chatgpt-fix-smoke-sim.json
 
       - name: Upload isolated APK
+        if: steps.gradle_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: WILDCARD-ChatGPT-5.6-Fix-2026-07-20
