@@ -1,0 +1,102 @@
+name: ChatGPT 5.6 fix APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "chatgpt-5.6-fix-2026-07-20"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatgpt-fix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out isolated branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Apply isolated gameplay patch
+        run: npm run apply:chatgpt-fix
+
+      - name: Targeted exploit, persistence and modifier regressions
+        run: npm run test:chatgpt-fix
+
+      - name: Live-source full-unlock bot smoke test
+        run: npm run test:chatgpt-sim
+
+      - name: Sync patched web source into Android
+        run: npm run sync:android
+
+      - name: Keep tester isolated from production services
+        shell: bash
+        run: |
+          rm -f android/app/google-services.json
+          rm -f wildcard-release.keystore keystore-password.txt
+          chmod +x android/gradlew
+
+      - name: Build side-installable tester APK
+        working-directory: android
+        run: ./gradlew :app:assembleChatgptfix --no-daemon --stacktrace
+
+      - name: Verify package, signature and embedded source
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="android/app/build/outputs/apk/chatgptfix/app-chatgptfix.apk"
+          test -f "$src"
+          app_id="$(apkanalyzer manifest application-id "$src")"
+          version_name="$(apkanalyzer manifest version-name "$src")"
+          test "$app_id" = "com.nisarg.wildcard.chatgptfix"
+          case "$version_name" in
+            6.9.14-chatgpt-5.6-fix-20260720) ;;
+            *) echo "Unexpected version name: $version_name" >&2; exit 1 ;;
+          esac
+          apksigner verify --verbose "$src"
+          embedded_sha="$(unzip -p "$src" assets/public/index.html | sha256sum | awk '{print $1}')"
+          test "$embedded_sha" = "5cf29ef723d0f4e4e5035d46af0515e52bdc196858aa044c19d39b0e15c72835"
+          mkdir -p dist
+          cp "$src" "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk"
+          sha256sum "dist/WILDCARD-ChatGPT-5.6-Fix-2026-07-20.apk" | tee dist/SHA256SUMS.txt
+          {
+            echo "applicationId=$app_id"
+            echo "versionName=$version_name"
+            echo "embeddedIndexSha256=$embedded_sha"
+            echo "sourceCommit=${GITHUB_SHA}"
+          } > dist/BUILD-INFO.txt
+          cp docs/release/chatgpt-5.6-fix-2026-07-20.md dist/
+          cp docs/release/chatgpt-5.6-fix-2026-07-20-sim.json dist/
+          cp .tmp/chatgpt-fix-sim.json dist/chatgpt-fix-smoke-sim.json
+
+      - name: Upload isolated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-ChatGPT-5.6-Fix-2026-07-20
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90
