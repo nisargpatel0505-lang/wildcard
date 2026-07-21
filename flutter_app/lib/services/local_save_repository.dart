@@ -121,9 +121,9 @@ class LocalSaveRepository {
     final stored = _preferences.get(AppConstants.privacyAcceptedKey);
     final marker = stored is String ? stored : null;
     if (marker == null || marker.isEmpty) {
-      // Support only old Flutter development installs that briefly wrote a
-      // boolean. The shipped Capacitor client has always used a JSON marker.
-      return stored is bool ? stored : false;
+      // A bare legacy boolean has no policy revision, so it cannot prove that
+      // the player acknowledged the current notice.
+      return false;
     }
     try {
       final decoded = jsonDecode(marker);

@@ -33,7 +33,7 @@ class AdService extends ChangeNotifier {
   bool get interstitialReady => _interstitial != null;
   bool get privacyOptionsRequired => _privacyOptionsRequired;
   bool get noAds => _noAds;
-  bool get testing => kDebugMode || _forceTestAds;
+  bool get testing => !kReleaseMode || _forceTestAds;
 
   String get rewardedAdUnitId => testing
       ? AppConstants.testRewardedAdId
@@ -47,10 +47,13 @@ class AdService extends ChangeNotifier {
     if (_noAds == value) return;
     _noAds = value;
     if (value) {
+      _rewarded?.dispose();
+      _rewarded = null;
       _interstitial?.dispose();
       _interstitial = null;
     } else if (ready) {
-      _loadInterstitial();
+      unawaited(_loadRewarded());
+      unawaited(_loadInterstitial());
     }
     notifyListeners();
   }
@@ -68,12 +71,24 @@ class AdService extends ChangeNotifier {
     _state = AdServiceState.requestingConsent;
     notifyListeners();
     try {
-      await _requestConsentInformation();
-      _privacyOptionsRequired =
-          await ConsentInformation.instance
-              .getPrivacyOptionsRequirementStatus() ==
-          PrivacyOptionsRequirementStatus.required;
+      Object? consentError;
+      try {
+        await _requestConsentInformation();
+      } catch (error) {
+        // UMP explicitly allows using a valid consent decision retained from a
+        // previous session after a transient update/form failure.
+        consentError = error;
+      }
+      try {
+        _privacyOptionsRequired =
+            await ConsentInformation.instance
+                .getPrivacyOptionsRequirementStatus() ==
+            PrivacyOptionsRequirementStatus.required;
+      } catch (error) {
+        consentError ??= error;
+      }
       final canRequestAds = await ConsentInformation.instance.canRequestAds();
+      _lastError = consentError;
       if (!canRequestAds) {
         _state = AdServiceState.unavailable;
         notifyListeners();
@@ -85,7 +100,7 @@ class AdService extends ChangeNotifier {
       await MobileAds.instance.initialize();
       _state = AdServiceState.ready;
       await Future.wait<void>([
-        _loadRewarded(),
+        if (!_noAds) _loadRewarded(),
         if (!_noAds) _loadInterstitial(),
       ]);
       notifyListeners();
@@ -103,17 +118,26 @@ class AdService extends ChangeNotifier {
     ConsentInformation.instance.requestConsentInfoUpdate(
       ConsentRequestParameters(),
       () async {
-        FormError? formError;
-        await ConsentForm.loadAndShowConsentFormIfRequired((error) {
-          formError = error;
-        });
-        if (formError == null) {
-          completer.complete();
-        } else {
-          completer.completeError(formError!);
+        try {
+          FormError? formError;
+          await ConsentForm.loadAndShowConsentFormIfRequired((error) {
+            formError = error;
+          });
+          if (completer.isCompleted) return;
+          if (formError == null) {
+            completer.complete();
+          } else {
+            completer.completeError(formError!);
+          }
+        } catch (error, stackTrace) {
+          if (!completer.isCompleted) {
+            completer.completeError(error, stackTrace);
+          }
         }
       },
-      completer.completeError,
+      (error) {
+        if (!completer.isCompleted) completer.completeError(error);
+      },
     );
     await completer.future;
   }

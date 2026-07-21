@@ -15,8 +15,10 @@ does not load the old HTML game in a WebView.
 
 The debug APK is signed with the existing WILDCARD release key so it can update
 the installed v7.1.0 phone build without uninstalling or resetting progress.
-Debug builds use Google's demonstration AdMob units. Release builds use the
-owned production units configured in `AppConstants` and the Android manifest.
+Debug and profile builds use Google's demonstration AdMob units. Public
+release builds use the owned production units configured in `AppConstants`
+and the Android manifest. An Internal Testing AAB must pass both test-ad flags
+shown below so its manifest app ID and Dart ad-unit IDs remain consistent.
 
 ## Architecture
 
@@ -64,6 +66,17 @@ C:\Users\nisar\development\flutter\bin\flutter.bat test
 C:\Users\nisar\development\flutter\bin\flutter.bat build apk --debug
 ```
 
+Build a release-signed **Internal Testing** bundle with demo ads:
+
+```powershell
+C:\Users\nisar\development\flutter\bin\flutter.bat build appbundle --release `
+  --dart-define=WILDCARD_ADS_TESTING=true `
+  --android-project-arg=WILDCARD_ADS_TESTING=true
+```
+
+The later public candidate must use a higher `versionCode` and omit both test
+flags. Never promote the test-ad bundle to production.
+
 The full test command includes deterministic complete-run simulations. Firebase
 purchase and Daily Board backend tests live in the repository-level
 `functions/test/` directory and run with `npm test` from `functions/`.
@@ -80,6 +93,13 @@ C:\Android\sdk\platform-tools\adb.exe install -r build\app\outputs\flutter-apk\a
 After the first Flutter launch, verify coins, Best Heat, equipped title,
 unlocks and any active run before doing destructive test actions. The migration
 does not delete the old Capacitor preferences.
+
+Google Play signs store downloads with the Play app-signing certificate, which
+differs from the local upload certificate used by the existing sideload. The
+safe one-time bridge is therefore: update locally in place, verify migration,
+sign in and confirm a cloud backup, then uninstall and install from Internal
+Testing before signing in to restore. A Play build cannot update the sideload
+in place across those different certificates.
 
 ## Release notes
 

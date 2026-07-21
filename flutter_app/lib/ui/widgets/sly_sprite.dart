@@ -109,6 +109,9 @@ class _SpriteFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     assert(column >= 0 && column < columns);
     assert(row >= 0 && row < rows);
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth = (width * columns * devicePixelRatio).ceil();
+    final cacheHeight = (height * rows * devicePixelRatio).ceil();
     return SizedBox(
       width: width,
       height: height,
@@ -127,6 +130,8 @@ class _SpriteFrame extends StatelessWidget {
               height: height * rows,
               fit: BoxFit.fill,
               filterQuality: FilterQuality.medium,
+              cacheWidth: cacheWidth,
+              cacheHeight: cacheHeight,
             ),
           ),
         ),

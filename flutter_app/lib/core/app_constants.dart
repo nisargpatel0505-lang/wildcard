@@ -44,7 +44,7 @@ abstract final class AppConstants {
   static const legacyAccountKey = 'wildcard_save_v1';
   static const legacyRunKey = 'wildcard_run_v1';
   static const privacyAcceptedKey = 'wildcard_privacy_accept_v1';
-  static const privacyPolicyVersion = '2026-07-19-v1';
+  static const privacyPolicyVersion = '2026-07-21-v1';
   static const cloudOwnerKey = 'wildcard_cloud_owner_v2';
   static const migrationMarkerKey = 'flutter_legacy_migration_v1';
   static const dailyScoreOutboxKey = 'flutter_daily_score_outbox_v1';

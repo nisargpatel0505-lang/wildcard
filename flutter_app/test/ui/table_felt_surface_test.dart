@@ -46,4 +46,33 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('live table content sits outside the static felt boundary', (
+    tester,
+  ) async {
+    const liveContentKey = ValueKey('live-table-content');
+    const feltKey = ValueKey('table-felt-felt_classic');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: WildcardTheme.build(),
+        home: const Scaffold(
+          body: TableFeltSurface(
+            feltId: 'felt_classic',
+            padding: EdgeInsets.all(12),
+            child: SizedBox(key: liveContentKey, width: 300, height: 180),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(feltKey), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byKey(liveContentKey),
+        matching: find.byKey(feltKey),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }

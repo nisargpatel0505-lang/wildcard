@@ -138,33 +138,41 @@ class TableFeltSurface extends StatelessWidget {
     final trim = Color.lerp(visual.trim, tokens.violet, 0.18)!;
     return SizedBox(
       width: width,
-      child: RepaintBoundary(
-        key: ValueKey('table-felt-${visual.id}'),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[visual.primary, visual.secondary],
-            ),
-            borderRadius: borderRadius,
-            border: Border.all(color: trim, width: 2),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: Color(0x70000000),
-                blurRadius: 12,
-                offset: Offset(0, 5),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              key: ValueKey('table-felt-${visual.id}'),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[visual.primary, visual.secondary],
+                  ),
+                  borderRadius: borderRadius,
+                  border: Border.all(color: trim, width: 2),
+                  boxShadow: const <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x70000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: CustomPaint(painter: _TableFeltPainter(visual)),
+                ),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: CustomPaint(
-              painter: _TableFeltPainter(visual),
-              child: Padding(padding: padding, child: child),
             ),
           ),
-        ),
+          ClipRRect(
+            borderRadius: borderRadius,
+            child: Padding(padding: padding, child: child),
+          ),
+        ],
       ),
     );
   }

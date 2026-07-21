@@ -11,6 +11,11 @@ val productionAdMobAppId = providers.gradleProperty("WILDCARD_ADMOB_APP_ID")
     .orElse("ca-app-pub-3855192091371080~7622357185")
     .get()
 val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
+val useTestAdsForRelease = providers.gradleProperty("WILDCARD_ADS_TESTING")
+    .orElse("false")
+    .map { it.equals("true", ignoreCase = true) }
+    .get()
+val releaseAdMobAppId = if (useTestAdsForRelease) testAdMobAppId else productionAdMobAppId
 val signingPasswordFile = rootProject.file("../../keystore-password.txt")
 val signingKeystoreFile = rootProject.file("../../wildcard-release.keystore")
 
@@ -61,10 +66,23 @@ android {
             manifestPlaceholders["wildcardAdmobAppId"] = testAdMobAppId
             buildConfigField("boolean", "WILDCARD_ADS_TESTING", "true")
         }
+        getByName("profile") {
+            // Profile builds are sideloaded for DevTools frame tracing. They
+            // must never generate traffic against owned AdMob units.
+            signingConfig = signingConfigs.getByName("wildcardRelease")
+            manifestPlaceholders["wildcardAdmobAppId"] = testAdMobAppId
+            buildConfigField("boolean", "WILDCARD_ADS_TESTING", "true")
+        }
         release {
             signingConfig = signingConfigs.getByName("wildcardRelease")
-            manifestPlaceholders["wildcardAdmobAppId"] = productionAdMobAppId
-            buildConfigField("boolean", "WILDCARD_ADS_TESTING", "false")
+            // Internal Play builds pass both the matching Gradle property and
+            // Dart define so the manifest app ID and Dart ad-unit IDs agree.
+            manifestPlaceholders["wildcardAdmobAppId"] = releaseAdMobAppId
+            buildConfigField(
+                "boolean",
+                "WILDCARD_ADS_TESTING",
+                useTestAdsForRelease.toString(),
+            )
         }
     }
 }

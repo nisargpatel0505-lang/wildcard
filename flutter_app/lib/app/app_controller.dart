@@ -93,12 +93,16 @@ class AppController extends ChangeNotifier {
   Future<bool>? _cloudWriteInFlight;
   Future<void>? _dailyRetryInFlight;
   bool _cloudWritePending = false;
+  bool _cloudWritesDeferredForScoring = false;
   bool _disposed = false;
 
   bool get privacyAccepted => _local.privacyAccepted;
   bool get hasResumableRun => activeRunJson != null;
   bool get signedIn => firebase.signedIn;
   bool get cloudReady => cloudState == CloudLinkState.ready;
+
+  @visibleForTesting
+  bool get cloudWritesDeferredForScoring => _cloudWritesDeferredForScoring;
 
   LegacyRunSave? get activeRun {
     final raw = activeRunJson;
@@ -537,11 +541,47 @@ class AppController extends ChangeNotifier {
   /// a Heat, stake, purchase or terminal result twice.
   GamePersistenceCallbacks gamePersistenceCallbacks({String dailyDate = ''}) =>
       GamePersistenceCallbacks(
-        writeRun: (encoded, _) => persistRunJson(encoded),
-        clearRun: () => persistRunJson(null),
+        writeRun: _persistGameRunCheckpoint,
+        clearRun: _clearGameRun,
         mutateAccount: (mutation) =>
             _applyGameMutation(mutation, launchDailyDate: dailyDate),
       );
+
+  Future<void> _persistGameRunCheckpoint(
+    String encoded,
+    RunCheckpoint checkpoint,
+  ) async {
+    if (checkpoint == RunCheckpoint.scoringPrepared) {
+      final hadScheduledCloudWrite = _cloudTimer?.isActive ?? false;
+      _cloudWritesDeferredForScoring = true;
+      _cloudTimer?.cancel();
+      _cloudTimer = null;
+      try {
+        // The pre-roll checkpoint must remain immediately durable on-device,
+        // but uploading it during the presentation competes with scoring and
+        // can expose a half-presented hand to another device.
+        await persistRunJson(encoded, syncCloud: false);
+      } catch (_) {
+        _cloudWritesDeferredForScoring = false;
+        if (hadScheduledCloudWrite) _scheduleCloudWrite();
+        rethrow;
+      }
+      return;
+    }
+
+    if (checkpoint == RunCheckpoint.scoringCommitted) {
+      _cloudWritesDeferredForScoring = false;
+      await persistRunJson(encoded);
+      return;
+    }
+
+    await persistRunJson(encoded, syncCloud: !_cloudWritesDeferredForScoring);
+  }
+
+  Future<void> _clearGameRun() {
+    _cloudWritesDeferredForScoring = false;
+    return persistRunJson(null);
+  }
 
   Future<bool> _applyGameMutation(
     AccountMutation mutation, {
@@ -1415,6 +1455,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _scheduleCloudWrite({Duration delay = const Duration(seconds: 2)}) {
+    if (_cloudWritesDeferredForScoring) return;
     _cloudTimer?.cancel();
     _cloudTimer = Timer(delay, () => unawaited(cloudSaveNow()));
   }

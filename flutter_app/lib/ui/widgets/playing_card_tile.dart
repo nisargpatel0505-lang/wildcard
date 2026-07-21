@@ -46,81 +46,83 @@ class PlayingCardTile extends StatelessWidget {
       label:
           '${card.rank.label} of ${card.suit.name}${card.selected ? ', selected' : ''}',
       onTap: onTap,
-      child: ExcludeSemantics(
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          offset: card.selected ? const Offset(0, -0.10) : Offset.zero,
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            scale: highlighted ? 1.025 : 1,
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                    color: border,
-                    width: card.selected ? 2.5 : 1.5,
-                  ),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFFFFCF0), Color(0xFFF0E8D6)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: border.withValues(
-                        alpha: highlighted || card.selected ? 0.42 : 0.16,
-                      ),
-                      blurRadius: highlighted || card.selected ? 8 : 3,
-                      offset: const Offset(0, 3),
+      child: RepaintBoundary(
+        child: ExcludeSemantics(
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            offset: card.selected ? const Offset(0, -0.10) : Offset.zero,
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+              scale: highlighted ? 1.025 : 1,
+              child: SizedBox(
+                width: width,
+                height: height,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                      color: border,
+                      width: card.selected ? 2.5 : 1.5,
                     ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onTap,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(5, 4, 5, 3),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CardCorner(
-                            rank: card.rank.label,
-                            suit: suit,
-                            ink: ink,
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: Text(
-                                suit,
-                                style: TextStyle(
-                                  color: ink,
-                                  fontSize: width * 0.43,
-                                  height: 1,
-                                  fontWeight: FontWeight.w700,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFFFCF0), Color(0xFFF0E8D6)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: border.withValues(
+                          alpha: highlighted || card.selected ? 0.42 : 0.16,
+                        ),
+                        blurRadius: highlighted || card.selected ? 8 : 3,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onTap,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(5, 4, 5, 3),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _CardCorner(
+                              rank: card.rank.label,
+                              suit: suit,
+                              ink: ink,
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  suit,
+                                  style: TextStyle(
+                                    color: ink,
+                                    fontSize: width * 0.43,
+                                    height: 1,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: RotatedBox(
-                              quarterTurns: 2,
-                              child: _CardCorner(
-                                rank: card.rank.label,
-                                suit: suit,
-                                ink: ink,
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: RotatedBox(
+                                quarterTurns: 2,
+                                child: _CardCorner(
+                                  rank: card.rank.label,
+                                  suit: suit,
+                                  ink: ink,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

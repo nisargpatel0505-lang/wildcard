@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/app_constants.dart';
 import '../firebase_options.dart';
@@ -19,6 +20,7 @@ class FirebaseService extends ChangeNotifier {
   GoogleSignIn? _googleSignIn;
   FirebaseFunctions? _functions;
   StreamSubscription<User?>? _authSubscription;
+  String _clientAppVersion = '8.0.0-dev.1';
 
   bool get initialized => _initialized;
   bool get initializing => _initializing;
@@ -45,6 +47,16 @@ class FirebaseService extends ChangeNotifier {
         );
       }
 
+      try {
+        final package = await PackageInfo.fromPlatform();
+        final version = package.version.trim();
+        if (RegExp(r'^[0-9A-Za-z][0-9A-Za-z._+-]{0,31}$').hasMatch(version)) {
+          _clientAppVersion = version;
+        }
+      } catch (_) {
+        // Diagnostic metadata must never block Firebase or local play.
+      }
+
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
@@ -52,9 +64,12 @@ class FirebaseService extends ChangeNotifier {
       }
       try {
         await FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode
-              ? const AndroidDebugProvider()
-              : const AndroidPlayIntegrityProvider(),
+          // Debug and profile builds are sideloaded development artifacts and
+          // use a privately registered debug token. Only Play-distributed
+          // release builds may request Play Integrity attestation.
+          providerAndroid: kReleaseMode
+              ? const AndroidPlayIntegrityProvider()
+              : const AndroidDebugProvider(),
         );
       } on FirebaseException {
         // Local guest play must remain available if a sideload cannot obtain an
@@ -125,6 +140,7 @@ class FirebaseService extends ChangeNotifier {
         'clientSavedAt': clientSavedAt,
         'expectedProgressVersion': expectedProgressVersion,
         'billingAdjustmentApplied': billingAdjustmentApplied,
+        'clientAppVersion': _clientAppVersion,
       },
     );
   }

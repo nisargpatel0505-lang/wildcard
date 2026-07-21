@@ -206,4 +206,24 @@ void main() {
       hasLength(1),
     );
   });
+
+  test('scoring checkpoints defer cloud work but remain locally durable', () async {
+    final app = await AppController.bootstrap();
+    addTearDown(app.dispose);
+    final callbacks = app.gamePersistenceCallbacks();
+
+    const prepared =
+        '{"v":1,"_savedAt":100,"phase":"game","hand":[],"pendingTransition":{"kind":"play"}}';
+    await callbacks.writeRun(prepared, RunCheckpoint.scoringPrepared);
+
+    expect(app.cloudWritesDeferredForScoring, isTrue);
+    expect(app.activeRunJson, prepared);
+
+    const committed =
+        '{"v":1,"_savedAt":101,"phase":"game","hand":[],"pendingTransition":null}';
+    await callbacks.writeRun(committed, RunCheckpoint.scoringCommitted);
+
+    expect(app.cloudWritesDeferredForScoring, isFalse);
+    expect(app.activeRunJson, committed);
+  });
 }
