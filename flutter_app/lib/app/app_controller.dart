@@ -20,6 +20,7 @@ import '../services/billing_service.dart';
 import '../services/daily_score_outbox.dart';
 import '../services/firebase_service.dart';
 import '../services/local_save_repository.dart';
+import '../services/sfx_service.dart';
 import '../services/pi_service.dart';
 import '../services/play_games_service.dart';
 import 'developer_access.dart';
@@ -52,6 +53,7 @@ class AppController extends ChangeNotifier {
   }) : firebase = FirebaseService(),
        ads = AdService(),
        audio = AudioService(),
+       sfx = SfxService(),
        playGames = PlayGamesService(),
        pi = PiService() {
     billing = BillingService(firebase);
@@ -59,6 +61,7 @@ class AppController extends ChangeNotifier {
     billing.persistVerifiedGrant = _persistVerifiedPlayGrant;
     ads.setNoAds(account.noAds);
     audio.setEffectsEnabled(!account.muted);
+    sfx.enabled = !account.muted;
   }
 
   static const _cloudPrefix = 'flutter_cloud_v1:';
@@ -69,6 +72,7 @@ class AppController extends ChangeNotifier {
   final FirebaseService firebase;
   final AdService ads;
   final AudioService audio;
+  final SfxService sfx;
   final PlayGamesService playGames;
   final PiService pi;
   late final BillingService billing;
@@ -298,6 +302,22 @@ class AppController extends ChangeNotifier {
     return false;
   }
 
+  /// True when at least one achievement is earned but not yet claimed, so the
+  /// Cabinet button (and the Achievements section) can flag a reward waiting.
+  /// This drives the yellow attention dot the player expected to see.
+  bool get cabinetNeedsAttention {
+    final snapshot = progressionSnapshot;
+    for (final achievement in achievementCatalog) {
+      final earned =
+          achievementIsDone(achievement.id, snapshot) ||
+          account.achievements[achievement.id] != null;
+      if (earned && account.achievementClaimed[achievement.id] != true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<void> completeTutorial() async {
     account.tutorialDone = true;
     account.unlockedJokerIds.addAll(tutorialStarterJokerIds);
@@ -505,6 +525,7 @@ class AppController extends ChangeNotifier {
     await _local.writeAccountJson(account.encode(savedAtOverride: stamp));
     ads.setNoAds(account.noAds);
     audio.setEffectsEnabled(!account.muted);
+    sfx.enabled = !account.muted;
     if (privacyAccepted) {
       unawaited(audio.sync(enabled: account.musicOn));
     }
@@ -1528,6 +1549,7 @@ class AppController extends ChangeNotifier {
     firebase.dispose();
     ads.dispose();
     unawaited(audio.dispose());
+    unawaited(sfx.dispose());
     billing.dispose();
     playGames.dispose();
     pi.dispose();

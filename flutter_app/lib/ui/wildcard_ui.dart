@@ -6,6 +6,7 @@ export 'screens/privacy_gate.dart';
 export 'screens/run_table_screen.dart';
 export 'widgets/compact_joker_card.dart';
 export 'widgets/playing_card_tile.dart';
+export 'widgets/round_intro_overlay.dart';
 export 'widgets/sly_sprite.dart';
 export 'widgets/table_felt_surface.dart';
 export 'widgets/wildcard_background.dart';

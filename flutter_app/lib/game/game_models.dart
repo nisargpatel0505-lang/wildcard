@@ -158,24 +158,36 @@ class ScoringPacing {
     required this.transitionHold,
   });
 
-  /// Normal is intentionally readable on a phone: cards land in roughly a
-  /// third of a second and Joker changes remain visible for half a second.
+  /// Normal is paced so each beat is individually readable on a phone.
+  ///
+  /// A scoring beat is a sequence step, not a UI transition: the player has to
+  /// see the card lift, read its chip and watch the total climb before the next
+  /// one fires. The earlier 340ms card beat was shorter than the chip animation
+  /// living inside it, so chips stacked on top of each other and the whole
+  /// ladder blurred past. Each beat now comfortably contains its own animation
+  /// (~200ms pulse + ~380ms chip) with a beat of air after it.
   static const normal = ScoringPacing(
-    leadIn: Duration(milliseconds: 300),
-    cardBeat: Duration(milliseconds: 340),
-    jokerBeat: Duration(milliseconds: 500),
-    resultHold: Duration(milliseconds: 650),
-    transitionHold: Duration(milliseconds: 450),
+    leadIn: Duration(milliseconds: 440),
+    // Each card beat is a full readable moment: the card shakes, its chip
+    // rises and the running total rolls up, and the card settles lifted before
+    // the next one starts. Held deliberately slow so the SCORE is easy to read
+    // as it climbs.
+    cardBeat: Duration(milliseconds: 700),
+    jokerBeat: Duration(milliseconds: 880),
+    resultHold: Duration(milliseconds: 1200),
+    transitionHold: Duration(milliseconds: 620),
   );
 
-  /// Fast approximates the old normal rhythm without collapsing all events
-  /// into one frame.
+  /// Fast keeps every beat perceptible while roughly halving the wait.
+  ///
+  /// Kept at or above ~250ms per card: below that the eye cannot separate the
+  /// steps and the ladder stops reading as a sequence at all.
   static const fast = ScoringPacing(
-    leadIn: Duration(milliseconds: 120),
-    cardBeat: Duration(milliseconds: 180),
-    jokerBeat: Duration(milliseconds: 260),
-    resultHold: Duration(milliseconds: 320),
-    transitionHold: Duration(milliseconds: 220),
+    leadIn: Duration(milliseconds: 220),
+    cardBeat: Duration(milliseconds: 360),
+    jokerBeat: Duration(milliseconds: 460),
+    resultHold: Duration(milliseconds: 560),
+    transitionHold: Duration(milliseconds: 320),
   );
 
   final Duration leadIn;

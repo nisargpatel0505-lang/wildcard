@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -26,7 +27,11 @@ class RunTableScreen extends StatelessWidget {
     required this.slySpeech,
     this.score,
     this.activeScoreEvent,
+    this.liveRank,
+    this.liveMultiplier,
+    this.liveTotal,
     this.highlightedHandIndex,
+    this.scoredCardIds = const <String>{},
     this.highlightedJokerIndex,
     this.slyExpression = SlyExpression.idle,
     this.slySkin = SlySkin.classic,
@@ -56,10 +61,21 @@ class RunTableScreen extends StatelessWidget {
   /// The domain event currently being paced by the controller.
   final ScoreEvent? activeScoreEvent;
 
+  /// Running equation values during scoring. When present these are shown
+  /// instead of the final result so VALUE/MULTIPLIER/SCORE visibly climb as
+  /// each card and Joker resolves.
+  final int? liveRank;
+  final double? liveMultiplier;
+  final int? liveTotal;
+
   /// Optional controller-resolved visible indices. A scoring event's card
   /// index can refer to the played-card subset rather than the current hand,
   /// so callers may explicitly map it before rendering.
   final int? highlightedHandIndex;
+
+  /// Card uids that have already scored this hand; they render lifted.
+  final Set<String> scoredCardIds;
+
   final int? highlightedJokerIndex;
   final SlyExpression slyExpression;
   final SlySkin slySkin;
@@ -143,6 +159,9 @@ class RunTableScreen extends StatelessWidget {
                       hand: hand,
                       score: score,
                       compact: metrics.compact,
+                      liveRank: liveRank,
+                      liveMultiplier: liveMultiplier,
+                      liveTotal: liveTotal,
                     ),
                     SizedBox(height: metrics.outerGap),
                     _TableArea(
@@ -150,6 +169,7 @@ class RunTableScreen extends StatelessWidget {
                       hand: hand,
                       activeEvent: activeScoreEvent,
                       highlightedHandIndex: highlightedHandIndex,
+                      scoredCardIds: scoredCardIds,
                       selectedCount: selectedCount,
                       maxSelected: state.effectiveMaxSelect,
                       sortLabel: sortLabel,
@@ -470,8 +490,10 @@ class _ModifierPanel extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: state.hasBossModifier ? tokens.gold : tokens.coral,
-              fontFamily: 'Bungee',
-              fontSize: compact ? 8.5 : 9.5,
+              fontFamily: 'SpaceGrotesk',
+              fontWeight: FontWeight.w700,
+              fontSize: compact ? 10 : 11,
+              letterSpacing: 0.4,
               height: 1.1,
             ),
           ),
@@ -596,12 +618,22 @@ class _ScoreEquation extends StatelessWidget {
     required this.hand,
     required this.score,
     required this.compact,
+    this.liveRank,
+    this.liveMultiplier,
+    this.liveTotal,
   });
 
   final ScoringState state;
   final List<PlayingCard> hand;
   final ScoreResult? score;
   final bool compact;
+
+  /// Running values while a hand is being scored. The controller already
+  /// computes these beat by beat; before this they were thrown away and the
+  /// equation jumped straight to the final total, so scoring looked static.
+  final int? liveRank;
+  final double? liveMultiplier;
+  final int? liveTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -635,7 +667,7 @@ class _ScoreEquation extends StatelessWidget {
             children: [
               Expanded(
                 child: _EquationValue(
-                  value: _formatNumber(score?.valuePoints ?? 0),
+                  value: _formatNumber(liveRank ?? score?.valuePoints ?? 0),
                   label: 'VALUE',
                   color: tokens.cream,
                   compact: compact,
@@ -644,9 +676,8 @@ class _ScoreEquation extends StatelessWidget {
               _EquationOperator('\u00d7', compact: compact),
               Expanded(
                 child: _EquationValue(
-                  value: (score?.multiplier ?? baseMultiplier).toStringAsFixed(
-                    2,
-                  ),
+                  value: (liveMultiplier ?? score?.multiplier ?? baseMultiplier)
+                      .toStringAsFixed(2),
                   label: 'MULTIPLIER',
                   color: tokens.mint,
                   compact: compact,
@@ -655,7 +686,7 @@ class _ScoreEquation extends StatelessWidget {
               _EquationOperator('=', compact: compact),
               Expanded(
                 child: _EquationValue(
-                  value: _formatNumber(score?.total ?? 0),
+                  value: _formatNumber(liveTotal ?? score?.total ?? 0),
                   label: 'SCORE',
                   color: tokens.gold,
                   compact: compact,
@@ -669,7 +700,13 @@ class _ScoreEquation extends StatelessWidget {
   }
 }
 
-class _EquationValue extends StatelessWidget {
+/// Equation figure that visibly reacts when it changes.
+///
+/// The controller was already stepping VALUE/MULTIPLIER/SCORE through each
+/// beat, but the text simply swapped between numbers with no motion, which
+/// reads as "nothing happened". Every change now punches the figure and
+/// flashes it toward white before settling.
+class _EquationValue extends StatefulWidget {
   const _EquationValue({
     required this.value,
     required this.label,
@@ -683,24 +720,101 @@ class _EquationValue extends StatelessWidget {
   final bool compact;
 
   @override
+  State<_EquationValue> createState() => _EquationValueState();
+}
+
+class _EquationValueState extends State<_EquationValue>
+    with SingleTickerProviderStateMixin {
+  // The number rolls up to its new value over ~520ms — slow enough to read the
+  // SCORE climbing rather than snapping. Kept just under the card beat so each
+  // step finishes before the next begins.
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+    value: 1,
+  );
+
+  double? _fromNum;
+  double? _toNum;
+  bool _decimal = false;
+
+  static double? _parse(String value) => double.tryParse(value.replaceAll(',', ''));
+
+  @override
+  void initState() {
+    super.initState();
+    _toNum = _parse(widget.value);
+    _fromNum = _toNum;
+    _decimal = widget.value.contains('.');
+  }
+
+  @override
+  void didUpdateWidget(covariant _EquationValue oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      _fromNum = disabled ? _parse(widget.value) : _toNum;
+      _toNum = _parse(widget.value);
+      _decimal = widget.value.contains('.');
+      if (!disabled) _pop.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    super.dispose();
+  }
+
+  String _display(double t) {
+    final from = _fromNum, to = _toNum;
+    if (from == null || to == null) return widget.value;
+    final current = from + (to - from) * t;
+    if (_decimal) return current.toStringAsFixed(2);
+    return _formatNumber(current.round());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final color = widget.color;
+    final compact = widget.compact;
     return Column(
       children: [
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontFamily: 'Bungee',
-              fontSize: compact ? 23 : 28,
-              height: 1,
-            ),
+          child: AnimatedBuilder(
+            animation: _pop,
+            builder: (context, _) {
+              final t = Curves.easeOutCubic.transform(_pop.value);
+              // Swell and settle while the number rolls up.
+              final scale = 1 + 0.18 * (1 - t) * (1 - t);
+              final glow = (1 - t).clamp(0.0, 1.0);
+              return Transform.scale(
+                scale: scale,
+                child: Text(
+                  _display(t),
+                  style: TextStyle(
+                    color: Color.lerp(color, Colors.white, glow * 0.85),
+                    fontFamily: 'Bungee',
+                    fontSize: compact ? 23 : 28,
+                    height: 1,
+                    shadows: glow <= 0.02
+                        ? null
+                        : [
+                            Shadow(
+                              color: color.withValues(alpha: glow),
+                              blurRadius: 16 * glow,
+                            ),
+                          ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 3),
         Text(
-          label,
+          widget.label,
           maxLines: 1,
           style: TextStyle(
             color: context.wildcard.creamDim,
@@ -742,6 +856,7 @@ class _TableArea extends StatelessWidget {
     required this.hand,
     required this.activeEvent,
     required this.highlightedHandIndex,
+    required this.scoredCardIds,
     required this.selectedCount,
     required this.maxSelected,
     required this.sortLabel,
@@ -762,6 +877,7 @@ class _TableArea extends StatelessWidget {
   final List<PlayingCard> hand;
   final ScoreEvent? activeEvent;
   final int? highlightedHandIndex;
+  final Set<String> scoredCardIds;
   final int selectedCount;
   final int maxSelected;
   final String sortLabel;
@@ -827,27 +943,88 @@ class _TableArea extends StatelessWidget {
                       ),
                     ),
                   )
-                : ListView.separated(
-                    key: const Key('playing-card-row'),
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(2, 9, 8, 2),
-                    itemCount: hand.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(width: compact ? 4 : 5),
-                    itemBuilder: (context, index) {
-                      final card = hand[index];
-                      return PlayingCardTile(
-                        key: ValueKey('hand-card-$index'),
-                        card: card,
-                        width: cardWidth,
-                        height: cardHeight,
-                        highlighted:
-                            (highlightedHandIndex ?? activeEvent?.cardIndex) ==
-                            index,
-                        onTap: busy || onToggleCard == null
-                            ? null
-                            : () => onToggleCard!(index),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      // The whole hand must be visible in one look. Divide the
+                      // real width across the cards instead of using a fixed
+                      // card size in a horizontal scroller.
+                      const outerPadding = 4.0;
+                      final gap = compact ? 3.0 : 4.0;
+                      final available =
+                          constraints.maxWidth - (outerPadding * 2);
+                      final count = hand.length;
+                      final fitted = (available - gap * (count - 1)) / count;
+                      // Below this the rank stops being legible; only then do
+                      // we fall back to scrolling (very large hands only).
+                      const minReadable = 27.0;
+                      final tileWidth = fitted.clamp(minReadable, cardWidth);
+                      final tileHeight = (cardHeight * (tileWidth / cardWidth))
+                          .clamp(cardHeight * 0.66, cardHeight);
+                      final scrolls = fitted < minReadable;
+                      final tiles = <Widget>[
+                        for (var index = 0; index < count; index++) ...[
+                          if (index > 0) SizedBox(width: gap),
+                          // Keyed by card identity: a genuinely new card deals
+                          // in with the staggered drop, while sorts and refills
+                          // of existing cards never re-animate.
+                          _DealIn(
+                            key: ValueKey(
+                              'deal-${hand[index].uid ?? 'slot-$index'}',
+                            ),
+                            index: index,
+                            child: PlayingCardTile(
+                            key: ValueKey('hand-card-$index'),
+                            card: hand[index],
+                            width: tileWidth,
+                            height: tileHeight,
+                            highlighted:
+                                (highlightedHandIndex ??
+                                    activeEvent?.cardIndex) ==
+                                index,
+                            // Already scored earlier this hand: stays lifted.
+                            scored: hand[index].uid != null &&
+                                scoredCardIds.contains(hand[index].uid),
+                            // Points this card just contributed, so scoring is
+                            // visible on the card itself and not only in the
+                            // equation panel.
+                            scoreChip:
+                                (highlightedHandIndex ??
+                                            activeEvent?.cardIndex) ==
+                                        index &&
+                                    activeEvent != null &&
+                                    activeEvent!.amount > 0
+                                ? '+${activeEvent!.amount.round()}'
+                                : null,
+                            // Gold when the card itself scores; violet when a
+                            // Joker acted on it (the WebView's colour split).
+                            scoreChipColor: _chipColor(context, activeEvent),
+                            onTap: busy || onToggleCard == null
+                                ? null
+                                : () => onToggleCard!(index),
+                            ),
+                          ),
+                        ],
+                      ];
+                      final row = Row(
+                        key: const Key('playing-card-row'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: tiles,
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          outerPadding,
+                          9,
+                          outerPadding,
+                          2,
+                        ),
+                        child: scrolls
+                            ? SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: row,
+                              )
+                            : Center(child: row),
                       );
                     },
                   ),
@@ -855,22 +1032,8 @@ class _TableArea extends StatelessWidget {
           SizedBox(height: compact ? 5 : 7),
           Row(
             children: [
-              Expanded(
-                child: WildcardButton(
-                  label: 'Play Hand',
-                  onPressed: canAct ? onPlay : null,
-                  variant: WildcardButtonVariant.secondary,
-                  minHeight: compact ? 47 : 51,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 7,
-                  ),
-                  textAlign: TextAlign.center,
-                  fontSize: compact ? 11 : 12,
-                  showIconFrame: false,
-                ),
-              ),
-              const SizedBox(width: 7),
+              // Discard on the left (red), Play Hand on the right (green) — the
+              // "go" action sits on the dominant side.
               Expanded(
                 child: WildcardButton(
                   label: 'Discard ($selectedCount)',
@@ -883,6 +1046,24 @@ class _TableArea extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                   fontSize: compact ? 10.5 : 11.5,
+                  fontFamily: 'SpaceGrotesk',
+                  showIconFrame: false,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: WildcardButton(
+                  label: 'Play Hand',
+                  onPressed: canAct ? onPlay : null,
+                  variant: WildcardButtonVariant.success,
+                  minHeight: compact ? 47 : 51,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 7,
+                  ),
+                  textAlign: TextAlign.center,
+                  fontSize: compact ? 11 : 12,
+                  fontFamily: 'SpaceGrotesk',
                   showIconFrame: false,
                 ),
               ),
@@ -899,20 +1080,21 @@ class _TableArea extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               textAlign: TextAlign.center,
               fontSize: 9.5,
+              fontFamily: 'SpaceGrotesk',
               showIconFrame: false,
             ),
           ),
-          if (hand.length * (cardWidth + 4) > 300) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Swipe cards sideways \u00b7 select up to $maxSelected',
-              style: TextStyle(
-                color: tokens.creamDim.withValues(alpha: 0.78),
-                fontSize: 7.5,
-                height: 1,
-              ),
+          // The hand now scales to fit in one look, so the old "swipe sideways"
+          // hint would be actively misleading. Keep only the selection limit.
+          const SizedBox(height: 4),
+          Text(
+            'Select up to $maxSelected cards',
+            style: TextStyle(
+              color: tokens.creamDim.withValues(alpha: 0.78),
+              fontSize: 8,
+              height: 1,
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -969,8 +1151,10 @@ class _TableControl extends StatelessWidget {
                           maxLines: 1,
                           style: TextStyle(
                             color: tokens.cream,
-                            fontFamily: 'Bungee',
-                            fontSize: 8.5,
+                            fontFamily: 'SpaceGrotesk',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                            letterSpacing: 0.4,
                             height: 1,
                           ),
                         ),
@@ -983,6 +1167,78 @@ class _TableControl extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Deals a newly-drawn card onto the table: a short staggered drop-and-fade,
+/// the WebView's `@keyframes deal`. The wrapper is keyed by card uid, so it
+/// fires exactly once per physical card — sorting or refilling the rest of the
+/// hand never re-deals them.
+class _DealIn extends StatefulWidget {
+  const _DealIn({required this.index, required this.child, super.key});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_DealIn> createState() => _DealInState();
+}
+
+class _DealInState extends State<_DealIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 340),
+  );
+  Timer? _delay;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (disabled) {
+      _c.value = 1;
+      return;
+    }
+    // ~55ms between cards: enough to read as dealing one at a time, short
+    // enough that a full nine-card hand still lands in about half a second.
+    final wait = 55 * widget.index.clamp(0, 12);
+    if (wait == 0) {
+      _c.forward();
+    } else {
+      _delay = Timer(Duration(milliseconds: wait), () {
+        if (mounted) _c.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _delay?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeOutCubic.transform(_c.value);
+        if (t >= 1) return child!;
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, -16 * (1 - t)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
@@ -1018,8 +1274,11 @@ class _RunMetrics {
           : compact
           ? 57
           : 63,
+      // Cards are taller within the same width for a truer card shape and to
+      // give the centre pip room to breathe. Width is unchanged so a full hand
+      // still fits across without scrolling.
       cardWidth: compact ? 46 : 50,
-      cardHeight: compact ? 80 : 88,
+      cardHeight: compact ? 94 : 104,
       compact: compact,
     );
   }
@@ -1031,6 +1290,19 @@ class _RunMetrics {
   final double cardWidth;
   final double cardHeight;
   final bool compact;
+}
+
+/// The score number on a card is gold when the card scores, violet when a
+/// Joker (rank add, retrigger, mult/xmult) acted on that card.
+Color _chipColor(BuildContext context, ScoreEvent? event) {
+  final joker = switch (event?.type) {
+    ScoreEventType.rankJoker ||
+    ScoreEventType.retrigger ||
+    ScoreEventType.mult ||
+    ScoreEventType.xMult => true,
+    _ => false,
+  };
+  return joker ? context.wildcard.violet : const Color(0xFFF7C548);
 }
 
 String _formatNumber(int value) {

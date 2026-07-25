@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 
 class TutorialScreen extends StatefulWidget {
   const TutorialScreen({required this.onComplete, super.key});
@@ -126,12 +127,9 @@ class _TutorialScreenState extends State<TutorialScreen> {
                           Navigator.pop(this.context);
                         } catch (_) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'The lesson could not be saved. Please try again.',
-                              ),
-                            ),
+                          showWildcardToast(
+                            this.context,
+                            'The lesson could not be saved. Please try again.',
                           );
                           setState(() => finishing = false);
                         }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../wildcard_theme.dart';
+import 'springy.dart';
 
-enum WildcardButtonVariant { primary, secondary, ghost, danger }
+enum WildcardButtonVariant { primary, secondary, ghost, danger, success }
 
 /// Large, phone-first WILDCARD action button.
 class WildcardButton extends StatelessWidget {
@@ -18,8 +19,14 @@ class WildcardButton extends StatelessWidget {
     this.expand = true,
     this.showIconFrame = true,
     this.attention = false,
+    this.fontFamily,
     super.key,
   });
+
+  /// Overrides the default Bungee display face. Bungee is very heavy, which
+  /// reads as chunky on dense in-run controls like Play/Discard, so those pass
+  /// the lighter UI face instead.
+  final String? fontFamily;
 
   final String label;
   final VoidCallback? onPressed;
@@ -42,12 +49,14 @@ class WildcardButton extends StatelessWidget {
       WildcardButtonVariant.secondary ||
       WildcardButtonVariant.ghost => tokens.cream,
       WildcardButtonVariant.danger => const Color(0xFF3D0F08),
+      WildcardButtonVariant.success => const Color(0xFF042313),
     };
     final border = switch (variant) {
       WildcardButtonVariant.primary => const Color(0xFFFFE69A),
       WildcardButtonVariant.secondary => tokens.mint.withValues(alpha: 0.76),
       WildcardButtonVariant.ghost => tokens.violet.withValues(alpha: 0.72),
       WildcardButtonVariant.danger => tokens.coral,
+      WildcardButtonVariant.success => const Color(0xFF9BF7C4),
     };
     final gradient = switch (variant) {
       WildcardButtonVariant.primary => const [
@@ -66,12 +75,19 @@ class WildcardButton extends StatelessWidget {
         tokens.coral,
         Color.lerp(tokens.coral, Colors.black, 0.22)!,
       ],
+      // Play Hand: a confident green, so the primary table action reads as
+      // "go" against the red Discard beside it.
+      WildcardButtonVariant.success => const [
+        Color(0xFF35D07A),
+        Color(0xFF1C8A46),
+      ],
     };
     final shadowColor = switch (variant) {
       WildcardButtonVariant.primary => const Color(0xFF9C5A19),
       WildcardButtonVariant.secondary => const Color(0xFF102B31),
       WildcardButtonVariant.ghost => const Color(0xFF251345),
       WildcardButtonVariant.danger => const Color(0xFF8A2C1F),
+      WildcardButtonVariant.success => const Color(0xFF115C31),
     };
 
     final button = AnimatedOpacity(
@@ -129,12 +145,23 @@ class WildcardButton extends StatelessWidget {
                         textAlign: textAlign,
                         style: TextStyle(
                           color: foreground,
-                          fontFamily: 'Bungee',
+                          fontFamily: fontFamily ?? 'Bungee',
+                          fontWeight: fontFamily == null
+                              ? null
+                              : FontWeight.w700,
                           fontSize: fontSize ?? 14,
                           height: 1.2,
-                          letterSpacing: 0.25,
+                          letterSpacing: fontFamily == null ? 0.25 : 0.6,
+                          // Primary buttons sit on bright gold, so a soft drop
+                          // shadow is enough; everything else sits over room
+                          // art and gets the hairline outline for legibility.
                           shadows: variant == WildcardButtonVariant.primary
-                              ? null
+                              ? const [
+                                  Shadow(
+                                    color: Color(0x66000000),
+                                    offset: Offset(0, 1),
+                                  ),
+                                ]
                               : const [
                                   Shadow(
                                     color: Color(0xB0000000),
@@ -154,6 +181,9 @@ class WildcardButton extends StatelessWidget {
       ),
     );
 
+    // A spring press-squish makes every tap feel physical instead of inert.
+    final pressable = PressableScale(enabled: enabled, child: button);
+
     return Semantics(
       button: true,
       enabled: enabled,
@@ -161,8 +191,8 @@ class WildcardButton extends StatelessWidget {
       onTap: onPressed,
       child: ExcludeSemantics(
         child: expand
-            ? SizedBox(width: double.infinity, child: button)
-            : button,
+            ? SizedBox(width: double.infinity, child: pressable)
+            : pressable,
       ),
     );
   }

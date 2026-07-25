@@ -1,6 +1,10 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
 enum JokerRarity { common, uncommon, rare, wild }
 
 enum JokerEffect {
+  /// Owner-only test effect. Never reachable from a release build.
+  devTwentyX,
   copperChip,
   suitPresser,
   royalRetainer,
@@ -647,9 +651,36 @@ int publicUnlockedJokerCount(Iterable<String> ownedIds) {
   return jokerCatalog.where((joker) => owned.contains(joker.id)).length;
 }
 
+/// Owner-only test Joker. Deliberately NOT part of [jokerCatalog]: the public
+/// catalogue stays at 57 and `publicUnlockedJokerCount` keeps ignoring it, so
+/// collection counts and their tests are unaffected. It exists purely so the
+/// owner can reach late Heats, the Heat 12 cinematic and Endless quickly.
+const JokerDefinition devTwentyXJoker = JokerDefinition(
+  id: 'devx20',
+  name: 'DEV ×20',
+  rarity: JokerRarity.wild,
+  description: 'DEV: ×20 Multiplier, always. Owner test build only.',
+  price: 0,
+  unlock: 0,
+  effect: JokerEffect.devTwentyX,
+);
+
+/// True for debug and profile builds, false for release. A Play build can
+/// therefore never surface the Joker, and the id is dropped from any save it
+/// loads because it is absent from the catalogue.
+bool get devJokerAvailable => !kReleaseMode;
+
 final Map<String, JokerDefinition> jokersById = <String, JokerDefinition>{
   for (final joker in jokerCatalog) joker.id: joker,
+  if (devJokerAvailable) devTwentyXJoker.id: devTwentyXJoker,
 };
+
+/// Jokers offerable as a start boost: the public catalogue, plus the owner
+/// test Joker on non-release builds.
+List<JokerDefinition> get selectableJokers => <JokerDefinition>[
+  if (devJokerAvailable) devTwentyXJoker,
+  ...jokerCatalog,
+];
 
 const List<String> starterJokerIds = <String>[
   'copper',

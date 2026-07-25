@@ -245,17 +245,7 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('The hand is locked right now.');
     }
     sortMode = mode;
-    int compare(PlayingCard left, PlayingCard right) {
-      if (mode == HandSortMode.suit) {
-        final suit = left.suit.sortOrder.compareTo(right.suit.sortOrder);
-        if (suit != 0) return suit;
-      }
-      final rank = right.value.compareTo(left.value);
-      if (rank != 0) return rank;
-      return left.suit.sortOrder.compareTo(right.suit.sortOrder);
-    }
-
-    hand.sort(compare);
+    hand.sort(_handCompare);
     await _save(RunCheckpoint.selectionChanged);
     notifyListeners();
     return const GameActionResult.success();
@@ -325,6 +315,22 @@ class GameController extends ChangeNotifier {
       );
     }
     isBusy = true;
+    // Scoring drives presentation through listeners, and a listener that
+    // throws must never be able to strand the run: `isBusy` gates buying,
+    // selling, rerolling AND leaving the shop, so leaking it here locks the
+    // player out of every action with no way back except restarting the app.
+    try {
+      return await _runScoringSequence(played);
+    } finally {
+      // Terminal paths (Heat cleared, run lost) move to another phase and own
+      // `isBusy` themselves. If we are still at the table when this returns —
+      // normally or by exception — the player must be able to act again. The
+      // durable pendingTransition marker still covers process-kill recovery.
+      if (phase == RunPhase.game) isBusy = false;
+    }
+  }
+
+  Future<GameActionResult> _runScoringSequence(List<PlayingCard> played) async {
     scoringPresentation = const ScoringPresentation();
     final preRollCounters = state.rngCounters.copy();
     pendingTransition = <String, Object?>{
@@ -459,11 +465,14 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('The shop cannot be rerolled.');
     }
     isBusy = true;
-    state.runCoins -= shopRerollCost;
-    _rollJokerOffers(countForPity: false);
-    await _save(RunCheckpoint.shopChanged);
-    isBusy = false;
-    notifyListeners();
+    try {
+      state.runCoins -= shopRerollCost;
+      _rollJokerOffers(countForPity: false);
+      await _save(RunCheckpoint.shopChanged);
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
     return const GameActionResult.success();
   }
 
@@ -494,19 +503,25 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('Not enough run coins.');
     }
     isBusy = true;
-    state.runCoins += refund - price;
-    if (replaced != null) {
-      if (replaced.stateKey case final key?) state.jokerState.remove(key);
-      state.jokerIds[swapIndex!] = joker.id;
-    } else {
-      state.jokerIds.add(joker.id);
+    // A throw anywhere in here used to leave isBusy set, and because isBusy
+    // gates buying, selling, rerolling and leaving, the player was sealed in
+    // the shop until they restarted the app.
+    try {
+      state.runCoins += refund - price;
+      if (replaced != null) {
+        if (replaced.stateKey case final key?) state.jokerState.remove(key);
+        state.jokerIds[swapIndex!] = joker.id;
+      } else {
+        state.jokerIds.add(joker.id);
+      }
+      jokerOffers.removeAt(offerIndex);
+      shopBuysUsed++;
+      pendingSwapOfferId = null;
+      await _save(RunCheckpoint.shopChanged);
+    } finally {
+      isBusy = false;
+      notifyListeners();
     }
-    jokerOffers.removeAt(offerIndex);
-    shopBuysUsed++;
-    pendingSwapOfferId = null;
-    await _save(RunCheckpoint.shopChanged);
-    isBusy = false;
-    notifyListeners();
     return const GameActionResult.success();
   }
 
@@ -525,15 +540,18 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('That Joker slot is empty.');
     }
     isBusy = true;
-    final id = state.jokerIds.removeAt(index);
-    final joker = jokersById[id];
-    if (joker != null) {
-      state.runCoins += sellValue(joker);
-      if (joker.stateKey case final key?) state.jokerState.remove(key);
+    try {
+      final id = state.jokerIds.removeAt(index);
+      final joker = jokersById[id];
+      if (joker != null) {
+        state.runCoins += sellValue(joker);
+        if (joker.stateKey case final key?) state.jokerState.remove(key);
+      }
+      await _save(RunCheckpoint.shopChanged);
+    } finally {
+      isBusy = false;
+      notifyListeners();
     }
-    await _save(RunCheckpoint.shopChanged);
-    isBusy = false;
-    notifyListeners();
     return const GameActionResult.success();
   }
 
@@ -570,13 +588,16 @@ class GameController extends ChangeNotifier {
     final validation = _validateSupply(id, selection);
     if (!validation.ok) return validation;
     isBusy = true;
-    suppliesBoughtThisShop.add(id);
-    _applySupply(id, selection);
-    state.runCoins -= price;
-    supplyLedger.record(id, state.stage);
-    await _save(RunCheckpoint.shopChanged);
-    isBusy = false;
-    notifyListeners();
+    try {
+      suppliesBoughtThisShop.add(id);
+      _applySupply(id, selection);
+      state.runCoins -= price;
+      supplyLedger.record(id, state.stage);
+      await _save(RunCheckpoint.shopChanged);
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
     return const GameActionResult.success();
   }
 
@@ -720,11 +741,31 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  /// Comparator for the active sort mode, shared by [sortHand] and refills.
+  int _handCompare(PlayingCard left, PlayingCard right) {
+    if (sortMode == HandSortMode.suit) {
+      final suit = left.suit.sortOrder.compareTo(right.suit.sortOrder);
+      if (suit != 0) return suit;
+    }
+    final rank = right.value.compareTo(left.value);
+    if (rank != 0) return rank;
+    return left.suit.sortOrder.compareTo(right.suit.sortOrder);
+  }
+
   void _refillHand() {
+    final drew = hand.length < state.effectiveHandSize && drawPile.isNotEmpty;
     while (hand.length < state.effectiveHandSize && drawPile.isNotEmpty) {
       hand.add(drawPile.removeLast());
     }
+    // Replacements used to be appended raw, so after a discard the new cards
+    // sat out of order and the hand no longer matched the chosen sort.
+    if (drew) hand.sort(_handCompare);
   }
+
+  /// Fired exactly when each scoring event is presented, with its ordinal in
+  /// the hand. The host layers sound and haptics on the beat without the
+  /// controller knowing about either service.
+  void Function(ScoreEvent event, int ordinal)? onScoreBeat;
 
   Future<void> _presentScoreEvents(
     List<PlayingCard> played,
@@ -732,6 +773,7 @@ class GameController extends ChangeNotifier {
   ) async {
     var visibleRank = 0;
     var visibleMultiplier = baseMultiplier;
+    var ordinal = 0;
     for (final event in result.events) {
       if (event.type == ScoreEventType.card ||
           event.type == ScoreEventType.rankJoker ||
@@ -760,8 +802,18 @@ class GameController extends ChangeNotifier {
                 : ''),
         visibleRank: visibleRank,
         visibleMultiplier: visibleMultiplier,
+        // Running total for the SCORE column. Without this it stayed 0 for the
+        // whole animation and only snapped to the final value at the end.
+        visibleTotal: (visibleRank * visibleMultiplier).round(),
       );
       notifyListeners();
+      // Sound and haptics are decoration: a failure here must never interrupt
+      // scoring or leave the run wedged.
+      try {
+        onScoreBeat?.call(event, ordinal++);
+      } catch (_) {
+        // Ignored on purpose; the beat still advances.
+      }
       final isJoker = event.jokerIndex != null && event.jokerIndex! >= 0;
       await _wait(isJoker ? pacing.jokerBeat : pacing.cardBeat);
     }

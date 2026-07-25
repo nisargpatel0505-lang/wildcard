@@ -552,6 +552,97 @@ void main() {
     );
     expect(ScoringPacing.fast.cardBeat, isNot(Duration.zero));
   });
+
+  test('a resumed run can still buy and sell Jokers', () async {
+    // Regression: the save decoder returned jokerIds as a FIXED-LENGTH list,
+    // so on any resumed run `state.jokerIds.add(...)` threw inside buyJoker
+    // after isBusy was set. The purchase silently failed, the UI never
+    // refreshed, and the stranded isBusy locked buying, selling, rerolling and
+    // leaving — the player was sealed in the shop until they restarted.
+    final harness = _Harness();
+    final game = await GameController.startNew(
+      config: _config(seed: 77001),
+      callbacks: harness.callbacks,
+      wait: noWait,
+    );
+    game.state.stageScore = game.target - 1;
+    await game.toggleCard(game.hand.first.uid!);
+    await game.playSelected();
+    expect(game.phase, RunPhase.shop, reason: 'setup should reach a shop');
+
+    final resumed = await GameController.resume(
+      encoded: harness.writes.last,
+      callbacks: _Harness().callbacks,
+      unlockedJokerIds: jokersById.keys.toSet(),
+      wait: noWait,
+    );
+    resumed.phase = RunPhase.shop;
+    resumed.state.runCoins = 99;
+
+    final offer = resumed.jokerOffers.first;
+    final result = await resumed.buyJoker(offer.id);
+
+    expect(result.ok, isTrue, reason: result.message);
+    expect(resumed.state.jokerIds, contains(offer.id));
+    expect(resumed.isBusy, isFalse);
+    // And the shop stays fully usable afterwards.
+    expect((await resumed.sellJoker(0)).ok, isTrue);
+    expect(resumed.isBusy, isFalse);
+  });
+
+  test(
+    'a listener that throws during scoring cannot lock the player out',
+    () async {
+      // Regression: presentation ran inside playSelected's isBusy window, so a
+      // listener exception left isBusy true forever. Because isBusy also gates
+      // buying, selling, rerolling AND leaving, the player got "Joker buying is
+      // closed" and was stranded in the shop with no way out but restarting.
+      final game = await GameController.startNew(
+        config: _config(seed: 90210),
+        callbacks: _Harness().callbacks,
+        wait: noWait,
+      );
+      game.onScoreBeat = (event, ordinal) => throw StateError('sfx exploded');
+      game.addListener(() => throw StateError('presentation exploded'));
+
+      await game.toggleCard(game.hand.first.uid!);
+      try {
+        await game.playSelected();
+      } catch (_) {
+        // The throw may surface; what matters is the run is not wedged.
+      }
+
+      expect(
+        game.isBusy,
+        isFalse,
+        reason: 'a broken listener must never strand the run',
+      );
+    },
+  );
+
+  test('a Heat cleared by a hand still leaves the shop fully usable', () async {
+    final game = await GameController.startNew(
+      config: _config(seed: 90211),
+      callbacks: _Harness().callbacks,
+      wait: noWait,
+    );
+    game.onScoreBeat = (event, ordinal) => throw StateError('sfx exploded');
+    game.state.stageScore = game.target - 1;
+    await game.toggleCard(game.hand.first.uid!);
+    try {
+      await game.playSelected();
+    } catch (_) {
+      // Ignored: the shop must be usable regardless.
+    }
+
+    expect(game.phase, RunPhase.shop);
+    expect(game.isBusy, isFalse);
+    expect(game.shopBuysUsed, 0);
+    expect(game.jokerBuyLimitReached, isFalse);
+    // The exact actions that were dead on the phone.
+    expect((await game.leaveShop()).ok, isTrue);
+  });
+
 }
 
 GameRunConfig _config({

@@ -4,6 +4,7 @@ import '../../domain/account_state.dart';
 import '../../domain/joker_catalog.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 
 enum JokerCollectionFilter { all, locked, owned, common, uncommon, rare, wild }
 
@@ -357,14 +358,11 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
       if (mounted) setState(() => _unlocking.remove(joker.id));
     }
     if (!mounted) return unlocked;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          unlocked
-              ? '${joker.name} permanently unlocked.'
-              : 'Could not unlock ${joker.name}. Please try again.',
-        ),
-      ),
+    showWildcardToast(
+      context,
+      unlocked
+          ? '${joker.name} permanently unlocked.'
+          : 'Could not unlock ${joker.name}. Please try again.',
     );
     return unlocked;
   }

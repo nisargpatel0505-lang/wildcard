@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../domain/progression_catalog.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({required this.controller, super.key});
@@ -124,12 +125,9 @@ class _MissionsScreenState extends State<MissionsScreen> {
     final ok = await widget.controller.refreshWeeklyMissionsWithRewardedAd();
     if (!mounted) return;
     setState(() => busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ok ? 'Weekly contracts refreshed.' : 'Refresh unavailable.',
-        ),
-      ),
+    showWildcardToast(
+      context,
+      ok ? 'Weekly contracts refreshed.' : 'Refresh unavailable.',
     );
   }
 

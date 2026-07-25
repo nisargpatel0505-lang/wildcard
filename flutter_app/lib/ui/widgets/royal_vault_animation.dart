@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../services/haptics_service.dart';
+import '../../services/sfx_service.dart';
 import '../wildcard_theme.dart';
 import 'wildcard_background.dart';
 import 'wildcard_button.dart';
@@ -117,6 +119,8 @@ Future<void> showRoyalVaultAnimation({
   required RoyalVaultVisualTier tier,
   required RoyalVaultRewardViewModel reward,
   required bool fast,
+  SfxService? sfx,
+  HapticsService? haptics,
 }) {
   return showGeneralDialog<void>(
     context: context,
@@ -128,6 +132,8 @@ Future<void> showRoyalVaultAnimation({
       tier: tier,
       reward: reward,
       fast: fast,
+      sfx: sfx,
+      haptics: haptics,
       onClaim: () => Navigator.of(dialogContext).pop(),
     ),
     transitionBuilder: (context, animation, _, child) => FadeTransition(
@@ -149,6 +155,8 @@ class RoyalVaultAnimation extends StatefulWidget {
     required this.fast,
     required this.onClaim,
     this.durationOverride,
+    this.sfx,
+    this.haptics,
     super.key,
   });
 
@@ -160,6 +168,10 @@ class RoyalVaultAnimation extends StatefulWidget {
   /// Exposed for deterministic widget tests; production uses Normal/Fast time.
   final Duration? durationOverride;
 
+  /// Optional sound and feel; null in tests and previews.
+  final SfxService? sfx;
+  final HapticsService? haptics;
+
   @override
   State<RoyalVaultAnimation> createState() => _RoyalVaultAnimationState();
 }
@@ -169,6 +181,49 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
   late final AnimationController _controller;
   bool _claimEnabled = false;
   bool _claimHandled = false;
+  final Set<int> _firedCues = <int>{};
+
+  /// The WebView chest ceremony had a sound and a haptic on every phase edge:
+  /// charge rumble, rarity scan ticks, the seal chord, the burst chord and the
+  /// reveal chord, each scaled to the win's rarity.
+  static const List<(double, String, int)> _cues = <(double, String, int)>[
+    // (progress, sound, haptic: 0 none · 1 medium · 2 heavy)
+    (0.001, 'chest_charge', 1),
+    (0.02, 'chest_scan', 0),
+    (0.36, 'seal', 2),
+    (0.46, 'burst', 2),
+    (0.72, 'reveal', 0),
+  ];
+
+  String get _rarityKey {
+    final rarity = widget.reward.rarity.toLowerCase();
+    if (rarity.contains('wild')) return 'wild';
+    if (rarity.contains('rare')) return 'rare';
+    return 'common';
+  }
+
+  void _fireCues() {
+    final sfx = widget.sfx;
+    if (sfx == null && widget.haptics == null) return;
+    final p = _controller.value;
+    for (var index = 0; index < _cues.length; index++) {
+      if (_firedCues.contains(index)) continue;
+      final (at, sound, haptic) = _cues[index];
+      if (p < at) continue;
+      _firedCues.add(index);
+      // The pre-rendered scan ladder outlasts the compressed fast charge.
+      if (sound == 'chest_scan' && widget.fast) continue;
+      final name = switch (sound) {
+        'seal' => 'seal_$_rarityKey',
+        'burst' => 'burst_$_rarityKey',
+        'reveal' => 'reveal_$_rarityKey',
+        _ => sound,
+      };
+      sfx?.play(name);
+      if (haptic == 1) widget.haptics?.play();
+      if (haptic == 2) widget.haptics?.success();
+    }
+  }
 
   @override
   void initState() {
@@ -186,6 +241,7 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
             setState(() => _claimEnabled = true);
           }
         });
+    _controller.addListener(_fireCues);
     _controller.forward();
   }
 
@@ -438,16 +494,48 @@ class _VaultStage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
-    final unlock = _interval(.39, .53, Curves.easeInOutBack);
-    final opening = _interval(.51, .68, Curves.easeOutCubic);
-    final burst = _interval(.55, .75, Curves.easeOutCubic);
-    final rewardRise = _interval(.62, .84, Curves.easeOutBack);
+    // ---- Phase map (single forward timeline, so tests always settle) ----
+    // charge 0–.36: the chest strains against the seal, energy converges.
+    // seal  .36–.46: flash; the lock loses.
+    // burst .46–.62: lid slams open, beam and debris erupt, stage kicks.
+    // reveal .56–.86: the prize rises out of the light and settles.
+    final charge = _interval(0, .36, Curves.easeIn);
+    final unlock = _interval(.36, .46, Curves.easeInOutBack);
+    final opening = _interval(.46, .62, Curves.easeOutBack);
+    final beam = _interval(.46, .60, Curves.easeOutCubic);
+    final beamFade = _interval(.78, .96, Curves.easeIn);
+    final burst = _interval(.46, .78, Curves.easeOutCubic);
+    final rewardRise = _interval(.56, .82, Curves.easeOutBack);
+    final shine = _interval(.80, .94, Curves.easeInOut);
     final lockPulse = .5 + .5 * math.sin(progress * math.pi * 12);
+
+    // The chest fights the seal: jitter grows through the charge and a hard
+    // decaying kick punctuates the burst.
+    final chargeShake =
+        charge * (1 - unlock) * math.sin(progress * math.pi * 46) * 3.4;
+    final burstKick = burst < 1
+        ? math.sin(burst * math.pi * 5) * (1 - burst) * 5.0
+        : 0.0;
+    // Unseal flash: snaps to full white-hot then dies quickly.
+    final flashRaw = _interval(.36, .395, Curves.easeOut) *
+        (1 - _interval(.395, .48, Curves.easeIn));
+
     final bodyColor = switch (tier) {
       RoyalVaultVisualTier.wooden => const Color(0xFF8B4B25),
       RoyalVaultVisualTier.golden => const Color(0xFF3E8F8A),
       RoyalVaultVisualTier.cosmetic => const Color(0xFF61378D),
     };
+    // During the charge the stage scans through the rarity ladder before
+    // locking onto the real colour, exactly like the WebView's scan cycle.
+    const cycle = <Color>[
+      Color(0xFFCFC6B2),
+      Color(0xFF45E0C6),
+      Color(0xFF9B7BFF),
+      Color(0xFFF7C548),
+    ];
+    final scanColor = progress < .34
+        ? cycle[(progress * 30).floor() % cycle.length]
+        : reward.rarityColor;
 
     return RepaintBoundary(
       child: LayoutBuilder(
@@ -463,12 +551,13 @@ class _VaultStage extends StatelessWidget {
             compact ? 28.0 : 42.0,
             sceneHeight - chestHeight - (compact ? 8 : 14),
           );
+          final mouth = Offset(sceneWidth / 2, chestTop + chestHeight * .34);
 
           return DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: reward.rarityColor.withValues(alpha: .9),
+                color: scanColor.withValues(alpha: .9),
                 width: 1.6,
               ),
               gradient: const LinearGradient(
@@ -479,92 +568,137 @@ class _VaultStage extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CustomPaint(
-                    painter: _VaultAtmospherePainter(
-                      progress: progress,
-                      burst: burst,
-                      color: reward.rarityColor,
-                      line: tokens.violet,
+              child: Transform.translate(
+                // The whole stage kicks when the lid blows.
+                offset: Offset(chargeShake, burstKick),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      painter: _VaultAtmospherePainter(
+                        progress: progress,
+                        burst: burst,
+                        color: scanColor,
+                        line: tokens.violet,
+                      ),
                     ),
-                  ),
-                  if (burst > 0)
-                    Opacity(
-                      opacity: (burst * .88).clamp(0, 1),
-                      child: CustomPaint(
-                        painter: _ParticlePainter(
+                    // Energy gathering into the lock while the chest charges.
+                    if (charge > 0 && unlock < 1)
+                      CustomPaint(
+                        painter: _ConvergePainter(
+                          progress: charge,
+                          fade: 1 - unlock,
+                          color: scanColor,
+                          focus: mouth.translate(0, chestHeight * .12),
+                        ),
+                      ),
+                    // The light beam out of the open chest.
+                    if (beam > 0)
+                      CustomPaint(
+                        painter: _BeamPainter(
+                          spread: beam,
+                          fade: 1 - beamFade,
+                          color: reward.rarityColor,
+                          mouth: mouth,
+                        ),
+                      ),
+                    if (burst > 0)
+                      CustomPaint(
+                        painter: _DebrisPainter(
                           progress: burst,
                           color: reward.rarityColor,
+                          origin: mouth,
                         ),
                       ),
-                    ),
-                  Positioned(
-                    left: (sceneWidth - chestWidth) / 2,
-                    top: chestTop + chestHeight * .32,
-                    width: chestWidth,
-                    height: chestHeight * .68,
-                    child: CustomPaint(
-                      painter: _ChestBasePainter(
-                        bodyColor: bodyColor,
-                        gold: tokens.gold,
-                        gem: tokens.mint,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: (sceneWidth - chestWidth) / 2,
-                    top: chestTop,
-                    width: chestWidth,
-                    height: chestHeight * .49,
-                    child: Transform(
-                      alignment: Alignment.bottomCenter,
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, .0015)
-                        ..rotateX(-opening * 1.05),
-                      child: CustomPaint(
-                        painter: _ChestLidPainter(
-                          bodyColor: bodyColor,
-                          gold: tokens.gold,
-                          gem: tokens.mint,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: sceneWidth / 2 - 28,
-                    top: chestTop + chestHeight * .39 + 22 * unlock,
-                    width: 56,
-                    height: 64,
-                    child: Opacity(
-                      opacity: 1 - unlock,
-                      child: Transform.rotate(
-                        angle: unlock * .42,
-                        child: _AnimatedLock(
-                          pulse: lockPulse,
-                          color: tokens.gold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: sceneWidth / 2 - (compact ? 34 : 40),
-                    top:
-                        chestTop +
-                        chestHeight * .22 -
-                        rewardRise * (compact ? 50 : 68),
-                    width: compact ? 68 : 80,
-                    height: compact ? 76 : 90,
-                    child: Opacity(
-                      opacity: rewardRise,
+                    Positioned(
+                      left: (sceneWidth - chestWidth) / 2,
+                      top: chestTop + chestHeight * .32,
+                      width: chestWidth,
+                      height: chestHeight * .68,
                       child: Transform.scale(
-                        scale: .68 + .32 * rewardRise,
-                        child: _RewardToken(reward: reward, glow: burst),
+                        // The body recoils into a slight squash as it opens.
+                        scaleY: 1 - .05 * math.sin(opening * math.pi),
+                        alignment: Alignment.bottomCenter,
+                        child: CustomPaint(
+                          painter: _ChestBasePainter(
+                            bodyColor: bodyColor,
+                            gold: tokens.gold,
+                            gem: tokens.mint,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      left: (sceneWidth - chestWidth) / 2,
+                      top: chestTop,
+                      width: chestWidth,
+                      height: chestHeight * .49,
+                      child: Transform(
+                        alignment: Alignment.bottomCenter,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, .0015)
+                          ..rotateX(-opening * 1.18),
+                        child: CustomPaint(
+                          painter: _ChestLidPainter(
+                            bodyColor: bodyColor,
+                            gold: tokens.gold,
+                            gem: tokens.mint,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: sceneWidth / 2 - 28,
+                      top: chestTop + chestHeight * .39 - 40 * unlock,
+                      width: 56,
+                      height: 64,
+                      child: Opacity(
+                        opacity: (1 - unlock).clamp(0.0, 1.0),
+                        child: Transform.rotate(
+                          angle: unlock * 2.2,
+                          child: _AnimatedLock(
+                            pulse: lockPulse,
+                            color: tokens.gold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: sceneWidth / 2 - (compact ? 34 : 40),
+                      top:
+                          chestTop +
+                          chestHeight * .22 -
+                          rewardRise * (compact ? 54 : 72),
+                      width: compact ? 68 : 80,
+                      height: compact ? 76 : 90,
+                      child: Opacity(
+                        opacity: rewardRise.clamp(0.0, 1.0),
+                        child: Transform.rotate(
+                          angle: (1 - rewardRise) * -.22,
+                          child: Transform.scale(
+                            scale: .58 + .42 * rewardRise,
+                            child: _RewardToken(
+                              reward: reward,
+                              glow: burst,
+                              shine: shine,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // The unseal flash covers everything for a few frames.
+                    if (flashRaw > 0.003)
+                      IgnorePointer(
+                        child: ColoredBox(
+                          color: Color.lerp(
+                            Colors.white,
+                            reward.rarityColor,
+                            .38,
+                          )!.withValues(alpha: (flashRaw * .92).clamp(0.0, 1.0)),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           );
@@ -603,10 +737,13 @@ class _AnimatedLock extends StatelessWidget {
 }
 
 class _RewardToken extends StatelessWidget {
-  const _RewardToken({required this.reward, required this.glow});
+  const _RewardToken({required this.reward, required this.glow, this.shine = 0});
 
   final RoyalVaultRewardViewModel reward;
   final double glow;
+
+  /// 0..1 sweep of a light band across the settled token.
+  final double shine;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -626,7 +763,34 @@ class _RewardToken extends StatelessWidget {
         ),
       ],
     ),
-    child: Icon(reward.icon, color: const Color(0xFF23102F), size: 38),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Icon(reward.icon, color: const Color(0xFF23102F), size: 38),
+          if (shine > 0 && shine < 1)
+            Align(
+              alignment: Alignment(-1.6 + 3.2 * shine, 0),
+              child: Transform.rotate(
+                angle: .5,
+                child: Container(
+                  width: 16,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: 0),
+                        Colors.white.withValues(alpha: .75),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -990,38 +1154,162 @@ class _VaultAtmospherePainter extends CustomPainter {
       oldDelegate.line != line;
 }
 
-class _ParticlePainter extends CustomPainter {
-  const _ParticlePainter({required this.progress, required this.color});
+/// Energy streaming INTO the lock while the chest charges — anticipation the
+/// old sequence never had. Deterministic per-index pseudo-randomness keeps the
+/// painter allocation-free.
+class _ConvergePainter extends CustomPainter {
+  const _ConvergePainter({
+    required this.progress,
+    required this.fade,
+    required this.color,
+    required this.focus,
+  });
 
   final double progress;
+  final double fade;
   final Color color;
+  final Offset focus;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final origin = Offset(size.width / 2, size.height * .64);
-    final fade = (1 - (progress - .62).clamp(0.0, 1.0)).clamp(0.0, 1.0);
-    for (var index = 0; index < 24; index++) {
-      final angle = -math.pi + (index / 23) * math.pi * 2;
-      final speed = .22 + ((index * 37) % 10) / 42;
-      final distance = size.shortestSide * speed * progress;
-      final wobble = math.sin(index * 2.3 + progress * 7) * 6;
+    if (fade <= 0) return;
+    final paint = Paint();
+    for (var index = 0; index < 18; index++) {
+      final seed = index * 37.0;
+      final angle = (seed * .61) % (math.pi * 2);
+      final phase = ((progress * (1.1 + (index % 5) * .18)) + (seed * .137)) % 1;
+      final distance = size.shortestSide * .58 * (1 - phase);
       final point = Offset(
-        origin.dx + math.cos(angle) * distance + wobble,
-        origin.dy + math.sin(angle) * distance - progress * size.height * .13,
+        focus.dx + math.cos(angle) * distance,
+        focus.dy + math.sin(angle) * distance * .7,
       );
-      final radius = 1.2 + (index % 4) * .55;
-      canvas.drawCircle(
-        point,
-        radius,
-        Paint()
-          ..color = (index.isEven ? color : const Color(0xFFFFD35C)).withValues(
-            alpha: .18 + .7 * fade,
-          ),
-      );
+      paint.color = (index % 3 == 0 ? const Color(0xFFFFE9A8) : color)
+          .withValues(alpha: (phase * .8 * fade).clamp(0.0, 1.0));
+      canvas.drawCircle(point, 1.1 + phase * 2.1, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ParticlePainter oldDelegate) =>
+  bool shouldRepaint(covariant _ConvergePainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.fade != fade ||
+      oldDelegate.color != color;
+}
+
+/// The vertical light column out of the opened chest.
+class _BeamPainter extends CustomPainter {
+  const _BeamPainter({
+    required this.spread,
+    required this.fade,
+    required this.color,
+    required this.mouth,
+  });
+
+  final double spread;
+  final double fade;
+  final Color color;
+  final Offset mouth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final alpha = (spread * fade).clamp(0.0, 1.0);
+    if (alpha <= 0) return;
+    final halfTop = size.width * (.10 + .16 * spread);
+    final halfBase = 16.0 + 10 * spread;
+    final path = Path()
+      ..moveTo(mouth.dx - halfBase, mouth.dy)
+      ..lineTo(mouth.dx - halfTop, 0)
+      ..lineTo(mouth.dx + halfTop, 0)
+      ..lineTo(mouth.dx + halfBase, mouth.dy)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.white.withValues(alpha: .55 * alpha),
+            color.withValues(alpha: .34 * alpha),
+            color.withValues(alpha: 0),
+          ],
+          stops: const [0, .4, 1],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, mouth.dy)),
+    );
+    // A hot core line up the middle sells the intensity.
+    canvas.drawRect(
+      Rect.fromLTRB(mouth.dx - 2.5, 0, mouth.dx + 2.5, mouth.dy),
+      Paint()..color = Colors.white.withValues(alpha: .38 * alpha),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BeamPainter oldDelegate) =>
+      oldDelegate.spread != spread ||
+      oldDelegate.fade != fade ||
+      oldDelegate.color != color;
+}
+
+/// The burst debris: sparks and card-shaped shards thrown out of the chest on
+/// ballistic arcs with gravity, tumbling as they fly.
+class _DebrisPainter extends CustomPainter {
+  const _DebrisPainter({
+    required this.progress,
+    required this.color,
+    required this.origin,
+  });
+
+  final double progress;
+  final Color color;
+  final Offset origin;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fade = (1 - ((progress - .55) / .45).clamp(0.0, 1.0)).clamp(0.0, 1.0);
+    if (fade <= 0) return;
+    final paint = Paint();
+    for (var index = 0; index < 34; index++) {
+      final seed = index * 97.0;
+      // Launch mostly upward in a fan.
+      final angle = -math.pi / 2 + math.sin(seed) * 1.15;
+      final speed = size.shortestSide * (.5 + ((seed * .173) % .55));
+      final t = progress;
+      final x = origin.dx + math.cos(angle) * speed * t;
+      final y =
+          origin.dy +
+          math.sin(angle) * speed * t +
+          size.height * .62 * t * t; // gravity
+      if (y > size.height + 8) continue;
+      final baseColor = switch (index % 4) {
+        0 => const Color(0xFFFFD35C),
+        1 => Colors.white,
+        _ => color,
+      };
+      paint.color = baseColor.withValues(alpha: (.9 * fade).clamp(0.0, 1.0));
+      if (index % 3 == 0) {
+        // Tumbling card-shard.
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.rotate(seed + t * (4 + index % 5));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: Offset.zero,
+              width: 5.4 + (index % 3) * 2,
+              height: 7.4 + (index % 4) * 2,
+            ),
+            const Radius.circular(1.4),
+          ),
+          paint,
+        );
+        canvas.restore();
+      } else {
+        canvas.drawCircle(Offset(x, y), 1.3 + (index % 4) * .6, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DebrisPainter oldDelegate) =>
       oldDelegate.progress != progress || oldDelegate.color != color;
 }

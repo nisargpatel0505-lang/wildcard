@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../domain/cards.dart';
@@ -8,8 +10,13 @@ import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
 import '../../domain/scoring_engine.dart';
+import '../../domain/sly_quips.dart';
 import '../../game/game_controller.dart';
 import '../../game/game_models.dart';
+import '../../services/haptics_service.dart';
+import '../../services/sfx_service.dart';
+import '../../ui/widgets/death_screen_overlay.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 import '../../ui/wildcard_ui.dart';
 import '../app_controller.dart';
 
@@ -35,17 +42,58 @@ class GameHostScreen extends StatefulWidget {
 
 class _GameHostScreenState extends State<GameHostScreen> {
   RunPhase? _lastPhase;
+
+  /// Haptics follow the player's sound switch, so one toggle silences both.
+  late final HapticsService _haptics = HapticsService(
+    enabled: !widget.appController.account.muted,
+  );
+
+  /// Heat-opening wash. The WebView showed this at the start of every Heat and
+  /// the port dropped it, so Heats began with no sense of occasion.
+  int? _introShownForStage;
+  bool _introVisible = false;
   bool _victorySequenceStarted = false;
   bool _terminalAdAttempted = false;
+  bool _deathScreenShown = false;
   bool _claimingRunDouble = false;
 
+  /// Sly's live table talk, drawn from the ported WebView quip pools. When
+  /// null the passive state description is shown instead.
+  final math.Random _slyRandom = math.Random();
+  String? _slyLine;
+  SlyExpression? _slyFace;
+  Timer? _slyHold;
+
+  /// Cards that have already scored in the current hand. They stay lifted so
+  /// the hand visibly builds up card by card as scoring walks through it.
+  final Set<String> _scoredCardIds = <String>{};
+
+  /// Score callout ("WILD!" / "MEGA!"…) stamped over the table when a hand
+  /// resolves, mirroring the WebView's `calloutFor`.
+  ///
+  /// Held long enough to read a word and register the win. The stamp lands
+  /// during `resultHold`, so it must not outlive that pause.
+  static const Duration _calloutHold = Duration(milliseconds: 1200);
+  String? _calloutWord;
+  Color? _calloutColor;
+  int _calloutSeq = 0;
+  Timer? _calloutTimer;
+  bool _lastPresentationComplete = false;
+
+  Timer? _gradeChordTimer;
+
   GameController get game => widget.gameController;
+  SfxService get _sfx => widget.appController.sfx;
 
   @override
   void initState() {
     super.initState();
     _lastPhase = game.phase;
     game.addListener(_onGameChanged);
+    game.onScoreBeat = _onScoreBeat;
+    // Pre-load the scoring sounds so the very first beat is on time.
+    unawaited(_sfx.warmUp(SfxService.scoringSet));
+    _syncAmbience();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (game.pendingTransition != null) {
@@ -59,20 +107,232 @@ class _GameHostScreenState extends State<GameHostScreen> {
 
   @override
   void dispose() {
+    _slyHold?.cancel();
+    _calloutTimer?.cancel();
+    _gradeChordTimer?.cancel();
+    unawaited(widget.appController.audio.syncAmbience(active: false));
+    game.onScoreBeat = null;
     game.removeListener(_onGameChanged);
     game.dispose();
     super.dispose();
+  }
+
+  /// Applies presentation state changes safely from a controller notification.
+  ///
+  /// `notifyListeners()` fires synchronously from inside the scoring sequence,
+  /// which can land while the framework is building. Calling `setState` there
+  /// throws, and that exception used to propagate back into the controller and
+  /// strand `isBusy`, locking the player out of the shop entirely. Presentation
+  /// now always defers to the next frame and can never throw into gameplay.
+  void _safeSetState(VoidCallback change) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    final building =
+        phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks;
+    if (!building) {
+      if (mounted) setState(change);
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(change);
+    });
+  }
+
+  /// Accumulates the cards that have scored so far this hand, so each one holds
+  /// its lifted position while the next resolves. Cleared the moment a fresh
+  /// scoring pass (or a new selection) begins.
+  void _trackScoredCards() {
+    final p = game.scoringPresentation;
+    final fresh = p.activeEvent == null && !p.complete;
+    if (fresh) {
+      if (_scoredCardIds.isNotEmpty) _scoredCardIds.clear();
+      return;
+    }
+    final id = p.activeCardId;
+    if (id != null) _scoredCardIds.add(id);
   }
 
   void _onGameChanged() {
     final previous = _lastPhase;
     final current = game.phase;
     _lastPhase = current;
+    _syncAmbience();
+    _trackScoredCards();
+    _maybeReactToScoring();
     if (current == RunPhase.victory && previous != RunPhase.victory) {
       _startVictorySequence();
     } else if (current == RunPhase.ended && previous != RunPhase.ended) {
-      _showTerminalAdOnce();
+      if (game.endReason == RunEndReason.defeated ||
+          game.endReason == RunEndReason.abandoned) {
+        // The arcade game-over jingle: descending run, minor stinger, sub thud.
+        _sfx.play('death');
+        _haptics.failure();
+        // The red "GAME OVER / RUN TERMINATED" pull-over plays first, then the
+        // ad — matching the WebView's death sequence.
+        _playDeathScreen(terminated: game.endReason == RunEndReason.abandoned);
+      } else {
+        _showTerminalAdOnce();
+      }
+    } else if (current == RunPhase.shop && previous == RunPhase.game) {
+      _onHeatCleared();
     }
+  }
+
+  /// The eerie modifier loop follows the table exactly as in the WebView:
+  /// only while a modifier Heat is actually being played.
+  void _syncAmbience() {
+    unawaited(
+      widget.appController.audio.syncAmbience(
+        active: game.phase == RunPhase.game && game.state.hasAnyModifier,
+      ),
+    );
+  }
+
+  void _onHeatCleared() {
+    _sfx.play('heat_clear');
+    _haptics.success();
+    if (!mounted) return;
+    // The cheering Sly stage overlay was removed at the player's request: it
+    // fought the shop transition and read as clutter. The sound and the grade
+    // chord stay as the reward beat.
+    if (game.lastHeatReward?.grade.label == 'S') {
+      _gradeChordTimer?.cancel();
+      _gradeChordTimer = Timer(const Duration(milliseconds: 620), () {
+        _sfx.play('grade_s');
+      });
+    }
+  }
+
+  /// Sound and haptic beat for each presented scoring event. The rising tone
+  /// ladders are the WebView's: cards walk up from 320Hz, Jokers from 560Hz,
+  /// Mult procs from 700Hz, all sharing one step counter per hand.
+  void _onScoreBeat(ScoreEvent event, int ordinal) {
+    final step = ordinal.clamp(0, 9);
+    switch (event.type) {
+      case ScoreEventType.card:
+        _sfx.play('score_$step');
+      case ScoreEventType.rankJoker:
+        _sfx.play('joker_$step');
+        _haptics.jokerBeat();
+      case ScoreEventType.retrigger:
+        _sfx.play('retrigger');
+        _haptics.jokerBeat();
+      case ScoreEventType.seven:
+        _sfx.play('seven_roll');
+        _haptics.jokerBeat();
+        Timer(const Duration(milliseconds: 480), () {
+          if (!mounted) return;
+          if (event.hit == true) {
+            _sfx.play('jackpot');
+            _saySly(SlyMood.sevenHit);
+          } else if (event.hit == false) {
+            _sfx.play('seven_miss');
+            _saySly(SlyMood.sevenMiss);
+          }
+        });
+      case ScoreEventType.mult:
+      case ScoreEventType.xMult:
+        _sfx.play('mult_$step');
+        _haptics.jokerBeat();
+    }
+  }
+
+  /// Fires once when a hand's presentation completes: callout stamp, chord,
+  /// haptic and Sly's table reaction — the WebView's end-of-hand beat.
+  void _maybeReactToScoring() {
+    final presentation = game.scoringPresentation;
+    final complete = presentation.complete && presentation.result != null;
+    if (complete == _lastPresentationComplete) return;
+    _lastPresentationComplete = complete;
+    if (!complete) return;
+    final result = presentation.result!;
+    final target = math.max(1, game.state.target);
+    final total = result.total;
+    String? word;
+    Color? color;
+    String chord;
+    if (total >= target) {
+      word = 'WILD!';
+      color = const Color(0xFFF7C548);
+      chord = 'callout_wild';
+    } else if (total >= target * 0.6) {
+      word = 'MEGA!';
+      color = const Color(0xFFB794FF);
+      chord = 'callout_mega';
+    } else if (total >= target * 0.35) {
+      word = 'GREAT!';
+      color = const Color(0xFF45E0C6);
+      chord = 'callout_great';
+    } else if (total >= target * 0.2) {
+      word = 'NICE!';
+      color = const Color(0xFF9B7BFF);
+      chord = 'callout_nice';
+    } else {
+      chord = 'hand_total';
+    }
+    _sfx.play(chord);
+    if (word != null) {
+      if (word == 'WILD!') {
+        _haptics.success();
+      } else {
+        _haptics.play();
+      }
+      _calloutTimer?.cancel();
+      _safeSetState(() {
+        _calloutWord = word;
+        _calloutColor = color;
+        _calloutSeq++;
+      });
+      _calloutTimer = Timer(_calloutHold, () {
+        if (mounted) _safeSetState(() => _calloutWord = null);
+      });
+    }
+    // Sly reacts to every played hand; one play left overrides everything.
+    if (game.state.handsLeft == 1 && game.state.stageScore < game.state.target) {
+      _saySly(SlyMood.clutch);
+    } else {
+      _saySly(_moodForHand(result));
+    }
+  }
+
+  SlyMood _moodForHand(ScoreResult result) {
+    final target = math.max(1, game.state.target);
+    final mood = switch (result.handType) {
+      HandType.highCard => SlyMood.highCard,
+      HandType.pair => SlyMood.pair,
+      HandType.twoPair => SlyMood.twoPair,
+      HandType.threeOfAKind => SlyMood.trips,
+      HandType.straight => SlyMood.straight,
+      HandType.flush => SlyMood.flush,
+      HandType.fullHouse => SlyMood.fullHouse,
+      HandType.fourOfAKind => SlyMood.quads,
+      HandType.straightFlush => SlyMood.straightFlush,
+      HandType.royalFlush => SlyMood.royalFlush,
+    };
+    // A weak shape that still lands a huge score leaves Sly speechless.
+    if (result.total >= math.max(500, target * 0.7) &&
+        (mood == SlyMood.highCard || mood == SlyMood.pair)) {
+      return SlyMood.unbelievable;
+    }
+    return mood;
+  }
+
+  void _saySly(SlyMood mood) {
+    final set = slyQuips[mood];
+    if (set == null || !mounted) return;
+    if (mood == SlyMood.laughing) _sfx.play('sly_laugh');
+    _slyHold?.cancel();
+    _safeSetState(() {
+      _slyLine = set.pick(_slyRandom);
+      _slyFace = set.expression;
+    });
+    _slyHold = Timer(slyHoldFor(mood), () {
+      if (!mounted) return;
+      _safeSetState(() {
+        _slyLine = null;
+        _slyFace = null;
+      });
+    });
   }
 
   Future<void> _startVictorySequence() async {
@@ -87,6 +347,29 @@ class _GameHostScreenState extends State<GameHostScreen> {
     );
     if (!mounted) return;
     await widget.appController.ads.showInterstitial();
+  }
+
+  /// Plays the arcade death pull-over as a fullscreen route, then shows the ad.
+  Future<void> _playDeathScreen({required bool terminated}) async {
+    if (_deathScreenShown || !mounted) return;
+    _deathScreenShown = true;
+    await Navigator.of(context).push<void>(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.transparent,
+        transitionDuration: Duration.zero,
+        pageBuilder: (routeContext, _, _) => DeathScreenOverlay(
+          terminated: terminated,
+          onFinished: () {
+            if (Navigator.of(routeContext).canPop()) {
+              Navigator.of(routeContext).pop();
+            }
+          },
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _showTerminalAdOnce();
   }
 
   Future<void> _showTerminalAdOnce() async {
@@ -107,15 +390,80 @@ class _GameHostScreenState extends State<GameHostScreen> {
       },
       child: ListenableBuilder(
         listenable: game,
-        builder: (context, _) => switch (game.phase) {
-          RunPhase.game => _buildRunTable(),
-          RunPhase.shop => _buildShop(),
-          RunPhase.revive => _buildRevive(),
-          RunPhase.victory => _buildVictory(),
-          RunPhase.ended => _buildResult(),
+        builder: (context, _) {
+          _maybeStartRoundIntro();
+          final screen = switch (game.phase) {
+            RunPhase.game => _buildRunTable(),
+            RunPhase.shop => _buildShop(),
+            RunPhase.revive => _buildRevive(),
+            RunPhase.victory => _buildVictory(),
+            RunPhase.ended => _buildResult(),
+          };
+          final inGame = game.phase == RunPhase.game;
+          final layers = <Widget>[screen];
+          // "WILD!" / "MEGA!" stamped over the table as a hand resolves.
+          if (inGame && _calloutWord != null) {
+            layers.add(
+              Positioned.fill(
+                child: _CalloutStamp(
+                  key: ValueKey('callout-$_calloutSeq'),
+                  word: _calloutWord!,
+                  color: _calloutColor ?? const Color(0xFFF7C548),
+                ),
+              ),
+            );
+          }
+          if (inGame && _introVisible) {
+            final boss = game.state.hasBossModifier;
+            final mods = game.state.modifiers;
+            final detail = mods.isEmpty
+                ? ''
+                : '${mods.map((m) => m.displayName).join(' + ')} — '
+                      '${mods.first.description} · ';
+            // The Sly deal sprite was removed at the player's request — it read
+            // as messy at the start of each Heat. Only the intro card remains.
+            layers.add(
+              Positioned.fill(
+                child: RoundIntroOverlay(
+                  kicker: boss
+                      ? 'BOSS TABLE'
+                      : mods.isNotEmpty
+                      ? 'MODIFIER ACTIVE'
+                      : 'NEW DEAL',
+                  title:
+                      '${game.state.mode == RunMode.gauntlet ? 'GAUNTLET' : 'HEAT'}'
+                      ' ${game.state.stage}',
+                  subtitle: '${detail}Target ${game.state.target}',
+                  boss: boss,
+                  onFinished: () {
+                    if (mounted) setState(() => _introVisible = false);
+                  },
+                ),
+              ),
+            );
+          }
+          if (layers.length == 1) return screen;
+          return Stack(children: layers);
         },
       ),
     );
+  }
+
+  /// Fires the Heat wash once per Heat, on entry to the table.
+  void _maybeStartRoundIntro() {
+    if (game.phase != RunPhase.game) return;
+    final stage = game.state.stage;
+    if (_introShownForStage == stage) return;
+    _introShownForStage = stage;
+    _haptics.success();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _safeSetState(() => _introVisible = true);
+      // Sly still greets in his bubble; a modifier table gets the warning.
+      _saySly(
+        game.state.hasAnyModifier ? SlyMood.modifier : SlyMood.greet,
+      );
+    });
   }
 
   Widget _buildRunTable() {
@@ -124,6 +472,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
         card.copyWith(selected: game.selectedCardIds.contains(card.uid)),
     ];
     final presentation = game.scoringPresentation;
+    // Scoring is mid-flight while the controller is still pacing events.
+    final scoringInFlight =
+        presentation.activeEvent != null && !presentation.complete;
     final activeCardId = presentation.activeCardId;
     final highlightedCard = activeCardId == null
         ? null
@@ -132,15 +483,28 @@ class _GameHostScreenState extends State<GameHostScreen> {
     return RunTableScreen(
       state: game.state,
       hand: selectedHand,
-      slySpeech: _slySpeech(score),
-      slyExpression: _slyExpression(score),
+      // A live quip from the ported pools wins; otherwise fall back to the
+      // passive state description.
+      slySpeech: _slyLine ?? _slySpeech(score),
+      slyExpression: _slyFace ?? _slyExpression(score),
       slySkin: _slySkin(widget.appController.account.equipped.sly),
       tableFeltId: widget.appController.account.equipped.table,
       score: score,
       activeScoreEvent: presentation.activeEvent,
+      // Feed the controller's beat-by-beat running values to the equation while
+      // a hand is resolving. Without these the display jumped straight to the
+      // final total and scoring read as instant.
+      liveRank: scoringInFlight ? presentation.visibleRank : null,
+      liveMultiplier: scoringInFlight ? presentation.visibleMultiplier : null,
+      liveTotal: scoringInFlight ? presentation.visibleTotal : null,
       highlightedHandIndex: highlightedCard == null || highlightedCard < 0
           ? null
           : highlightedCard,
+      // Cards that already scored this hand stay lifted, minus the one scoring
+      // right now (it renders with the stronger active treatment instead).
+      scoredCardIds: _scoredCardIds
+          .where((id) => id != activeCardId)
+          .toSet(),
       highlightedJokerIndex: presentation.activeJokerIndex,
       stakeText: game.stake > 0
           ? '${game.stake} → ${game.stakePayoutAmount}'
@@ -152,7 +516,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
         if (index < 0 || index >= game.hand.length) return;
         final id = game.hand[index].uid;
         if (id != null) {
-          unawaited(widget.appController.audio.playUiClick());
+          // The WebView's two-tone pick-up/put-down, not a generic click.
+          _sfx.play(game.selectedCardIds.contains(id) ? 'deselect' : 'select');
+          _haptics.selection();
           unawaited(_act(game.toggleCard(id)));
         }
       },
@@ -169,10 +535,18 @@ class _GameHostScreenState extends State<GameHostScreen> {
         ),
       ),
       onPlay: game.canPlay
-          ? () => unawaited(_soundAndAct(game.playSelected()))
+          ? () {
+              _haptics.play();
+              unawaited(_soundAndAct(game.playSelected()));
+            }
           : null,
       onDiscard: game.canDiscard
-          ? () => unawaited(_soundAndAct(game.discardSelected()))
+          ? () {
+              _haptics.discard();
+              _sfx.play('discard');
+              _saySly(SlyMood.discard);
+              unawaited(_act(game.discardSelected()));
+            }
           : null,
       onAbandon: _confirmAbandon,
     );
@@ -215,7 +589,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
         if (await _confirm(
           'Sell ${joker.name} for ${game.sellValue(joker)} run coins?',
         )) {
-          await _act(game.sellJoker(index));
+          final result = await game.sellJoker(index);
+          if (result.ok) {
+            _sfx.play('sell');
+          } else if (mounted) {
+            _message(result.message);
+          }
         }
       },
       onInspectJokerOffer: (offer) => _inspectJoker(offer.joker),
@@ -412,7 +791,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
 
   Future<void> _buyJoker(JokerDefinition joker) async {
     if (game.state.jokerIds.length < maxJokers) {
-      await _act(game.buyJoker(joker.id));
+      final result = await game.buyJoker(joker.id);
+      if (result.ok) {
+        _sfx.play('buy');
+      } else if (mounted) {
+        _message(result.message);
+      }
       return;
     }
     final swapIndex = await showModalBottomSheet<int>(
@@ -423,7 +807,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
           _JokerSwapSheet(incoming: joker, heldIds: game.state.jokerIds),
     );
     if (swapIndex != null) {
-      await _act(game.buyJoker(joker.id, swapIndex: swapIndex));
+      final result = await game.buyJoker(joker.id, swapIndex: swapIndex);
+      if (result.ok) {
+        _sfx.play('buy');
+      } else if (mounted) {
+        _message(result.message);
+      }
     }
   }
 
@@ -440,7 +829,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
       ),
     );
     if (selection != null) {
-      await _act(game.buySupply(supply.id, selection));
+      final result = await game.buySupply(supply.id, selection);
+      if (result.ok) {
+        _sfx.play('buy');
+      } else if (mounted) {
+        _message(result.message);
+      }
     }
   }
 
@@ -541,11 +935,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     await _act(action);
   }
 
-  void _message(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _message(String message) => showWildcardToast(context, message);
 
   String _slySpeech(ScoreResult? score) {
     if (game.isBusy && game.scoringPresentation.activeEvent != null) {
@@ -607,36 +997,66 @@ class _PhaseScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = danger ? context.wildcard.coral : context.wildcard.gold;
+    final content = SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 34, 18, 28),
+        children: [
+          Icon(icon, color: accent, size: 58),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: danger ? const Color(0xFFFFE3DE) : accent,
+              fontFamily: 'Bungee',
+              fontSize: danger ? 31 : 27,
+              height: 1.05,
+              letterSpacing: danger ? 1.2 : 0,
+              shadows: danger
+                  ? const [
+                      Shadow(color: Color(0xCC2A0000), offset: Offset(0, 2)),
+                      Shadow(color: Color(0x99FF3B2F), blurRadius: 18),
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(subtitle, textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          WildcardPanel(
+            borderColor: accent,
+            child: Column(children: children),
+          ),
+        ],
+      ),
+    );
     return Scaffold(
       backgroundColor: const Color(0xFF080414),
       body: WildcardBackground(
         room: WildcardRoom.themedHome,
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 34, 18, 28),
-            children: [
-              Icon(icon, color: accent, size: 58),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: accent,
-                  fontFamily: 'Bungee',
-                  fontSize: 27,
-                  height: 1.05,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(subtitle, textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              WildcardPanel(
-                borderColor: accent,
-                child: Column(children: children),
-              ),
-            ],
-          ),
-        ),
+        // The WebView build washed the whole screen red when a run died, and
+        // that punch was missing here. Painted over the room art, under the
+        // content, so the text stays legible.
+        child: danger
+            ? Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment(0, -0.35),
+                            radius: 1.15,
+                            colors: [Color(0x8CFF2A1F), Color(0xD9370006)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  content,
+                ],
+              )
+            : content,
       ),
     );
   }
@@ -938,6 +1358,140 @@ class _SlyTearCinematicState extends State<_SlyTearCinematic> {
       ],
     ),
   );
+}
+
+/// The end-of-hand callout ("NICE!" → "WILD!") stamped over the table.
+///
+/// Mirrors the WebView's `calloutpop`: slams in oversized, settles with an
+/// overshoot, holds, then fades while lifting away.
+class _CalloutStamp extends StatefulWidget {
+  const _CalloutStamp({required this.word, required this.color, super.key});
+
+  final String word;
+  final Color color;
+
+  @override
+  State<_CalloutStamp> createState() => _CalloutStampState();
+}
+
+class _CalloutStampState extends State<_CalloutStamp>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1000),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Align(
+        alignment: const Alignment(0, -0.34),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, child) {
+            final t = _c.value;
+            final entry = Curves.easeOutBack.transform((t / 0.22).clamp(0, 1));
+            final exit = Curves.easeIn.transform(((t - 0.72) / 0.28).clamp(0, 1));
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Suit-symbol sparks burst outward behind the word.
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _CalloutSparkPainter(
+                      progress: t,
+                      color: widget.color,
+                    ),
+                  ),
+                ),
+                Opacity(
+                  opacity: ((t < 0.05 ? t / 0.05 : 1) * (1 - exit)).clamp(
+                    0.0,
+                    1.0,
+                  ),
+                  child: Transform.translate(
+                    offset: Offset(0, -26 * exit),
+                    child: Transform.scale(
+                      scale: 2.1 - 1.1 * entry,
+                      child: Transform.rotate(angle: -0.06, child: child),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+          child: Text(
+            widget.word,
+            style: TextStyle(
+              color: widget.color,
+              fontFamily: 'Bungee',
+              fontSize: 46,
+              height: 1,
+              letterSpacing: 1.5,
+              shadows: [
+                const Shadow(color: Color(0xE6000000), offset: Offset(0, 3)),
+                Shadow(
+                  color: widget.color.withValues(alpha: 0.65),
+                  blurRadius: 26,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Radiating suit-glyph sparks behind a callout — the WebView's `sparks()`
+/// moment, native. Deterministic per-index so the painter allocates nothing.
+class _CalloutSparkPainter extends CustomPainter {
+  const _CalloutSparkPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  static const _suits = ['♠', '♥', '♦', '♣'];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || progress >= 0.9) return;
+    final origin = Offset(size.width / 2, size.height / 2);
+    final p = Curves.easeOutCubic.transform((progress / 0.7).clamp(0.0, 1.0));
+    final fade = (1 - ((progress - 0.45) / 0.45)).clamp(0.0, 1.0);
+    for (var i = 0; i < 16; i++) {
+      final seed = i * 97.0;
+      final angle = (i / 16) * math.pi * 2 + math.sin(seed) * 0.3;
+      final dist = (70 + (seed % 60)) * p;
+      final point = Offset(
+        origin.dx + math.cos(angle) * dist,
+        origin.dy + math.sin(angle) * dist - p * 8,
+      );
+      final glyphColor = i.isEven ? color : const Color(0xFFFFF3C8);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: _suits[i % 4],
+          style: TextStyle(
+            color: glyphColor.withValues(alpha: fade),
+            fontSize: 13 + (i % 3) * 3,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, point - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CalloutSparkPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }
 
 TextStyle _sheetHeading(BuildContext context) =>

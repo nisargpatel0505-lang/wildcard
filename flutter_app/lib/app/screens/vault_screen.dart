@@ -9,6 +9,8 @@ import '../../ui/wildcard_ui.dart';
 import '../../ui/widgets/royal_vault_animation.dart';
 import 'joker_collection_section.dart';
 import 'page_frame.dart';
+import '../../ui/widgets/wildcard_toast.dart';
+import '../../services/haptics_service.dart';
 
 class VaultScreen extends StatefulWidget {
   const VaultScreen({required this.controller, super.key});
@@ -260,6 +262,8 @@ class _VaultScreenState extends State<VaultScreen> {
       }
       await showRoyalVaultAnimation(
         context: context,
+        sfx: widget.controller.sfx,
+        haptics: HapticsService(enabled: !widget.controller.account.muted),
         tier: tier == JokerChestTier.wood
             ? RoyalVaultVisualTier.wooden
             : RoyalVaultVisualTier.golden,
@@ -295,6 +299,8 @@ class _VaultScreenState extends State<VaultScreen> {
       }
       await showRoyalVaultAnimation(
         context: context,
+        sfx: widget.controller.sfx,
+        haptics: HapticsService(enabled: !widget.controller.account.muted),
         tier: RoyalVaultVisualTier.cosmetic,
         reward: RoyalVaultRewardViewModel(
           name: reward.name,
@@ -325,13 +331,11 @@ class _VaultScreenState extends State<VaultScreen> {
     try {
       final earned = await widget.controller.claimRewardedCoins();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            earned ? '+25 coins added.' : 'Rewarded ad unavailable.',
-          ),
-        ),
+      showWildcardToast(
+        context,
+        earned ? '+25 coins added.' : 'Rewarded ad unavailable.',
       );
+      if (earned) widget.controller.sfx.play('coins');
     } catch (_) {
       if (mounted) _message('Rewarded ad unavailable. Please try again.');
     } finally {
@@ -339,11 +343,7 @@ class _VaultScreenState extends State<VaultScreen> {
     }
   }
 
-  void _message(String value) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(value)));
-  }
+  void _message(String value) => showWildcardToast(context, value);
 
   Widget _coinBadge(int coins) => Semantics(
     label: '$coins account coins',

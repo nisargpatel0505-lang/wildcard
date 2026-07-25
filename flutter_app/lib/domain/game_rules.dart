@@ -260,10 +260,14 @@ class ScoringState {
     this.previousGauntletModifierName,
     this.endless = false,
   }) : rngCounters = rngCounters ?? RandomCounters(),
-       jokerIds = jokerIds ?? <String>[],
+       // Both of these are live, mutating run state: Jokers are bought and
+       // sold, cards are cut and copied. A caller handing in a fixed-length
+       // list (the save decoder used to) made every one of those operations
+       // throw, so always take a growable copy.
+       jokerIds = List<String>.of(jokerIds ?? const <String>[]),
        blockedJokerIds = blockedJokerIds ?? <String>{},
        jokerState = jokerState ?? <String, double>{},
-       cards = cards ?? baseCardSet(),
+       cards = cards == null ? baseCardSet() : List<PlayingCard>.of(cards),
        handLevels = handLevels ?? <HandType, int>{},
        modifiers = _uniqueModifiers(
          modifierStack ??

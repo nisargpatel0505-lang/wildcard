@@ -23,6 +23,7 @@ import 'screens/settings_screen.dart';
 import 'screens/shop_hub_screen.dart';
 import 'screens/tutorial_screen.dart';
 import 'screens/vault_screen.dart';
+import '../ui/widgets/wildcard_toast.dart';
 
 class WildcardApp extends StatefulWidget {
   const WildcardApp({required this.controller, super.key});
@@ -67,6 +68,7 @@ class _WildcardAppState extends State<WildcardApp> {
                     widget.controller.dailyLoginOffer.available,
                 weeklyMissionsAttention:
                     widget.controller.weeklyMissionsNeedAttention,
+                cabinetAttention: widget.controller.cabinetNeedsAttention,
                 soundEnabled: !widget.controller.account.muted,
                 musicEnabled: widget.controller.account.musicOn,
                 fastScoring:
@@ -135,9 +137,9 @@ class _WildcardAppState extends State<WildcardApp> {
   Future<void> _claimDaily(BuildContext context) async {
     final reward = await widget.controller.claimDailyLoginReward();
     if (context.mounted && reward > 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Daily reward · +$reward coins')));
+      // The WebView paired every coin grant with its little coin chord.
+      widget.controller.sfx.play('coins');
+      showWildcardToast(context, 'Daily reward · +$reward coins');
     }
   }
 
@@ -245,9 +247,7 @@ class _WildcardAppState extends State<WildcardApp> {
   void _message(String value) {
     final context = navigatorKey.currentContext;
     if (context == null) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(value)));
+    showWildcardToast(context, value);
   }
 
   static WildcardThemeId _themeId(String id) => switch (id) {

@@ -274,9 +274,12 @@ List<PlayingCard> _cards(Object? value) {
   return result;
 }
 
-List<String> _strings(Object? value) => value is List
-    ? value.whereType<String>().toList(growable: false)
-    : const <String>[];
+/// Decoded string lists become live run state (notably `jokerIds`, which is
+/// mutated on every Joker bought or sold), so they must stay growable. Handing
+/// back a fixed-length list made buying a Joker throw mid-transaction, which
+/// left the run marked busy and locked the player out of the whole shop.
+List<String> _strings(Object? value) =>
+    value is List ? value.whereType<String>().toList() : <String>[];
 
 HandType? _handType(Object? value) {
   if (value is! String || value.isEmpty) return null;

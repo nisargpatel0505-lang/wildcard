@@ -8,6 +8,7 @@ import '../../domain/progression_catalog.dart';
 import '../../services/billing_service.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 
 class ShopHubScreen extends StatefulWidget {
   const ShopHubScreen({required this.controller, super.key});
@@ -377,9 +378,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
     }
   }
 
-  void _snack(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => showWildcardToast(context, message);
 
   @override
   void dispose() {

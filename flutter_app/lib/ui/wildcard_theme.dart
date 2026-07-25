@@ -370,3 +370,16 @@ extension WildcardThemeContext on BuildContext {
       Theme.of(this).extension<WildcardThemeTokens>() ??
       WildcardThemeTokens.classic;
 }
+
+/// A thin dark outline for text that sits directly on room artwork.
+///
+/// Home and menu text previously relied on the art being dark enough, which
+/// broke over the brighter themes. Four offset shadows read as a hairline
+/// stroke at any size and cost far less than a stroked TextPainter.
+const List<Shadow> wildcardTextOutline = <Shadow>[
+  Shadow(color: Color(0xE6000000), offset: Offset(0, 1)),
+  Shadow(color: Color(0xE6000000), offset: Offset(1, 0)),
+  Shadow(color: Color(0xE6000000), offset: Offset(-1, 0)),
+  Shadow(color: Color(0xE6000000), offset: Offset(0, -1)),
+  Shadow(color: Color(0x99000000), blurRadius: 5, offset: Offset(0, 2)),
+];

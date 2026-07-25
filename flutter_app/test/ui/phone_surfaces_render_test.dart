@@ -243,7 +243,14 @@ class _Harness extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: WildcardTheme.build(),
-      home: child,
+      // Sly's idle bob repeats forever at runtime (as it did in the original
+      // CSS), so pumpAndSettle can never settle with it running. Disabling
+      // animations here keeps layout assertions deterministic and doubles as
+      // coverage of the reduced-motion path.
+      home: MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: true),
+        child: child,
+      ),
     );
   }
 }

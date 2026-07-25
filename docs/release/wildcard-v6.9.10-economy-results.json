@@ -1,12 +1,12 @@
 {
   "reportVersion": "6.9.10",
-  "generatedAt": "2026-07-17T00:15:13.328Z",
-  "durationMs": 11524,
-  "modelHash": "89a38fd3bd898342d9c9b1d422729153e963661d8ea8548af60b4ed8e4ea33c2",
+  "generatedAt": "2026-07-18T14:15:13.795Z",
+  "durationMs": 19203,
+  "modelHash": "d9ab54b5afc787e8a002bc84334759c1cc7af6be33621a2b18112b9b60026185",
   "source": {
     "file": "www/index.html",
-    "detectedVersion": "6.9.10",
-    "sha256": "116d1878b733667b2fdb87c28e9ed38b5f8010288894e11bbebe9cf9a4c81521"
+    "detectedVersion": "6.9.13",
+    "sha256": "499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9"
   },
   "script": {
     "file": "tools/economy-sim-v69.js",

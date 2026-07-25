@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/joker_catalog.dart';
 import '../wildcard_theme.dart';
+import 'springy.dart';
 
 /// Compact two-row-compatible Joker surface.
 ///
@@ -80,10 +81,14 @@ class CompactJokerCard extends StatelessWidget {
       onTap: onTap,
       child: RepaintBoundary(
         child: ExcludeSemantics(
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOutCubic,
-            scale: highlighted ? 1.018 : 1,
+          // A Joker proc springs up and settles with overshoot rather than
+          // easing to a dead stop, so it reads as a punch when it fires.
+          child: SpringValue(
+            target: highlighted ? 1.13 : 1,
+            stiffness: 340,
+            damping: 0.42,
+            builder: (context, scale, child) =>
+                Transform.scale(scale: scale, child: child),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 170),
               height: height,
@@ -135,10 +140,15 @@ class CompactJokerCard extends StatelessWidget {
                                       joker!.name.toUpperCase(),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
+                                      // Bungee at 8.5px is an all-caps display
+                                      // face crushed too small to read. Space
+                                      // Grotesk bold stays legible at this size.
                                       style: TextStyle(
                                         color: accent,
-                                        fontFamily: 'Bungee',
-                                        fontSize: 8.5,
+                                        fontFamily: 'SpaceGrotesk',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 9.5,
+                                        letterSpacing: 0.3,
                                         height: 1.1,
                                       ),
                                     ),
@@ -190,8 +200,10 @@ class CompactJokerCard extends StatelessWidget {
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Color(0xFF07120F),
-                                      fontFamily: 'Bungee',
-                                      fontSize: 7,
+                                      fontFamily: 'SpaceGrotesk',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 8.5,
+                                      letterSpacing: 0.2,
                                       height: 1,
                                     ),
                                   ),

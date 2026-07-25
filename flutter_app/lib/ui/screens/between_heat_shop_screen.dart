@@ -91,7 +91,9 @@ class BetweenHeatShopScreen extends StatelessWidget {
                     child: SingleChildScrollView(
                       key: const Key('between-heat-shop-scroll'),
                       physics: const ClampingScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(side, 2, side, 82),
+                      // Extra bottom room so the content clears the raised
+                      // Next Heat button.
+                      padding: EdgeInsets.fromLTRB(side, 2, side, 96),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -184,7 +186,9 @@ class BetweenHeatShopScreen extends StatelessWidget {
                   Positioned(
                     left: side,
                     right: side,
-                    bottom: 5,
+                    // Lifted well clear of the gesture bar / rounded corner —
+                    // at bottom:5 it read as cut off on tall phones.
+                    bottom: 18,
                     child: WildcardButton(
                       key: const Key('next-heat-button'),
                       label: 'Next Heat',
@@ -244,7 +248,7 @@ class _ShopHeader extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Heat $stageCleared cleared${heatReward == null ? '' : '  \u00b7  +$heatReward run coins'}${grade == null ? '' : '  \u00b7  Grade $grade'}',
+                'Heat $stageCleared cleared${heatReward == null ? '' : '  \u00b7  +$heatReward run coins'}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -256,9 +260,119 @@ class _ShopHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (grade != null) ...[
+          const SizedBox(width: 6),
+          _GradeStamp(grade: grade!, compact: compact),
+        ],
         const SizedBox(width: 6),
         _RunCoinBadge(coins: math.max(0, runCoins)),
       ],
+    );
+  }
+}
+
+/// The Heat grade slammed onto the shop header, restoring the WebView's
+/// `stampin` moment. Before this the grade was a plain text suffix and an
+/// S run went completely uncelebrated.
+class _GradeStamp extends StatefulWidget {
+  const _GradeStamp({required this.grade, required this.compact});
+
+  final String grade;
+  final bool compact;
+
+  @override
+  State<_GradeStamp> createState() => _GradeStampState();
+}
+
+class _GradeStampState extends State<_GradeStamp>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (disabled) {
+      _c.value = 1;
+    } else {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  Color _color(BuildContext context) {
+    final tokens = context.wildcard;
+    return switch (widget.grade) {
+      'S' => tokens.gold,
+      'A' => tokens.mint,
+      'B' => tokens.violet,
+      _ => tokens.creamDim,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color(context);
+    final size = widget.compact ? 40.0 : 46.0;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        final t = Curves.easeOutBack.transform(_c.value);
+        return Opacity(
+          opacity: _c.value.clamp(0.0, 1.0),
+          child: Transform.rotate(
+            angle: -0.14,
+            child: Transform.scale(scale: 2.2 - 1.2 * t, child: child),
+          ),
+        );
+      },
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: color, width: 2.4),
+          color: color.withValues(alpha: 0.12),
+          boxShadow: [
+            BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 12),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.grade,
+              style: TextStyle(
+                color: color,
+                fontFamily: 'Bungee',
+                fontSize: widget.compact ? 17 : 20,
+                height: 1,
+              ),
+            ),
+            Text(
+              'GRADE',
+              style: TextStyle(
+                color: color.withValues(alpha: 0.75),
+                fontSize: 6,
+                height: 1.4,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

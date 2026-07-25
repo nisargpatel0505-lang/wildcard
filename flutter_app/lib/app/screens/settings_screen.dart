@@ -14,6 +14,7 @@ import '../../services/billing_service.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
 import 'tutorial_screen.dart';
+import '../../ui/widgets/wildcard_toast.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.controller, super.key});
@@ -614,9 +615,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openUrl(String url) =>
       launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 
-  void _snack(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => showWildcardToast(context, message);
 }
 
 String sanitizeDailyBoardName(String value) {

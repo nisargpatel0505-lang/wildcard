@@ -20,6 +20,7 @@ class WildcardHomeScreen extends StatelessWidget {
     this.hasSavedRun = false,
     this.dailyRewardAvailable = false,
     this.weeklyMissionsAttention = false,
+    this.cabinetAttention = false,
     this.soundEnabled = true,
     this.musicEnabled = true,
     this.fastScoring = false,
@@ -45,6 +46,7 @@ class WildcardHomeScreen extends StatelessWidget {
   final bool hasSavedRun;
   final bool dailyRewardAvailable;
   final bool weeklyMissionsAttention;
+  final bool cabinetAttention;
   final bool soundEnabled;
   final bool musicEnabled;
   final bool fastScoring;
@@ -249,6 +251,7 @@ class WildcardHomeScreen extends StatelessWidget {
               minHeight: metrics.tileHeight,
               fontSize: tileText,
               padding: tilePadding,
+              attention: cabinetAttention,
             ),
             WildcardButton(
               label: 'Weekly Missions',
@@ -377,6 +380,7 @@ class _StatusChip extends StatelessWidget {
         style: TextStyle(
           color: tokens.gold,
           fontFamily: 'Bungee',
+          shadows: wildcardTextOutline,
           fontSize: 9,
           height: 1,
           letterSpacing: 0.55,
@@ -420,6 +424,7 @@ class _CoinBadge extends StatelessWidget {
               style: TextStyle(
                 color: tokens.gold,
                 fontFamily: 'Bungee',
+                shadows: wildcardTextOutline,
                 fontSize: 13,
                 height: 1,
                 letterSpacing: 0.4,
