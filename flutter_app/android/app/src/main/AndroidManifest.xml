@@ -18,9 +18,12 @@
             android:name="com.google.android.gms.games.APP_ID"
             android:value="@string/game_services_project_id" />
 
-        <!-- WILDCARD initializes both SDKs only after the player accepts the
+        <!-- WILDCARD initializes these SDKs only after the player accepts the
              first-launch privacy notice. Their library providers would run at
              process startup and bypass that gate. -->
+        <provider
+            android:name="com.google.android.gms.ads.MobileAdsInitProvider"
+            tools:node="remove" />
         <provider
             android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
             tools:node="remove" />

@@ -71,12 +71,14 @@ class ScoringTimelineBuilder {
     var sequence = 0;
     var cursor = pacing.leadIn;
     final beats = <ScorePresentationBeat>[];
+    final visualChips = <ScoreVisualChip>[];
     final fast = pacing == ScoringPacing.fast;
 
     ScoringPresentation frameFor(
       ScoreEvent event, {
       required String label,
       required ScoreChipStyle style,
+      required Duration start,
       required Duration duration,
     }) {
       final cardIndex = event.cardIndex;
@@ -87,6 +89,23 @@ class ScoringTimelineBuilder {
       final jokerIndex = event.jokerIndex != null && event.jokerIndex! >= 0
           ? event.jokerIndex
           : null;
+      final frameSequence = ++sequence;
+      final chip = cardId != null && label.isNotEmpty
+          ? ScoreVisualChip(
+              sequence: frameSequence,
+              cardId: cardId,
+              label: label,
+              style: style,
+              start: start,
+              duration: duration,
+            )
+          : null;
+      final activeChips = <ScoreVisualChip>[
+        for (final previous in visualChips)
+          if (previous.end > start) previous,
+        ?chip,
+      ];
+      if (chip != null) visualChips.add(chip);
       return ScoringPresentation(
         result: result,
         handSnapshot: snapshot,
@@ -100,7 +119,8 @@ class ScoringTimelineBuilder {
         visibleTotal: total,
         scoringCardIds: scoringCardIds,
         settledCardIds: Set<String>.unmodifiable(settled),
-        sequence: ++sequence,
+        activeChips: List<ScoreVisualChip>.unmodifiable(activeChips),
+        sequence: frameSequence,
         chipStyle: style,
         phase: ScorePresentationPhase.beat,
       );
@@ -117,6 +137,7 @@ class ScoringTimelineBuilder {
         event,
         label: label,
         style: style,
+        start: cursor,
         duration: duration,
       );
       beats.add(
@@ -190,6 +211,9 @@ class ScoringTimelineBuilder {
       visibleTotal: result.total,
       scoringCardIds: scoringCardIds,
       settledCardIds: Set<String>.unmodifiable(settled),
+      activeChips: List<ScoreVisualChip>.unmodifiable(
+        visualChips.where((chip) => chip.end > cursor),
+      ),
       sequence: ++sequence,
       phase: ScorePresentationPhase.finale,
       finalScoreVisible: true,

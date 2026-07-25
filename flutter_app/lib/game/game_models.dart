@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../domain/account_state.dart';
 import '../domain/cards.dart';
 import '../domain/economy.dart';
@@ -199,6 +201,33 @@ enum ScoreChipStyle {
   jackpot,
 }
 
+/// One short-lived score label attached to a played card.
+///
+/// A scoring beat can begin before the previous label has finished its
+/// 700 ms rise. Keeping these labels in presentation state lets neighbouring
+/// cards overlap exactly as they do in the WebView without rebuilding or
+/// delaying the authoritative scoring sequence.
+@immutable
+class ScoreVisualChip {
+  const ScoreVisualChip({
+    required this.sequence,
+    required this.cardId,
+    required this.label,
+    required this.style,
+    required this.start,
+    required this.duration,
+  });
+
+  final int sequence;
+  final String cardId;
+  final String label;
+  final ScoreChipStyle style;
+  final Duration start;
+  final Duration duration;
+
+  Duration get end => start + duration;
+}
+
 class ScoringPresentation {
   const ScoringPresentation({
     this.result,
@@ -213,6 +242,7 @@ class ScoringPresentation {
     this.visibleTotal = 0,
     this.scoringCardIds = const <String>{},
     this.settledCardIds = const <String>{},
+    this.activeChips = const <ScoreVisualChip>[],
     this.sequence = 0,
     this.chipStyle = ScoreChipStyle.card,
     this.phase = ScorePresentationPhase.idle,
@@ -232,6 +262,7 @@ class ScoringPresentation {
   final int visibleTotal;
   final Set<String> scoringCardIds;
   final Set<String> settledCardIds;
+  final List<ScoreVisualChip> activeChips;
   final int sequence;
   final ScoreChipStyle chipStyle;
   final ScorePresentationPhase phase;

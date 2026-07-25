@@ -380,7 +380,6 @@ class _StatusChip extends StatelessWidget {
         style: TextStyle(
           color: tokens.gold,
           fontFamily: 'Bungee',
-          shadows: wildcardTextOutline,
           fontSize: 9,
           height: 1,
           letterSpacing: 0.55,
@@ -424,7 +423,6 @@ class _CoinBadge extends StatelessWidget {
               style: TextStyle(
                 color: tokens.gold,
                 fontFamily: 'Bungee',
-                shadows: wildcardTextOutline,
                 fontSize: 13,
                 height: 1,
                 letterSpacing: 0.4,

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../domain/cards.dart';
 import '../wildcard_theme.dart';
+import 'suit_glyph.dart';
 
 /// A compact, readable playing card with a non-overlapping touch target.
 ///
-/// The card itself is deliberately STATIC — no idle float, no lift, no scale,
-/// no shake. The player asked for the cards to stay put; all scoring feedback
-/// comes from the border/glow state and the score chip that floats above,
-/// never from moving the card.
+/// The card has no idle motion and stays planted throughout scoring. A selected
+/// card may use one small, selection-only lift so adjacent choices remain
+/// obvious; the table disables that lift as soon as scoring begins.
 class PlayingCardTile extends StatelessWidget {
   const PlayingCardTile({
     required this.card,
@@ -22,6 +22,7 @@ class PlayingCardTile extends StatelessWidget {
     this.scoreChipColor,
     this.highlightColor,
     this.scoreChipSequence = 0,
+    this.liftWhenSelected = false,
     super.key,
   });
 
@@ -48,11 +49,11 @@ class PlayingCardTile extends StatelessWidget {
   final Color? scoreChipColor;
   final Color? highlightColor;
   final int scoreChipSequence;
+  final bool liftWhenSelected;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
-    final suit = _suitGlyph(card.suit);
     final ink = card.suit.isRed
         ? const Color(0xFFD33A35)
         : const Color(0xFF18191D);
@@ -76,28 +77,38 @@ class PlayingCardTile extends StatelessWidget {
       label:
           '${card.rank.label} of ${card.suit.name}${card.selected ? ', selected' : ''}',
       onTap: onTap,
-      child: RepaintBoundary(
-        child: ExcludeSemantics(
-          child: Opacity(
-            opacity: dimmed ? 0.42 : 1,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
-              children: [
-                // Static: the card never moves. Only its border/glow changes.
-                _cardBody(context, tokens, suit, ink, border),
-                if (chip != null && chip.isNotEmpty)
-                  Positioned(
-                    top: -height * 0.28,
-                    child: _RisingScoreChip(
-                      key: ValueKey(
-                        '${card.uid ?? card.rank.label}-$scoreChipSequence',
+      child: AnimatedSlide(
+        // Selection gets a short, readable lift. When scoring takes control,
+        // pin the card immediately so no table motion competes with the score.
+        duration: liftWhenSelected
+            ? const Duration(milliseconds: 120)
+            : Duration.zero,
+        curve: Curves.easeOutCubic,
+        offset: card.selected && liftWhenSelected
+            ? const Offset(0, -0.075)
+            : Offset.zero,
+        child: RepaintBoundary(
+          child: ExcludeSemantics(
+            child: Opacity(
+              opacity: dimmed ? 0.42 : 1,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  _cardBody(context, tokens, ink, border),
+                  if (chip != null && chip.isNotEmpty)
+                    Positioned(
+                      top: -height * 0.28,
+                      child: _RisingScoreChip(
+                        key: ValueKey(
+                          '${card.uid ?? card.rank.label}-$scoreChipSequence',
+                        ),
+                        text: chip,
+                        color: scoreChipColor ?? const Color(0xFFF7C548),
                       ),
-                      text: chip,
-                      color: scoreChipColor ?? const Color(0xFFF7C548),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -108,7 +119,6 @@ class PlayingCardTile extends StatelessWidget {
   Widget _cardBody(
     BuildContext context,
     WildcardThemeTokens tokens,
-    String suit,
     Color ink,
     Color border,
   ) {
@@ -147,37 +157,31 @@ class PlayingCardTile extends StatelessWidget {
               // instead of crushing the corner glyphs.
               padding: EdgeInsets.fromLTRB(
                 width * 0.11,
-                width * 0.09,
+                width * 0.08,
                 width * 0.11,
-                width * 0.07,
+                width * 0.08,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  _CardCorner(
-                    rank: card.rank.label,
-                    suit: suit,
-                    ink: ink,
-                    cardWidth: width,
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: _CardCorner(
+                      key: const Key('playing-card-top-corner'),
+                      rank: card.rank.label,
+                      suit: card.suit,
+                      ink: ink,
+                      cardWidth: width,
+                    ),
                   ),
-                  // The centre pip used to be a raw Text with height:1 at a
-                  // large size, so the glyph's own ascent/descent overflowed
-                  // the line box and the card's clip sheared the bottom off —
-                  // "half the suit missing". A FittedBox always scales the
-                  // whole glyph to fit the space, so it can never clip.
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: width * 0.06),
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          suit,
-                          style: TextStyle(
-                            color: ink,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                  // Vector geometry gives the central mark a stable optical
+                  // weight, while Center pins it to the true card midpoint.
+                  Center(
+                    child: SuitGlyph(
+                      key: const Key('playing-card-center-suit'),
+                      suit: card.suit,
+                      color: ink,
+                      size: (width * 0.52).clamp(15.0, 25.0),
                     ),
                   ),
                   Align(
@@ -185,8 +189,9 @@ class PlayingCardTile extends StatelessWidget {
                     child: RotatedBox(
                       quarterTurns: 2,
                       child: _CardCorner(
+                        key: const Key('playing-card-bottom-corner'),
                         rank: card.rank.label,
-                        suit: suit,
+                        suit: card.suit,
                         ink: ink,
                         cardWidth: width,
                       ),
@@ -208,10 +213,11 @@ class _CardCorner extends StatelessWidget {
     required this.suit,
     required this.ink,
     required this.cardWidth,
+    super.key,
   });
 
   final String rank;
-  final String suit;
+  final CardSuit suit;
   final Color ink;
   final double cardWidth;
 
@@ -239,27 +245,11 @@ class _CardCorner extends StatelessWidget {
             height: 1.0,
           ),
         ),
-        Text(
-          suit,
-          maxLines: 1,
-          style: TextStyle(
-            color: ink,
-            fontWeight: FontWeight.w700,
-            fontSize: suitSize,
-            height: 1.0,
-          ),
-        ),
+        SuitGlyph(suit: suit, color: ink, size: suitSize),
       ],
     );
   }
 }
-
-String _suitGlyph(CardSuit suit) => switch (suit) {
-  CardSuit.spades => '\u2660',
-  CardSuit.hearts => '\u2665',
-  CardSuit.clubs => '\u2663',
-  CardSuit.diamonds => '\u2666',
-};
 
 /// The "+15" number that pops off a card the moment it scores — gold when the
 /// card scores, violet when a Joker acted on it.

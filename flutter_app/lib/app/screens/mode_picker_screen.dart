@@ -71,6 +71,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
     return WildcardPageFrame(
       title: 'Choose Run',
       subtitle: 'Pick a table, then set your risk.',
+      room: WildcardRoom.runSetup,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
         children: [
@@ -391,9 +392,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
     final refStake = stake > 0 ? stake : 100;
     final maxHeat = gauntlet ? gauntletHeats : 12;
     // A readable milestone set rather than every Heat.
-    final heats = gauntlet
-        ? const [2, 4, 6, 8]
-        : const [3, 6, 9, 12];
+    final heats = gauntlet ? const [2, 4, 6, 8] : const [3, 6, 9, 12];
 
     int payoutFor(int heat, RunDifficulty difficulty) => gauntlet
         ? gauntletStakePayout(refStake, heat)
@@ -488,7 +487,11 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
               gauntlet
                   ? 'Clear all $maxHeat Heats for the full pot. A loss can cost double.'
                   : 'Hard pays the most, Easy the least. Full run ($maxHeat) pays the most.',
-              style: TextStyle(color: tokens.creamDim, fontSize: 11, height: 1.3),
+              style: TextStyle(
+                color: tokens.creamDim,
+                fontSize: 11,
+                height: 1.3,
+              ),
             ),
           ],
         ),

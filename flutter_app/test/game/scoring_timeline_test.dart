@@ -88,14 +88,28 @@ void main() {
     expect(plan.beats[0].frame.visibleValuePoints, 26);
     expect(plan.beats[0].frame.visibleTotal, 29);
     expect(plan.beats[0].frame.chipStyle, ScoreChipStyle.card);
+    expect(plan.beats[0].frame.activeChips.map((chip) => chip.cardId), <String>[
+      'ace-spades',
+    ]);
 
     expect(plan.beats[1].frame.visibleRawRank, 15);
     expect(plan.beats[1].frame.visibleValuePoints, 29);
     expect(plan.beats[1].frame.visibleTotal, 32);
     expect(plan.beats[1].frame.chipStyle, ScoreChipStyle.joker);
+    expect(
+      plan.beats[1].frame.activeChips.map((chip) => chip.cardId),
+      <String>['ace-spades', 'king-hearts'],
+      reason:
+          'The first gold number must keep rising while the next purple Joker number appears.',
+    );
 
     expect(plan.beats[2].frame.visibleMultiplier, 1.5);
     expect(plan.beats[2].frame.visibleTotal, 44);
+    expect(
+      plan.beats[2].frame.activeChips.map((chip) => chip.cardId),
+      <String>['king-hearts'],
+      reason: 'Expired card chips leave the retained presentation set.',
+    );
     expect(plan.beats[3].frame.visibleMultiplier, 3);
     expect(plan.beats[3].frame.visibleTotal, 87);
 

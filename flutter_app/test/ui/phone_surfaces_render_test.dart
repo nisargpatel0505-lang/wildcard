@@ -136,9 +136,15 @@ void main() {
         final firstRect = tester.getRect(firstCard);
         final secondRect = tester.getRect(secondCard);
         expect(
-          secondRect.left,
-          greaterThan(firstRect.right),
-          reason: 'Adjacent cards must keep independent, non-overlapping taps.',
+          firstRect.width,
+          greaterThanOrEqualTo(44),
+          reason: 'Cards must remain large enough to read on every phone.',
+        );
+        expect(
+          secondRect.left - firstRect.left,
+          greaterThanOrEqualTo(28),
+          reason:
+              'The overlapping fan must expose a broad independent rank strip.',
         );
         expect(tester.takeException(), isNull);
       });

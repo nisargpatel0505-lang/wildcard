@@ -9,6 +9,7 @@ export 'widgets/compact_joker_card.dart';
 export 'widgets/playing_card_tile.dart';
 export 'widgets/round_intro_overlay.dart';
 export 'widgets/sly_sprite.dart';
+export 'widgets/suit_glyph.dart';
 export 'widgets/table_felt_surface.dart';
 export 'widgets/wildcard_background.dart';
 export 'widgets/wildcard_button.dart';

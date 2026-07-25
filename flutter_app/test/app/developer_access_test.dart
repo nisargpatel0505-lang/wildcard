@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wildcard/app/app_controller.dart';
 import 'package:wildcard/app/developer_access.dart';
 import 'package:wildcard/app/screens/mode_picker_screen.dart';
+import 'package:wildcard/core/app_constants.dart';
 import 'package:wildcard/domain/account_state.dart';
 import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
@@ -73,12 +78,81 @@ void main() {
       },
     );
 
-    final restored = releaseSafeDeveloperAccount(account, releaseBuild: true);
+    final result = releaseSafeDeveloperAccountWithStatus(
+      account,
+      releaseBuild: true,
+    );
+    final restored = result.account;
 
+    expect(result.clearedDeveloperState, isTrue);
+    expect(restored, isNot(same(account)));
     expect(restored.coins, 2318);
     expect(restored.unlockedJokerIds, <String>{'copper', 'polish'});
-    expect(restored.unknownFields, isEmpty);
+    for (final key in <String>[
+      developerUnlockedField,
+      developerGauntletField,
+      developerBaselineField,
+      developerCoinGrantField,
+      developerJokerGrantField,
+    ]) {
+      expect(restored.unknownFields, isNot(contains(key)));
+    }
+    expect(
+      account.unknownFields,
+      contains(developerUnlockedField),
+      reason: 'release cleanup must not hide its status by mutating in place',
+    );
   });
+
+  test(
+    'release bootstrap persists cleanup and removes a matching developer run',
+    () async {
+      final account = AccountState(
+        coins: 7318,
+        unlockedJokerIds: <String>{'copper', 'polish', 'allin'},
+        unknownFields: <String, Object?>{
+          developerUnlockedField: true,
+          developerCoinGrantField: 5000,
+          developerJokerGrantField: <String>['allin'],
+        },
+      );
+      final run = jsonEncode(<String, Object?>{
+        'v': 1,
+        'phase': 'game',
+        'telemetryMode': 'normal',
+        'rngSeed': 123,
+        'stage': 3,
+        'hand': const <Object?>[],
+        'cards': const <Object?>[],
+        'jokerIds': const <String>['allin'],
+      });
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        AppConstants.legacyAccountKey: account.encode(),
+        AppConstants.legacyRunKey: run,
+      });
+
+      final app = await AppController.bootstrap(releaseBuild: true);
+      addTearDown(app.dispose);
+      final preferences = await SharedPreferences.getInstance();
+      final persisted = AccountState.decode(
+        preferences.getString(AppConstants.legacyAccountKey)!,
+      );
+
+      expect(app.activeRunJson, isNull);
+      expect(preferences.getString(AppConstants.legacyRunKey), isNull);
+      expect(persisted.coins, 2318);
+      expect(persisted.unlockedJokerIds, <String>{'copper', 'polish'});
+      for (final key in <String>[
+        developerUnlockedField,
+        developerGauntletField,
+        developerBaselineField,
+        developerCoinGrantField,
+        developerJokerGrantField,
+      ]) {
+        expect(persisted.unknownFields, isNot(contains(key)));
+      }
+    },
+  );
 
   test('first-run reset retains the one-time gift guard', () {
     final account = AccountState(

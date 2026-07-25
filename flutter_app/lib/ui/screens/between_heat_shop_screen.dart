@@ -441,7 +441,8 @@ class _SectionHeading extends StatelessWidget {
           title,
           style: TextStyle(
             color: tokens.gold,
-            fontFamily: 'Bungee',
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.w700,
             fontSize: 10,
             height: 1,
           ),
@@ -561,7 +562,8 @@ class _ShopOfferHeader extends StatelessWidget {
                 'JOKER OFFERS',
                 style: TextStyle(
                   color: tokens.gold,
-                  fontFamily: 'Bungee',
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
                   fontSize: 10,
                   height: 1,
                 ),
@@ -588,7 +590,11 @@ class _ShopOfferHeader extends StatelessWidget {
               children: [
                 const Text(
                   'REROLL',
-                  style: TextStyle(fontFamily: 'Bungee', fontSize: 8.5),
+                  style: TextStyle(
+                    fontFamily: 'SpaceGrotesk',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 8.5,
+                  ),
                 ),
                 const SizedBox(width: 5),
                 CoinPrice(rerollCost, compact: true),
@@ -708,7 +714,8 @@ class _JokerOfferTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: accent,
-                      fontFamily: 'Bungee',
+                      fontFamily: 'SpaceGrotesk',
+                      fontWeight: FontWeight.w700,
                       fontSize: 10.5,
                       height: 1.08,
                     ),
@@ -743,7 +750,11 @@ class _JokerOfferTile extends StatelessWidget {
               ),
               child: Text(
                 offer.soldOut ? 'SOLD' : 'BUY',
-                style: const TextStyle(fontFamily: 'Bungee', fontSize: 9),
+                style: const TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 9,
+                ),
               ),
             ),
           ),
@@ -859,7 +870,8 @@ class _SupplyTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: tokens.mint,
-                    fontFamily: 'Bungee',
+                    fontFamily: 'SpaceGrotesk',
+                    fontWeight: FontWeight.w700,
                     fontSize: 9,
                     height: 1.08,
                   ),
@@ -896,7 +908,11 @@ class _SupplyTile extends StatelessWidget {
                 bought ? 'BOUGHT THIS SHOP' : 'BUY & USE',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'Bungee', fontSize: 8.5),
+                style: const TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 8.5,
+                ),
               ),
             ),
           ),

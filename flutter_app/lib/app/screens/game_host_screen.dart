@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../domain/account_state.dart';
 import '../../domain/cards.dart';
 import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
@@ -18,6 +19,7 @@ import '../../game/scoring_timeline.dart';
 import '../../services/haptics_service.dart';
 import '../../services/sfx_service.dart';
 import '../../ui/widgets/death_screen_overlay.dart';
+import '../../ui/widgets/royal_vault_animation.dart';
 import '../../ui/widgets/wildcard_toast.dart';
 import '../../ui/wildcard_ui.dart';
 import '../app_controller.dart';
@@ -58,6 +60,8 @@ class _GameHostScreenState extends State<GameHostScreen> {
   bool _terminalAdAttempted = false;
   bool _deathScreenShown = false;
   bool _claimingRunDouble = false;
+  bool _claimingTutorialChest = false;
+  bool _firstShopLessonOpen = false;
 
   /// Sly's live table talk, drawn from the ported WebView quip pools. When
   /// null the passive state description is shown instead.
@@ -66,6 +70,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     null,
   );
   int _slySequence = 0;
+  int _slyGeneration = 0;
   Timer? _slyHold;
 
   /// Score callout ("WILD!" / "MEGA!"…) stamped over the table when a hand
@@ -103,6 +108,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       if (game.phase == RunPhase.victory && !widget.resumed) {
         _startVictorySequence();
       }
+      if (game.phase == RunPhase.shop) _maybeShowFirstShopLesson();
     });
   }
 
@@ -162,10 +168,14 @@ class _GameHostScreenState extends State<GameHostScreen> {
       }
     } else if (current == RunPhase.shop && previous == RunPhase.game) {
       _onHeatCleared();
+      _maybeShowFirstShopLesson();
     }
   }
 
   void _onTimelineChanged() {
+    if (game.scoringPresentation.phase == ScorePresentationPhase.leadIn) {
+      _beginSlyGeneration();
+    }
     _maybeReactToScoring();
   }
 
@@ -182,6 +192,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   void _onHeatCleared() {
     _sfx.play('heat_clear');
     _haptics.success();
+    _beginSlyGeneration();
     _saySly(SlyMood.clear);
     if (!mounted) return;
     // The cheering Sly stage overlay was removed at the player's request: it
@@ -193,6 +204,51 @@ class _GameHostScreenState extends State<GameHostScreen> {
         _sfx.play('grade_s');
       });
     }
+  }
+
+  void _maybeShowFirstShopLesson() {
+    if (!mounted ||
+        _firstShopLessonOpen ||
+        game.phase != RunPhase.shop ||
+        !game.guidedFirstRun ||
+        game.shopGuideShown) {
+      return;
+    }
+    _firstShopLessonOpen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || game.phase != RunPhase.shop) {
+        _firstShopLessonOpen = false;
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text("SLY'S FIRST SHOP"),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('1 · Read the engine you already have.'),
+              SizedBox(height: 9),
+              Text('2 · Buy one Joker that strengthens the same plan.'),
+              SizedBox(height: 9),
+              Text('3 · Keep spare run coins to earn interest next Heat.'),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('GOT IT'),
+            ),
+          ],
+        ),
+      );
+      // Save only after the player closes the lesson, so a process kill before
+      // it appears will replay it from the durable shop checkpoint.
+      if (mounted) await game.markFirstShopGuideShown();
+      _firstShopLessonOpen = false;
+    });
   }
 
   /// Sound and haptic beat for each presented scoring event. The rising tone
@@ -211,6 +267,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           speech: event.amount == 0
               ? 'Blocked. That card scores zero.'
               : 'Count it.',
+          label: event.amount == 0 ? 'BLOCKED' : '+${event.amount.round()}',
           priority: 1,
           motion: SlyMotionProfile.pop,
           hold: const Duration(milliseconds: 760),
@@ -222,6 +279,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           mood: SlyMood.impressed,
           expression: SlyExpression.impressed,
           speech: 'That Joker changes the count.',
+          label: 'JOKER',
           priority: 2,
           motion: SlyMotionProfile.rock,
           hold: const Duration(milliseconds: 1100),
@@ -233,6 +291,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           mood: SlyMood.impressed,
           expression: SlyExpression.shocked,
           speech: 'Again. Make it matter.',
+          label: 'AGAIN',
           priority: 3,
           motion: SlyMotionProfile.rock,
           hold: const Duration(milliseconds: 1250),
@@ -245,6 +304,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
             mood: SlyMood.scared,
             expression: SlyExpression.scared,
             speech: 'The roll decides it.',
+            label: 'ROLL',
             priority: 3,
             motion: SlyMotionProfile.tremble,
             hold: const Duration(milliseconds: 900),
@@ -270,6 +330,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           speech: event.type == ScoreEventType.xMult
               ? 'Now the hand has weight.'
               : 'Multiplier rising.',
+          label: event.type == ScoreEventType.xMult ? 'X MULT' : 'MULT',
           priority: event.type == ScoreEventType.xMult ? 4 : 2,
           motion: event.type == ScoreEventType.xMult
               ? SlyMotionProfile.rock
@@ -329,13 +390,17 @@ class _GameHostScreenState extends State<GameHostScreen> {
         if (mounted) _safeSetState(() => _calloutWord = null);
       });
     }
-    // Sly reacts to every played hand; one play left overrides everything.
-    if (game.state.handsLeft == 1 &&
-        game.state.stageScore < game.state.target) {
-      _saySly(SlyMood.clutch);
-    } else {
-      _saySly(_moodForHand(result));
-    }
+    // The finale arrives before the controller commits score and consumes the
+    // play, so use projected values for clear, failure and clutch faces.
+    _saySly(
+      slyFinaleMood(
+        handMood: _moodForHand(result),
+        handsLeftBeforePlay: game.state.handsLeft,
+        stageScoreBeforePlay: game.state.stageScore,
+        handTotal: result.total,
+        target: game.state.target,
+      ),
+    );
   }
 
   SlyMood _moodForHand(ScoreResult result) {
@@ -360,7 +425,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     return mood;
   }
 
-  void _saySly(SlyMood mood) {
+  void _saySly(SlyMood mood, {String? label}) {
     final set = slyQuips[mood];
     if (set == null || !mounted) return;
     if (mood == SlyMood.laughing) _sfx.play('sly_laugh');
@@ -368,6 +433,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       mood: mood,
       expression: set.expression,
       speech: set.pick(_slyRandom),
+      label: label ?? slyLabelFor(mood),
       priority: _slyPriority(mood),
       motion: _slyMotion(mood),
       hold: slyHoldFor(mood),
@@ -378,28 +444,41 @@ class _GameHostScreenState extends State<GameHostScreen> {
     required SlyMood mood,
     required SlyExpression expression,
     required String speech,
+    required String label,
     required int priority,
     required SlyMotionProfile motion,
     required Duration hold,
   }) {
     if (!mounted) return;
     final current = _slyReaction.value;
-    if (current != null && current.priority > priority) return;
+    if (current != null &&
+        current.blocks(generation: _slyGeneration, priority: priority)) {
+      return;
+    }
     _slyHold?.cancel();
+    final sequence = ++_slySequence;
     _slyReaction.value = SlyReaction(
       mood: mood,
       priority: priority,
       expression: expression,
       speech: speech,
+      label: label,
       motion: motion,
       hold: hold,
-      sequence: ++_slySequence,
+      sequence: sequence,
+      generation: _slyGeneration,
     );
     _slyHold = Timer(hold, () {
-      if (mounted && _slyReaction.value?.sequence == _slySequence) {
+      if (mounted && _slyReaction.value?.sequence == sequence) {
         _slyReaction.value = null;
       }
     });
+  }
+
+  void _beginSlyGeneration() {
+    _slyGeneration++;
+    _slyHold?.cancel();
+    if (_slyReaction.value != null) _slyReaction.value = null;
   }
 
   int _slyPriority(SlyMood mood) => switch (mood) {
@@ -411,7 +490,8 @@ class _GameHostScreenState extends State<GameHostScreen> {
     SlyMood.quads ||
     SlyMood.clutch ||
     SlyMood.sevenMiss => 4,
-    SlyMood.straight || SlyMood.flush || SlyMood.trips || SlyMood.clear => 3,
+    SlyMood.clear || SlyMood.heatFail => 5,
+    SlyMood.straight || SlyMood.flush || SlyMood.trips => 3,
     SlyMood.pair ||
     SlyMood.twoPair ||
     SlyMood.modifier ||
@@ -424,6 +504,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     SlyMood.scared ||
     SlyMood.clutch ||
     SlyMood.sevenMiss => SlyMotionProfile.tremble,
+    SlyMood.heatFail => SlyMotionProfile.rock,
     SlyMood.unbelievable ||
     SlyMood.quads ||
     SlyMood.straightFlush ||
@@ -571,6 +652,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       if (!mounted) return;
       _safeSetState(() => _introVisible = true);
       // Sly still greets in his bubble; a modifier table gets the warning.
+      _beginSlyGeneration();
       _saySly(game.state.hasAnyModifier ? SlyMood.modifier : SlyMood.greet);
     });
   }
@@ -588,6 +670,8 @@ class _GameHostScreenState extends State<GameHostScreen> {
       slyExpression: _slyExpression(score),
       slySkin: _slySkin(widget.appController.account.equipped.sly),
       tableFeltId: widget.appController.account.equipped.table,
+      guidedFirstRun: game.guidedFirstRun,
+      guideStep: game.guideStep,
       score: score,
       scoringTimeline: game.scoringTimeline,
       slyReaction: _slyReaction,
@@ -628,6 +712,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           ? () {
               _haptics.discard();
               _sfx.play('discard');
+              _beginSlyGeneration();
               _saySly(SlyMood.discard);
               unawaited(_act(game.discardSelected()));
             }
@@ -706,7 +791,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
         const _StatRow('Leaderboard', 'Revived runs stay local'),
         const SizedBox(height: 18),
         WildcardButton(
-          label: widget.appController.account.noAds
+          label: widget.appController.effectiveNoAds
               ? 'Use Ad-Free Revive'
               : 'Watch Ad · +1 Play',
           icon: const Icon(Icons.ondemand_video_rounded),
@@ -809,7 +894,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           WildcardButton(
             label: doubleClaimed
                 ? 'Run Coins Doubled · +$doubleBase'
-                : widget.appController.account.noAds
+                : widget.appController.effectiveNoAds
                 ? 'Claim Ad-Free Double · +$doubleBase'
                 : 'Watch Ad · Double +$doubleBase',
             icon: Icon(
@@ -831,6 +916,20 @@ class _GameHostScreenState extends State<GameHostScreen> {
           'Jokers held',
           '${result?.jokerIds.length ?? game.state.jokerIds.length}',
         ),
+        if (defeated &&
+            widget.appController.tutorialComebackChestAvailable) ...[
+          const SizedBox(height: 9),
+          WildcardButton(
+            label: _claimingTutorialChest
+                ? 'Opening Comeback Vault…'
+                : 'Open Free Comeback Vault',
+            icon: const Icon(Icons.inventory_2_rounded),
+            onPressed: _claimingTutorialChest
+                ? null
+                : () => unawaited(_openTutorialComebackVault()),
+            variant: WildcardButtonVariant.secondary,
+          ),
+        ],
         const SizedBox(height: 18),
         WildcardButton(
           label: 'Return Home',
@@ -843,7 +942,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   }
 
   Future<void> _revive() async {
-    if (!widget.appController.account.noAds) {
+    if (!widget.appController.effectiveNoAds) {
       final reward = await widget.appController.ads.showRewarded();
       if (reward == null) {
         if (mounted) {
@@ -871,6 +970,43 @@ class _GameHostScreenState extends State<GameHostScreen> {
       if (mounted) _message('Coins were not doubled: $error');
     } finally {
       if (mounted) setState(() => _claimingRunDouble = false);
+    }
+  }
+
+  Future<void> _openTutorialComebackVault() async {
+    if (_claimingTutorialChest) return;
+    setState(() => _claimingTutorialChest = true);
+    try {
+      final reward = await widget.appController.claimTutorialComebackJoker();
+      if (!mounted) return;
+      if (reward == null) {
+        _message('Your starter collection is already complete.');
+        return;
+      }
+      final rarityColor = switch (reward.rarity) {
+        JokerRarity.common => context.wildcard.creamDim,
+        JokerRarity.uncommon => context.wildcard.mint,
+        JokerRarity.rare => context.wildcard.rare,
+        JokerRarity.wild => context.wildcard.wild,
+      };
+      await showRoyalVaultAnimation(
+        context: context,
+        audio: widget.appController.audio,
+        sfx: widget.appController.sfx,
+        haptics: _haptics,
+        tier: RoyalVaultVisualTier.wooden,
+        reward: RoyalVaultRewardViewModel(
+          name: reward.name,
+          description: reward.description,
+          rarity: reward.rarity.name.toUpperCase(),
+          rarityColor: rarityColor,
+          categoryLabel: 'COMEBACK JOKER UNLOCKED',
+          icon: Icons.style_rounded,
+        ),
+        fast: widget.appController.account.speed == ScoringPace.fast,
+      );
+    } finally {
+      if (mounted) setState(() => _claimingTutorialChest = false);
     }
   }
 
@@ -1564,10 +1700,7 @@ class _FloatingFinalScoreState extends State<_FloatingFinalScore>
                                   offset: Offset(0, 5),
                                   blurRadius: 1,
                                 ),
-                                Shadow(
-                                  color: Color(0xCC000000),
-                                  blurRadius: 8,
-                                ),
+                                Shadow(color: Color(0xCC000000), blurRadius: 8),
                                 Shadow(
                                   color: Color(0x99F7C548),
                                   blurRadius: 24,

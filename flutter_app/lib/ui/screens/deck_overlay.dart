@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/cards.dart';
 import '../wildcard_theme.dart';
+import '../widgets/suit_glyph.dart';
 
 /// Full-screen modal deck matrix with every rank and suit visible at once.
 ///
@@ -338,13 +339,10 @@ class _DeckSuitRow extends StatelessWidget {
           width: 22,
           height: cellHeight,
           child: Center(
-            child: Text(
-              _suitGlyph(suit),
-              style: TextStyle(
-                color: red ? context.wildcard.coral : context.wildcard.cream,
-                fontSize: 15,
-                height: 1,
-              ),
+            child: SuitGlyph(
+              suit: suit,
+              color: red ? context.wildcard.coral : context.wildcard.cream,
+              size: 15,
             ),
           ),
         ),
@@ -525,10 +523,3 @@ Map<(CardSuit, CardRank), int> _counts(Iterable<PlayingCard> cards) {
   }
   return result;
 }
-
-String _suitGlyph(CardSuit suit) => switch (suit) {
-  CardSuit.spades => '\u2660',
-  CardSuit.hearts => '\u2665',
-  CardSuit.clubs => '\u2663',
-  CardSuit.diamonds => '\u2666',
-};

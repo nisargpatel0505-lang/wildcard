@@ -71,12 +71,24 @@ class _VaultScreenState extends State<VaultScreen> {
                   padding: const EdgeInsets.fromLTRB(14, 4, 14, 30),
                   children: _section == _VaultSection.collection
                       ? <Widget>[
+                          if (widget
+                              .controller
+                              .tutorialComebackChestAvailable) ...[
+                            _tutorialComebackCard(),
+                            const SizedBox(height: 10),
+                          ],
                           JokerCollectionSection(
                             account: account,
                             onUnlock: widget.controller.unlockJoker,
                           ),
                         ]
                       : <Widget>[
+                          if (widget
+                              .controller
+                              .tutorialComebackChestAvailable) ...[
+                            _tutorialComebackCard(),
+                            const SizedBox(height: 10),
+                          ],
                           _vaultCard(JokerChestTier.wood),
                           const SizedBox(height: 10),
                           _vaultCard(JokerChestTier.gold),
@@ -84,9 +96,12 @@ class _VaultScreenState extends State<VaultScreen> {
                           _cosmeticVaultCard(),
                           const SizedBox(height: 10),
                           WildcardButton(
-                            label:
-                                'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left)',
-                            icon: const Icon(Icons.smart_display_outlined),
+                            label: widget.controller.effectiveNoAds
+                                ? 'Claim +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)'
+                                : 'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',
+                            icon: widget.controller.effectiveNoAds
+                                ? const WildcardCoinIcon(size: 20)
+                                : const Icon(Icons.smart_display_outlined),
                             onPressed:
                                 !_actionInFlight &&
                                     widget.controller.rewardedViewsLeftToday > 0
@@ -101,6 +116,43 @@ class _VaultScreenState extends State<VaultScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _tutorialComebackCard() {
+    return WildcardCard(
+      key: const Key('tutorial-comeback-vault'),
+      accent: WildcardCardAccent.gold,
+      padding: const EdgeInsets.all(15),
+      child: Column(
+        children: [
+          const RoyalVaultChestEmblem(tier: RoyalVaultVisualTier.wooden),
+          const SizedBox(height: 7),
+          Text(
+            "SLY'S COMEBACK VAULT",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.wildcard.gold,
+              fontFamily: 'Bungee',
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Your first genuine loss earned one free, non-duplicate starter Joker. The reward saves before its reveal.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.wildcard.creamDim, fontSize: 12.5),
+          ),
+          const SizedBox(height: 10),
+          WildcardButton(
+            key: const Key('open-tutorial-comeback-vault'),
+            label: 'Open Free Vault',
+            icon: const Icon(Icons.redeem_rounded),
+            onPressed: _actionInFlight ? null : _openTutorialComebackVault,
+            variant: WildcardButtonVariant.primary,
+          ),
+        ],
+      ),
     );
   }
 
@@ -289,6 +341,41 @@ class _VaultScreenState extends State<VaultScreen> {
     } catch (_) {
       if (mounted) {
         _message('The Vault could not open. Your save remains safe.');
+      }
+    } finally {
+      if (mounted) setState(() => _actionInFlight = false);
+    }
+  }
+
+  Future<void> _openTutorialComebackVault() async {
+    if (_actionInFlight) return;
+    setState(() => _actionInFlight = true);
+    try {
+      final reward = await widget.controller.claimTutorialComebackJoker();
+      if (!mounted) return;
+      if (reward == null) {
+        _message('Your starter collection is already complete.');
+        return;
+      }
+      await showRoyalVaultAnimation(
+        context: context,
+        audio: widget.controller.audio,
+        sfx: widget.controller.sfx,
+        haptics: HapticsService(enabled: !widget.controller.account.muted),
+        tier: RoyalVaultVisualTier.wooden,
+        reward: RoyalVaultRewardViewModel(
+          name: reward.name,
+          description: reward.description,
+          rarity: _rarityName(reward.rarity).toUpperCase(),
+          rarityColor: _rarityColor(context, reward.rarity),
+          categoryLabel: 'COMEBACK JOKER UNLOCKED',
+          icon: Icons.style_rounded,
+        ),
+        fast: widget.controller.account.speed == ScoringPace.fast,
+      );
+    } catch (_) {
+      if (mounted) {
+        _message('The free Vault could not open. Your save remains safe.');
       }
     } finally {
       if (mounted) setState(() => _actionInFlight = false);

@@ -30,10 +30,9 @@ class _BootstrapGate extends StatefulWidget {
 class _BootstrapGateState extends State<_BootstrapGate> {
   AppController? _controller;
   bool _failed = false;
-  final ValueNotifier<BootProgress> _progress =
-      ValueNotifier<BootProgress>(
-        const BootProgress(.03, 'Opening the table…'),
-      );
+  final ValueNotifier<BootProgress> _progress = ValueNotifier<BootProgress>(
+    const BootProgress(.03, 'Opening the table…'),
+  );
 
   @override
   void initState() {

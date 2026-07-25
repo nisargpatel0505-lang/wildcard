@@ -80,9 +80,13 @@ void main() {
     for (var page = 0; page < 4; page++) {
       await tester.tap(find.text('NEXT RULE'));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Tutorial page ${page + 2} must fit the compact phone.',
+      );
     }
-    expect(find.text('DEAL ME IN'), findsOneWidget);
+    expect(find.text('CLAIM GIFT & CHOOSE RUN'), findsOneWidget);
   });
 
   testWidgets('shop controls fit 320x568 and stay 48dp at large text', (

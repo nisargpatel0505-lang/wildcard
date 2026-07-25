@@ -154,6 +154,8 @@ class GameController extends ChangeNotifier {
   final ScoringWait _wait;
 
   ScoringPace pace;
+  int guideStep = 0;
+  bool shopGuideShown = false;
   RunPhase phase = RunPhase.game;
   RunEndReason? endReason;
   RunResultSummary? resultSummary;
@@ -295,6 +297,7 @@ class GameController extends ChangeNotifier {
     state.discardsLeft--;
     _refillHand();
     state.deckCardsLeft = drawPile.length;
+    if (guidedFirstRun && guideStep < 2) guideStep = 2;
     await _save(RunCheckpoint.discardCommitted);
     if (hand.isEmpty) {
       await _offerOrFinishFailure('cards');
@@ -348,6 +351,7 @@ class GameController extends ChangeNotifier {
     await _save(RunCheckpoint.scoringPrepared);
 
     final result = scoringEngine.scoreHand(played, commit: true);
+    if (guidedFirstRun && guideStep == 0) guideStep = 1;
     final timeline = const ScoringTimelineBuilder().build(
       handSnapshot: handSnapshot,
       playedCards: played,
@@ -610,6 +614,7 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('Finish the current shop action.');
     }
     isBusy = true;
+    if (guidedFirstRun && guideStep < 4) guideStep = 4;
     state.stage++;
     state.stageScore = 0;
     state.handsPlayedThisStage = 0;
@@ -841,8 +846,20 @@ class GameController extends ChangeNotifier {
     shopBuysUsed = 0;
     suppliesBoughtThisShop.clear();
     pendingSwapOfferId = null;
+    if (guidedFirstRun && !shopGuideShown && guideStep < 3) guideStep = 3;
     _rollJokerOffers(countForPity: true);
     _rollSupplyOffers();
+  }
+
+  /// Marks Sly's first-shop lesson only after the player has actually seen it.
+  ///
+  /// Keeping this separate from [_openShop] means an app kill before the
+  /// dialog appears will show the lesson again when the saved shop resumes.
+  Future<void> markFirstShopGuideShown() async {
+    if (!guidedFirstRun || shopGuideShown) return;
+    shopGuideShown = true;
+    await _save(RunCheckpoint.shopChanged);
+    notifyListeners();
   }
 
   void _rollJokerOffers({required bool countForPity}) {
@@ -1303,8 +1320,8 @@ class GameController extends ChangeNotifier {
       'boughtThisShop': jokerBuyLimitReached,
       'shopBuysUsed': shopBuysUsed,
       'guidedFirstRun': guidedFirstRun,
-      'guideStep': _integer(_legacyBase['guideStep']),
-      'shopGuideShown': _legacyBase['shopGuideShown'] == true,
+      'guideStep': guideStep,
+      'shopGuideShown': shopGuideShown,
       'heat12SequenceStarted': _legacyBase['heat12SequenceStarted'] == true,
       'heat12InterstitialAttempted':
           _legacyBase['heat12InterstitialAttempted'] == true,
@@ -1357,6 +1374,8 @@ class GameController extends ChangeNotifier {
     glassDouble = raw['glassDouble'] == true;
     terminalPending = raw['terminalPending'] == true;
     failureReason = _string(raw['failureReason']);
+    guideStep = math.max(0, math.min(4, _integer(raw['guideStep'])));
+    shopGuideShown = raw['shopGuideShown'] == true;
     sortMode = raw['sortMode'] == HandSortMode.suit.name
         ? HandSortMode.suit
         : HandSortMode.rank;

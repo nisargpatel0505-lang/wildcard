@@ -57,7 +57,7 @@ void main() {
           find.byKey(const Key('royal-vault-reward-name')),
           findsOneWidget,
         );
-        expect(find.text('RARITY  UNCOMMON'), findsOneWidget);
+        expect(find.text('UNCOMMON'), findsWidgets);
         expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
         expect(tester.takeException(), isNull);
 
@@ -93,7 +93,7 @@ void main() {
     );
 
     await tester.pumpWidget(buildVault(fast: true, key: const Key('fast')));
-    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump(const Duration(milliseconds: 2800));
     final fastButton = tester.widget<Widget>(
       find.byKey(const Key('royal-vault-claim')),
     );
@@ -101,7 +101,7 @@ void main() {
     expect(find.text('REWARD SECURED'), findsOneWidget);
 
     await tester.pumpWidget(buildVault(fast: false, key: const Key('normal')));
-    await tester.pump(const Duration(milliseconds: 2200));
+    await tester.pump(const Duration(milliseconds: 2800));
     expect(find.text('REWARD SECURED'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -138,6 +138,112 @@ void main() {
       find.byKey(const Key('royal-vault-reward-description')),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'neutral scan does not reveal rarity, reward, or Claim semantics early',
+    (tester) async {
+      await _setPhoneSize(tester, const Size(360, 800));
+      await tester.pumpWidget(
+        _Harness(
+          child: RoyalVaultAnimation(
+            tier: RoyalVaultVisualTier.golden,
+            reward: const RoyalVaultRewardViewModel(
+              name: 'Frequency Meter',
+              description: 'A deliberately secret effect.',
+              rarity: 'WILD',
+              rarityColor: Color(0xFFF04FD8),
+              categoryLabel: 'NEW JOKER UNLOCKED',
+              icon: Icons.style_rounded,
+            ),
+            fast: false,
+            durationOverride: const Duration(milliseconds: 1000),
+            onClaim: () {},
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 800));
+
+      expect(find.text('SEARCHING'), findsOneWidget);
+      expect(find.text('WILD'), findsNothing);
+      expect(find.textContaining('Frequency Meter'), findsNothing);
+      expect(find.byKey(const Key('royal-vault-reward-name')), findsNothing);
+      expect(find.byKey(const Key('royal-vault-claim')), findsNothing);
+      expect(
+        find.byKey(const Key('royal-vault-claim-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('royal-vault-reward-token')), findsOneWidget);
+      expect(find.text('SEALED PRIZE'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('reward clears the rim as a large card before Claim appears', (
+    tester,
+  ) async {
+    await _setPhoneSize(tester, const Size(393, 873));
+    await tester.pumpWidget(
+      _Harness(
+        child: RoyalVaultAnimation(
+          tier: RoyalVaultVisualTier.cosmetic,
+          reward: const RoyalVaultRewardViewModel(
+            name: 'Velvet Sly',
+            description: 'A premium Sly look for every room.',
+            rarity: 'RARE',
+            rarityColor: Color(0xFF9B7BFF),
+            categoryLabel: 'NEW COSMETIC UNLOCKED',
+            icon: Icons.face_rounded,
+          ),
+          fast: false,
+          durationOverride: const Duration(milliseconds: 1000),
+          onClaim: () {},
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 900));
+
+    final token = find.byKey(const Key('royal-vault-reward-token'));
+    expect(token, findsOneWidget);
+    expect(tester.getSize(token).width, greaterThanOrEqualTo(185));
+    expect(find.text('RARE'), findsWidgets);
+    expect(find.text('VELVET SLY'), findsWidgets);
+    expect(find.byKey(const Key('royal-vault-claim')), findsNothing);
+    expect(find.byKey(const Key('royal-vault-rear-hinge')), findsOneWidget);
+
+    final stage = tester.getRect(find.byKey(const Key('royal-vault-dialog')));
+    expect(stage.contains(tester.getCenter(token)), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('reduced motion uses the short safe ceremony', (tester) async {
+    await _setPhoneSize(tester, const Size(360, 640));
+    await tester.pumpWidget(
+      _Harness(
+        disableAnimations: true,
+        child: RoyalVaultAnimation(
+          tier: RoyalVaultVisualTier.wooden,
+          reward: const RoyalVaultRewardViewModel(
+            name: 'Copper',
+            description: '+12 value when a scoring card is a Diamond.',
+            rarity: 'COMMON',
+            rarityColor: Color(0xFFCFC6B2),
+            categoryLabel: 'NEW JOKER UNLOCKED',
+            icon: Icons.style_rounded,
+          ),
+          fast: false,
+          onClaim: () {},
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 760));
+
+    expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
+    expect(find.text('REWARD SECURED'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

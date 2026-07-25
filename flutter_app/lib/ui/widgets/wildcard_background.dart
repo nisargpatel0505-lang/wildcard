@@ -12,7 +12,7 @@ import '../wildcard_theme.dart';
 final bool _inWidgetTest =
     !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
-enum WildcardRoom { themedHome, palace, shop, vault, endless, house }
+enum WildcardRoom { themedHome, runSetup, palace, shop, vault, endless, house }
 
 /// Full-bleed illustrated room with the restrained v7.1.0 readability tint.
 class WildcardBackground extends StatelessWidget {
@@ -39,10 +39,11 @@ class WildcardBackground extends StatelessWidget {
   final bool houseActive;
   final double momentPulse;
 
-  String _assetFor(WildcardThemeTokens tokens) {
+  String? _assetFor(WildcardThemeTokens tokens) {
     if (asset != null) return asset!;
     return switch (room) {
       WildcardRoom.themedHome => tokens.homeBackgroundAsset,
+      WildcardRoom.runSetup => null,
       WildcardRoom.palace => WildcardThemeTokens.palaceBackground,
       WildcardRoom.shop =>
         'assets/art/backgrounds/wildcard-sly-shop-backroom.webp',
@@ -61,6 +62,7 @@ class WildcardBackground extends StatelessWidget {
     final strength = tintStrength.clamp(0.0, 1.5).toDouble();
     final atmosphereEnergy = energy.clamp(0.0, 1.25).toDouble();
     final backgroundAsset = _assetFor(tokens);
+    final quietRunSetup = room == WildcardRoom.runSetup;
     Color tint(Color color) => color.withValues(
       alpha: (color.a * strength).clamp(0.0, 1.0).toDouble(),
     );
@@ -76,40 +78,49 @@ class WildcardBackground extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Builder(
-                    builder: (context) {
-                      // Decode at the physical width the screen can actually
-                      // show, capped at the source's 1080px. On a 720p phone
-                      // this roughly halves the resident texture memory.
-                      final media = MediaQuery.maybeOf(context);
-                      final decodeWidth = media == null
-                          ? null
-                          : math.min(
-                              1080,
-                              (media.size.width * media.devicePixelRatio)
-                                  .ceil(),
-                            );
-                      return Image.asset(
-                        backgroundAsset,
-                        alignment: alignment,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
-                        cacheWidth: decodeWidth,
-                        errorBuilder: (context, error, stackTrace) =>
-                            ColoredBox(color: tokens.ink),
-                      );
-                    },
-                  ),
+                  if (backgroundAsset == null)
+                    const _RunSetupBackdrop()
+                  else
+                    Builder(
+                      builder: (context) {
+                        // Decode at the physical width the screen can actually
+                        // show, capped at the source's 1080px. On a 720p phone
+                        // this roughly halves the resident texture memory.
+                        final media = MediaQuery.maybeOf(context);
+                        final decodeWidth = media == null
+                            ? null
+                            : math.min(
+                                1080,
+                                (media.size.width * media.devicePixelRatio)
+                                    .ceil(),
+                              );
+                        return Image.asset(
+                          backgroundAsset,
+                          alignment: alignment,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                          cacheWidth: decodeWidth,
+                          errorBuilder: (context, error, stackTrace) =>
+                              ColoredBox(color: tokens.ink),
+                        );
+                      },
+                    ),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          tint(tokens.artTintTop),
-                          tint(tokens.artTintMiddle),
-                          tint(tokens.artTintBottom),
-                        ],
+                        colors: quietRunSetup
+                            ? const [
+                                Color(0x8A020504),
+                                Color(0x54030907),
+                                Color(0xD9020303),
+                              ]
+                            : [
+                                tint(tokens.artTintTop),
+                                tint(tokens.artTintMiddle),
+                                tint(tokens.artTintBottom),
+                              ],
                         stops: const [0, 0.58, 1],
                       ),
                     ),
@@ -157,7 +168,7 @@ class WildcardBackground extends StatelessWidget {
           Positioned.fill(
             child: IgnorePointer(
               child: _AmbientDrift(
-                enabled: effects.backgroundMotion,
+                enabled: effects.backgroundMotion && !quietRunSetup,
                 intensity: effects.glowScale,
               ),
             ),
@@ -167,6 +178,82 @@ class WildcardBackground extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A restrained poker-room surface for setup screens. It is intentionally
+/// asset-free, static and almost black so controls remain the visual priority.
+class _RunSetupBackdrop extends StatelessWidget {
+  const _RunSetupBackdrop();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: RadialGradient(
+        center: Alignment(0, -0.08),
+        radius: 1.02,
+        colors: [Color(0xFF16231E), Color(0xFF090E0C), Color(0xFF030505)],
+        stops: [0, .58, 1],
+      ),
+    ),
+    child: CustomPaint(painter: _RunSetupPokerPainter()),
+  );
+}
+
+class _RunSetupPokerPainter extends CustomPainter {
+  const _RunSetupPokerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final table = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height * .53),
+      width: size.width * 1.18,
+      height: size.height * .54,
+    );
+    canvas.drawOval(
+      table,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0x331E5B46), Color(0x071E5B46)],
+          stops: [0, 1],
+        ).createShader(table),
+    );
+    canvas.drawOval(
+      table,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0x2459B995),
+    );
+    canvas.drawOval(
+      table.deflate(9),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0x1559B995),
+    );
+
+    // Four tiny card pips give the room a poker identity without becoming a
+    // patterned or animated backdrop.
+    final pip = Paint()..color = const Color(0x1559B995);
+    final pipSize = math.min(size.width, size.height) * .022;
+    for (final point in <Offset>[
+      Offset(size.width * .18, size.height * .29),
+      Offset(size.width * .82, size.height * .29),
+      Offset(size.width * .18, size.height * .77),
+      Offset(size.width * .82, size.height * .77),
+    ]) {
+      final diamond = Path()
+        ..moveTo(point.dx, point.dy - pipSize)
+        ..lineTo(point.dx + pipSize * .72, point.dy)
+        ..lineTo(point.dx, point.dy + pipSize)
+        ..lineTo(point.dx - pipSize * .72, point.dy)
+        ..close();
+      canvas.drawPath(diamond, pip);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RunSetupPokerPainter oldDelegate) => false;
 }
 
 class _AmbientDrift extends StatefulWidget {

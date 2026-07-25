@@ -28,6 +28,7 @@ class SlySprite extends StatefulWidget {
   const SlySprite({
     this.expression = SlyExpression.idle,
     this.skin = SlySkin.classic,
+    this.reactionActive = false,
     this.size = 96,
     this.borderRadius = 18,
     this.semanticLabel = 'Sly, your dealer',
@@ -37,6 +38,13 @@ class SlySprite extends StatefulWidget {
 
   final SlyExpression expression;
   final SlySkin skin;
+
+  /// Premium Sly cosmetics are single-frame portraits. During a real table
+  /// reaction, briefly use the canonical nine-frame expression atlas so the
+  /// character's face actually changes, then return to the equipped portrait
+  /// when the reaction settles.
+  final bool reactionActive;
+
   final double size;
   final double borderRadius;
   final String semanticLabel;
@@ -86,7 +94,10 @@ class _SlySpriteState extends State<SlySprite> with TickerProviderStateMixin {
     final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     _motionAllowed = widget.animate && !disabled;
     // A new expression should visibly land, the way the old build popped.
-    if (_motionAllowed && oldWidget.expression != widget.expression) {
+    if (_motionAllowed &&
+        (oldWidget.expression != widget.expression ||
+            oldWidget.skin != widget.skin ||
+            oldWidget.reactionActive != widget.reactionActive)) {
       _react.forward(from: 0);
     }
     _syncIdle();
@@ -102,23 +113,47 @@ class _SlySpriteState extends State<SlySprite> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isClassic = widget.skin == SlySkin.classic;
-    final frame = isClassic ? widget.expression.index : widget.skin.index;
-    final columns = isClassic ? 3 : 4;
-    final rows = isClassic ? 3 : 2;
+    final showExpression =
+        isClassic ||
+        (widget.reactionActive && widget.expression != SlyExpression.idle);
+    final frame = showExpression
+        ? slyExpressionFrameIndex(widget.expression)
+        : widget.skin.index;
+    final columns = showExpression ? 3 : 4;
+    final rows = showExpression ? 3 : 2;
     final column = frame % columns;
     final row = frame ~/ columns;
-    final sprite = ClipRRect(
-      borderRadius: BorderRadius.circular(widget.borderRadius),
-      child: _SpriteFrame(
-        asset: isClassic
-            ? 'assets/art/sly/sly-expression-grid.webp'
-            : 'assets/art/sly/sly-skins-grid.webp',
-        columns: columns,
-        rows: rows,
-        column: column,
-        row: row,
-        width: widget.size,
-        height: widget.size,
+    final asset = showExpression
+        ? slyExpressionSpriteAsset
+        : slySkinSpriteAsset;
+    final frameKey = showExpression
+        ? ValueKey('sly-expression-frame-${widget.expression.name}')
+        : ValueKey('sly-skin-frame-${widget.skin.name}');
+    final sprite = SizedBox.square(
+      dimension: widget.size,
+      child: AnimatedSwitcher(
+        duration: _motionAllowed
+            ? const Duration(milliseconds: 120)
+            : Duration.zero,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          fit: StackFit.expand,
+          children: [...previousChildren, ?currentChild],
+        ),
+        child: ClipRRect(
+          key: frameKey,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: _SpriteFrame(
+            asset: asset,
+            columns: columns,
+            rows: rows,
+            column: column,
+            row: row,
+            width: widget.size,
+            height: widget.size,
+          ),
+        ),
       ),
     );
 
@@ -154,6 +189,25 @@ class _SlySpriteState extends State<SlySprite> with TickerProviderStateMixin {
     );
   }
 }
+
+const String slyExpressionSpriteAsset =
+    'assets/art/sly/sly-expression-grid.webp';
+const String slySkinSpriteAsset = 'assets/art/sly/sly-skins-grid.webp';
+
+/// The atlas is deliberately mapped by name rather than enum ordinal so adding
+/// a future expression cannot silently point every later mood at the wrong
+/// face.
+int slyExpressionFrameIndex(SlyExpression expression) => switch (expression) {
+  SlyExpression.idle => 0,
+  SlyExpression.impressed => 1,
+  SlyExpression.laughing => 2,
+  SlyExpression.scared => 3,
+  SlyExpression.angry => 4,
+  SlyExpression.shocked => 5,
+  SlyExpression.thoughtful => 6,
+  SlyExpression.triumphant => 7,
+  SlyExpression.disappointed => 8,
+};
 
 class SlyStageSprite extends StatelessWidget {
   const SlyStageSprite({required this.pose, this.size = 260, super.key});

@@ -130,6 +130,42 @@ void main() {
     expect(saved['hand'], hasLength(handSize));
   });
 
+  test(
+    'guided first-run coaching advances and survives a shop resume',
+    () async {
+      final harness = _Harness();
+      final game = await GameController.startNew(
+        config: _config(seed: 9911, guidedFirstRun: true),
+        callbacks: harness.callbacks,
+        wait: noWait,
+      );
+      addTearDown(game.dispose);
+      expect(game.guideStep, 0);
+      expect(game.shopGuideShown, isFalse);
+
+      game.state.stageScore = game.target - 1;
+      await game.toggleCard(game.hand.first.uid!);
+      expect((await game.playSelected()).ok, isTrue);
+      expect(game.phase, RunPhase.shop);
+      expect(game.guideStep, 3);
+      expect(game.shopGuideShown, isFalse);
+
+      await game.markFirstShopGuideShown();
+      expect(game.shopGuideShown, isTrue);
+      final saved = game.encodeLegacySave();
+      final resumed = await GameController.resume(
+        encoded: saved,
+        callbacks: _Harness().callbacks,
+        unlockedJokerIds: jokersById.keys.toSet(),
+        wait: noWait,
+      );
+      addTearDown(resumed.dispose);
+      expect(resumed.phase, RunPhase.shop);
+      expect(resumed.guideStep, 3);
+      expect(resumed.shopGuideShown, isTrue);
+    },
+  );
+
   test('Heat clear awards once and opens a deterministic shop', () async {
     final harness = _Harness();
     final game = await GameController.startNew(
@@ -642,7 +678,6 @@ void main() {
     // The exact actions that were dead on the phone.
     expect((await game.leaveShop()).ok, isTrue);
   });
-
 }
 
 GameRunConfig _config({
@@ -652,6 +687,7 @@ GameRunConfig _config({
   List<String> initialJokers = const <String>[],
   RunMode mode = RunMode.normal,
   int stake = 0,
+  bool guidedFirstRun = false,
 }) => GameRunConfig(
   rngSeed: seed,
   runId: runId ?? 'test-$seed',
@@ -660,6 +696,7 @@ GameRunConfig _config({
   initialDeck: initialDeck,
   initialJokerIds: initialJokers,
   stake: stake,
+  guidedFirstRun: guidedFirstRun,
 );
 
 Future<GameController> _openFirstShop(ScoringWait wait) async {

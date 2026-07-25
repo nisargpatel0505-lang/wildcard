@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../wildcard_theme.dart';
@@ -146,22 +144,32 @@ class _WildcardCoinPainter extends CustomPainter {
         ..strokeWidth = size.width * .065
         ..color = const Color(0xFF8E4A0B),
     );
-    final path = Path();
-    for (var point = 0; point < 10; point++) {
-      final angle = -1.5708 + point * .62832;
-      final r = point.isEven ? radius * .43 : radius * .20;
-      final p = Offset(
-        centre.dx + r * math.cos(angle),
-        centre.dy + r * math.sin(angle),
-      );
-      if (point == 0) {
-        path.moveTo(p.dx, p.dy);
-      } else {
-        path.lineTo(p.dx, p.dy);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFF6C3308));
+    // The currency mark is a real W, not the generic star used by the first
+    // Flutter pass. A painted path stays crisp at the tiny shop-price sizes.
+    final mark = Path()
+      ..moveTo(size.width * .20, size.height * .30)
+      ..lineTo(size.width * .33, size.height * .72)
+      ..lineTo(size.width * .50, size.height * .49)
+      ..lineTo(size.width * .67, size.height * .72)
+      ..lineTo(size.width * .80, size.height * .30);
+    canvas.drawPath(
+      mark.shift(Offset(0, size.height * .045)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .16
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0x659B5512),
+    );
+    canvas.drawPath(
+      mark,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .13
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFF6C3308),
+    );
     canvas.drawCircle(
       Offset(size.width * .30, size.height * .26),
       size.width * .09,
