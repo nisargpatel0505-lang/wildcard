@@ -38,6 +38,30 @@ enum SlyMood {
   fold,
 }
 
+enum SlyMotionProfile { none, pop, rock, tremble }
+
+/// One visible Sly reaction. Sequence identity guarantees that two consecutive
+/// reactions with the same line still replay their motion.
+class SlyReaction {
+  const SlyReaction({
+    required this.mood,
+    required this.priority,
+    required this.expression,
+    required this.speech,
+    required this.motion,
+    required this.hold,
+    required this.sequence,
+  });
+
+  final SlyMood mood;
+  final int priority;
+  final SlyExpression expression;
+  final String speech;
+  final SlyMotionProfile motion;
+  final Duration hold;
+  final int sequence;
+}
+
 class SlyQuipSet {
   const SlyQuipSet({required this.expression, required this.quips});
 

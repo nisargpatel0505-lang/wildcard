@@ -37,8 +37,34 @@ class HapticsService {
   /// A Joker fires during scoring.
   void jokerBeat() => _fire(HapticFeedback.selectionClick);
 
+  /// A card contributes rank.
+  void cardBeat() => _fire(HapticFeedback.selectionClick);
+
+  /// A retrigger is a deliberately distinct double pulse.
+  void retrigger() => _fire(() async {
+    await HapticFeedback.lightImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 65));
+    await HapticFeedback.selectionClick();
+  });
+
+  /// Additive or multiplicative score lift.
+  void multiplier() => _fire(HapticFeedback.mediumImpact);
+
   /// Heat cleared.
   void success() => _fire(HapticFeedback.heavyImpact);
+
+  /// A restrained presentation pulse (Vault charge/common reward).
+  void light() => _fire(HapticFeedback.lightImpact);
+
+  /// A mechanical presentation click (Vault latch/lid).
+  void medium() => _fire(HapticFeedback.mediumImpact);
+
+  /// Premium WILD impact with one short follow-up, never awaited by gameplay.
+  void wildSuccess() => _fire(() async {
+    await HapticFeedback.heavyImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    await HapticFeedback.lightImpact();
+  });
 
   /// Run lost or abandoned.
   void failure() => _fire(HapticFeedback.vibrate);

@@ -6,9 +6,11 @@ import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
 import '../models/game_ui_models.dart';
+import '../responsive_metrics.dart';
 import '../widgets/compact_joker_card.dart';
 import '../widgets/wildcard_background.dart';
 import '../widgets/wildcard_button.dart';
+import '../widgets/wildcard_coin.dart';
 import '../wildcard_theme.dart';
 
 /// Phone-first between-Heat shop.
@@ -420,37 +422,8 @@ class _RunCoinBadge extends StatelessWidget {
   final int coins;
 
   @override
-  Widget build(BuildContext context) {
-    final tokens = context.wildcard;
-    return Container(
-      constraints: const BoxConstraints(minWidth: 62, minHeight: 40),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: tokens.panelStrong,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tokens.gold.withValues(alpha: 0.7)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'RUN COINS',
-            style: TextStyle(color: tokens.creamDim, fontSize: 8.5, height: 1),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            '$coins',
-            style: TextStyle(
-              color: tokens.gold,
-              fontFamily: 'Bungee',
-              fontSize: 13,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      RunCoinBadge(coins: coins, compact: true);
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -545,9 +518,9 @@ class _HeldJokerStrip extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 5),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: Text(
-                      'SELL +${math.max(1, joker.price ~/ 2)}',
-                      style: const TextStyle(fontFamily: 'Bungee', fontSize: 8),
+                    child: CoinSellValue(
+                      math.max(1, joker.price ~/ 2),
+                      compact: true,
                     ),
                   ),
                 ),
@@ -610,9 +583,16 @@ class _ShopOfferHeader extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: canReroll ? onReroll : null,
             icon: const Icon(Icons.refresh_rounded, size: 17),
-            label: Text(
-              'REROLL \u00b7 $rerollCost',
-              style: const TextStyle(fontFamily: 'Bungee', fontSize: 8.5),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'REROLL',
+                  style: TextStyle(fontFamily: 'Bungee', fontSize: 8.5),
+                ),
+                const SizedBox(width: 5),
+                CoinPrice(rerollCost, compact: true),
+              ],
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: tokens.cream,
@@ -648,7 +628,10 @@ class _JokerOfferGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = 8.0;
-        final width = (constraints.maxWidth - gap) / 2;
+        final columns = WildcardResponsiveMetrics.from(
+          Size(constraints.maxWidth, 800),
+        ).columns;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
@@ -746,15 +729,7 @@ class _JokerOfferTile extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
-            '${offer.effectivePrice} run coins',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: tokens.gold,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
-          ),
+          Center(child: CoinPrice(offer.effectivePrice, compact: true)),
           const SizedBox(height: 6),
           SizedBox(
             height: 48,
@@ -805,7 +780,10 @@ class _SupplyGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = 8.0;
-        final width = (constraints.maxWidth - gap) / 2;
+        final columns = WildcardResponsiveMetrics.from(
+          Size(constraints.maxWidth, 800),
+        ).columns;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
@@ -901,14 +879,7 @@ class _SupplyTile extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
-            '$price run coins',
-            style: TextStyle(
-              color: tokens.gold,
-              fontWeight: FontWeight.w700,
-              fontSize: 10,
-            ),
-          ),
+          Center(child: CoinPrice(price, compact: true)),
           const SizedBox(height: 5),
           SizedBox(
             width: double.infinity,

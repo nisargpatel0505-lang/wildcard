@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../effects_profile.dart';
 import '../wildcard_theme.dart';
 
 /// Widget tests pump-and-settle whole screens, so the perpetual drift ticker
@@ -21,6 +22,10 @@ class WildcardBackground extends StatelessWidget {
     this.asset,
     this.alignment = Alignment.topCenter,
     this.tintStrength = 1,
+    this.energy = 0,
+    this.modifierActive = false,
+    this.houseActive = false,
+    this.momentPulse = 0,
     super.key,
   });
 
@@ -29,6 +34,10 @@ class WildcardBackground extends StatelessWidget {
   final String? asset;
   final Alignment alignment;
   final double tintStrength;
+  final double energy;
+  final bool modifierActive;
+  final bool houseActive;
+  final double momentPulse;
 
   String _assetFor(WildcardThemeTokens tokens) {
     if (asset != null) return asset!;
@@ -48,7 +57,9 @@ class WildcardBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
+    final effects = EffectsProfile.resolve(context);
     final strength = tintStrength.clamp(0.0, 1.5).toDouble();
+    final atmosphereEnergy = energy.clamp(0.0, 1.25).toDouble();
     final backgroundAsset = _assetFor(tokens);
     Color tint(Color color) => color.withValues(
       alpha: (color.a * strength).clamp(0.0, 1.0).toDouble(),
@@ -103,6 +114,24 @@ class WildcardBackground extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (atmosphereEnergy > 0 ||
+                      modifierActive ||
+                      houseActive ||
+                      momentPulse > 0)
+                    RepaintBoundary(
+                      child: CustomPaint(
+                        painter: _RoomStatePainter(
+                          energy: atmosphereEnergy,
+                          modifierActive: modifierActive,
+                          houseActive: houseActive,
+                          momentPulse: momentPulse.clamp(0.0, 1.0).toDouble(),
+                          mint: tokens.mint,
+                          gold: tokens.gold,
+                          violet: tokens.violet,
+                          glowScale: effects.glowScale,
+                        ),
+                      ),
+                    ),
                   // A cheap edge vignette preserves the detail in the centre
                   // without the runtime blur used by the old WebView client.
                   DecoratedBox(
@@ -125,8 +154,13 @@ class WildcardBackground extends StatelessWidget {
           // The WebView rooms breathed: three light blobs drifted slowly over
           // the art (`drift1..3`). The blobs are constant subtrees moved by a
           // compositor transform, so the drift costs no repaint of the room.
-          const Positioned.fill(
-            child: IgnorePointer(child: _AmbientDrift()),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _AmbientDrift(
+                enabled: effects.backgroundMotion,
+                intensity: effects.glowScale,
+              ),
+            ),
           ),
           child,
         ],
@@ -136,7 +170,10 @@ class WildcardBackground extends StatelessWidget {
 }
 
 class _AmbientDrift extends StatefulWidget {
-  const _AmbientDrift();
+  const _AmbientDrift({required this.enabled, required this.intensity});
+
+  final bool enabled;
+  final double intensity;
 
   @override
   State<_AmbientDrift> createState() => _AmbientDriftState();
@@ -153,7 +190,9 @@ class _AmbientDriftState extends State<_AmbientDrift>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final disabled =
-        _inWidgetTest || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+        !widget.enabled ||
+        _inWidgetTest ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     if (disabled) {
       if (_c.isAnimating) _c.stop();
     } else if (!_c.isAnimating) {
@@ -170,16 +209,16 @@ class _AmbientDriftState extends State<_AmbientDrift>
   @override
   Widget build(BuildContext context) {
     final disabled =
-        _inWidgetTest || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+        !widget.enabled ||
+        _inWidgetTest ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     if (disabled) return const SizedBox.shrink();
     final tokens = context.wildcard;
     final size = MediaQuery.sizeOf(context);
     Widget blob(Color color, double diameter) => DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, color.withValues(alpha: 0)],
-        ),
+        gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
       ),
       child: SizedBox.square(dimension: diameter),
     );
@@ -202,7 +241,9 @@ class _AmbientDriftState extends State<_AmbientDrift>
                     offset: Offset(math.sin(t) * 34, math.cos(t * 0.8) * 26),
                     child: RepaintBoundary(
                       child: blob(
-                        tokens.violet.withValues(alpha: 0.075),
+                        tokens.violet.withValues(
+                          alpha: 0.075 * widget.intensity,
+                        ),
                         size.width * 0.9,
                       ),
                     ),
@@ -212,10 +253,13 @@ class _AmbientDriftState extends State<_AmbientDrift>
                   right: size.width * 0.02,
                   bottom: size.height * 0.06,
                   child: Transform.translate(
-                    offset: Offset(math.cos(t * 0.7) * 30, math.sin(t * 0.9) * 24),
+                    offset: Offset(
+                      math.cos(t * 0.7) * 30,
+                      math.sin(t * 0.9) * 24,
+                    ),
                     child: RepaintBoundary(
                       child: blob(
-                        tokens.gold.withValues(alpha: 0.05),
+                        tokens.gold.withValues(alpha: 0.05 * widget.intensity),
                         size.width * 0.74,
                       ),
                     ),
@@ -228,4 +272,104 @@ class _AmbientDriftState extends State<_AmbientDrift>
       ),
     );
   }
+
+  @override
+  void didUpdateWidget(covariant _AmbientDrift oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled == widget.enabled) return;
+    if (!widget.enabled) {
+      _c.stop();
+    } else if (!_inWidgetTest &&
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false)) {
+      _c.repeat();
+    }
+  }
+}
+
+/// A static, allocation-free reaction layer. It is repainted only when the
+/// committed Heat state changes, never on every scoring beat.
+class _RoomStatePainter extends CustomPainter {
+  const _RoomStatePainter({
+    required this.energy,
+    required this.modifierActive,
+    required this.houseActive,
+    required this.momentPulse,
+    required this.mint,
+    required this.gold,
+    required this.violet,
+    required this.glowScale,
+  });
+
+  final double energy;
+  final bool modifierActive;
+  final bool houseActive;
+  final double momentPulse;
+  final Color mint;
+  final Color gold;
+  final Color violet;
+  final double glowScale;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final warmth = ((energy - .42) / .58).clamp(0.0, 1.0);
+    if (warmth > 0 || momentPulse > 0) {
+      final alpha = (.06 + warmth * .11 + momentPulse * .08) * glowScale;
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(0, .36),
+            radius: 1.02,
+            colors: [
+              Color.lerp(
+                mint,
+                gold,
+                warmth,
+              )!.withValues(alpha: alpha.clamp(0.0, .24)),
+              Colors.transparent,
+            ],
+          ).createShader(Offset.zero & size),
+      );
+    }
+
+    if (!modifierActive && !houseActive) return;
+    final accent = houseActive ? gold : violet;
+    final line = Paint()
+      ..color = accent.withValues(alpha: houseActive ? .10 : .065)
+      ..strokeWidth = houseActive ? 1.4 : 1;
+    final spacing = houseActive ? 54.0 : 68.0;
+    for (var y = size.height * .12; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
+    }
+
+    // Four fixed suit seals provide modifier atmosphere without permanent
+    // suit rain or a ticker.
+    const suits = <String>['♠', '♥', '♦', '♣'];
+    final painter = TextPainter(textDirection: TextDirection.ltr);
+    for (var index = 0; index < suits.length; index++) {
+      painter.text = TextSpan(
+        text: suits[index],
+        style: TextStyle(
+          color: accent.withValues(alpha: houseActive ? .13 : .09),
+          fontSize: size.shortestSide * .105,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+      painter.layout();
+      final left = index.isEven ? size.width * .05 : size.width * .82;
+      final top = size.height * (.2 + index * .18);
+      painter.paint(canvas, Offset(left, top));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoomStatePainter oldDelegate) =>
+      oldDelegate.energy != energy ||
+      oldDelegate.modifierActive != modifierActive ||
+      oldDelegate.houseActive != houseActive ||
+      oldDelegate.momentPulse != momentPulse ||
+      oldDelegate.glowScale != glowScale ||
+      oldDelegate.mint != mint ||
+      oldDelegate.gold != gold ||
+      oldDelegate.violet != violet;
 }

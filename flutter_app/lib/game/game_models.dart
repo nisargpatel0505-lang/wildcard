@@ -158,35 +158,25 @@ class ScoringPacing {
     required this.transitionHold,
   });
 
-  /// Normal is paced so each beat is individually readable on a phone.
-  ///
-  /// A scoring beat is a sequence step, not a UI transition: the player has to
-  /// see the card lift, read its chip and watch the total climb before the next
-  /// one fires. The earlier 340ms card beat was shorter than the chip animation
-  /// living inside it, so chips stacked on top of each other and the whole
-  /// ladder blurred past. Each beat now comfortably contains its own animation
-  /// (~200ms pulse + ~380ms chip) with a beat of air after it.
+  /// These are onset gaps, not effect lifetimes. Card/Joker visuals deliberately
+  /// outlive the gap so neighbouring beats overlap like the WebView timeline.
+  /// This keeps labels readable without turning a multi-Joker hand into a chain
+  /// of fully serial animations.
   static const normal = ScoringPacing(
-    leadIn: Duration(milliseconds: 440),
-    // Each card beat is a full readable moment: the card shakes, its chip
-    // rises and the running total rolls up, and the card settles lifted before
-    // the next one starts. Held deliberately slow so the SCORE is easy to read
-    // as it climbs.
-    cardBeat: Duration(milliseconds: 700),
-    jokerBeat: Duration(milliseconds: 880),
-    resultHold: Duration(milliseconds: 1200),
-    transitionHold: Duration(milliseconds: 620),
+    // WebView effective Normal: beat(180/220/360) × 1.85.
+    leadIn: Duration(milliseconds: 333),
+    cardBeat: Duration(milliseconds: 407),
+    jokerBeat: Duration(milliseconds: 666),
+    resultHold: Duration(milliseconds: 1120),
+    transitionHold: Duration(milliseconds: 600),
   );
 
-  /// Fast keeps every beat perceptible while roughly halving the wait.
-  ///
-  /// Kept at or above ~250ms per card: below that the eye cannot separate the
-  /// steps and the ladder stops reading as a sequence at all.
+  /// Fast preserves order and a readable chip hold while shortening onset gaps.
   static const fast = ScoringPacing(
-    leadIn: Duration(milliseconds: 220),
-    cardBeat: Duration(milliseconds: 360),
-    jokerBeat: Duration(milliseconds: 460),
-    resultHold: Duration(milliseconds: 560),
+    leadIn: Duration(milliseconds: 187),
+    cardBeat: Duration(milliseconds: 229),
+    jokerBeat: Duration(milliseconds: 270),
+    resultHold: Duration(milliseconds: 620),
     transitionHold: Duration(milliseconds: 320),
   );
 
@@ -197,28 +187,58 @@ class ScoringPacing {
   final Duration transitionHold;
 }
 
+enum ScorePresentationPhase { idle, leadIn, beat, finale, complete }
+
+enum ScoreChipStyle {
+  card,
+  joker,
+  multiplier,
+  modifier,
+  suspense,
+  miss,
+  jackpot,
+}
+
 class ScoringPresentation {
   const ScoringPresentation({
     this.result,
+    this.handSnapshot = const <PlayingCard>[],
     this.activeEvent,
     this.activeCardId,
     this.activeJokerIndex,
     this.label = '',
-    this.visibleRank = 0,
+    this.visibleRawRank = 0,
+    this.visibleValuePoints = 0,
     this.visibleMultiplier = baseMultiplier,
     this.visibleTotal = 0,
+    this.scoringCardIds = const <String>{},
+    this.settledCardIds = const <String>{},
+    this.sequence = 0,
+    this.chipStyle = ScoreChipStyle.card,
+    this.phase = ScorePresentationPhase.idle,
+    this.finalScoreVisible = false,
     this.complete = false,
   });
 
   final ScoreResult? result;
+  final List<PlayingCard> handSnapshot;
   final ScoreEvent? activeEvent;
   final String? activeCardId;
   final int? activeJokerIndex;
   final String label;
-  final int visibleRank;
+  final int visibleRawRank;
+  final int visibleValuePoints;
   final double visibleMultiplier;
   final int visibleTotal;
+  final Set<String> scoringCardIds;
+  final Set<String> settledCardIds;
+  final int sequence;
+  final ScoreChipStyle chipStyle;
+  final ScorePresentationPhase phase;
+  final bool finalScoreVisible;
   final bool complete;
+
+  bool get isActive => phase != ScorePresentationPhase.idle;
 }
 
 class HeatRewardSummary {

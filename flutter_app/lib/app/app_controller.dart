@@ -118,9 +118,14 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static Future<AppController> bootstrap() async {
+  static Future<AppController> bootstrap({
+    void Function(double fraction, String label)? onProgress,
+  }) async {
+    onProgress?.call(.06, 'Opening local save…');
     final local = await LocalSaveRepository.open();
+    onProgress?.call(.22, 'Checking old progress…');
     final migration = await local.migrateLegacySaveIfNeeded();
+    onProgress?.call(.38, 'Reading your collection…');
     AccountState account;
     Object? loadError;
     final raw = local.accountJson;
@@ -140,6 +145,7 @@ class AppController extends ChangeNotifier {
     }
 
     final releaseSafeAccount = releaseSafeDeveloperAccount(account);
+    onProgress?.call(.55, 'Verifying player progress…');
     final clearedDeveloperState = !identical(releaseSafeAccount, account);
     if (clearedDeveloperState) {
       account = releaseSafeAccount;
@@ -150,6 +156,7 @@ class AppController extends ChangeNotifier {
     }
 
     String? runJson = clearedDeveloperState ? null : local.runJson;
+    onProgress?.call(.69, 'Recovering the table…');
     if (runJson != null) {
       try {
         LegacyRunSave.decode(runJson);
@@ -169,6 +176,7 @@ class AppController extends ChangeNotifier {
       migrationResult: migration,
     );
     controller.bootError = loadError ?? migration.error;
+    onProgress?.call(.84, 'Preparing Sly’s arcade…');
     await controller._normalizeProgression();
     controller.bootState = controller.privacyAccepted
         ? AppBootState.ready
@@ -177,6 +185,7 @@ class AppController extends ChangeNotifier {
       unawaited(controller.startConsentGatedServices());
       unawaited(controller.audio.sync(enabled: controller.account.musicOn));
     }
+    onProgress?.call(1, 'Ready to deal');
     return controller;
   }
 

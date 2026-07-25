@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/cards.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
 import '../../domain/scoring_engine.dart';
+import '../../domain/sly_quips.dart';
+import '../../game/game_models.dart';
+import '../responsive_metrics.dart';
 import '../widgets/compact_joker_card.dart';
 import '../widgets/playing_card_tile.dart';
 import '../widgets/sly_sprite.dart';
@@ -26,6 +30,8 @@ class RunTableScreen extends StatelessWidget {
     required this.hand,
     required this.slySpeech,
     this.score,
+    this.scoringTimeline,
+    this.slyReaction,
     this.activeScoreEvent,
     this.liveRank,
     this.liveMultiplier,
@@ -57,6 +63,8 @@ class RunTableScreen extends StatelessWidget {
   final List<PlayingCard> hand;
   final String slySpeech;
   final ScoreResult? score;
+  final ValueListenable<ScoringPresentation>? scoringTimeline;
+  final ValueListenable<SlyReaction?>? slyReaction;
 
   /// The domain event currently being paced by the controller.
   final ScoreEvent? activeScoreEvent;
@@ -98,7 +106,6 @@ class RunTableScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedCount = hand.where((card) => card.selected).length;
     final room =
         backgroundRoom ??
         (state.hasBossModifier
@@ -112,11 +119,69 @@ class RunTableScreen extends StatelessWidget {
         room: room,
         asset: backgroundAsset,
         tintStrength: 0.78,
+        energy: state.stageScore / math.max(1, state.target),
+        modifierActive: state.hasAnyModifier,
+        houseActive: state.hasBossModifier,
         child: SafeArea(
           minimum: const EdgeInsets.only(bottom: 4),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final metrics = _RunMetrics.from(constraints.biggest);
+              final responsive = WildcardResponsiveMetrics.from(
+                constraints.biggest,
+              );
+              final contentWidth = responsive.contentMaxWidth.isFinite
+                  ? math.min(constraints.maxWidth, responsive.contentMaxWidth)
+                  : constraints.maxWidth;
+              final metrics = _RunMetrics.from(
+                Size(contentWidth, constraints.maxHeight),
+              );
+              final legacyPresentation = ScoringPresentation(
+                result: score,
+                activeEvent: activeScoreEvent,
+                activeJokerIndex: highlightedJokerIndex,
+                visibleValuePoints: liveRank ?? score?.valuePoints ?? 0,
+                visibleMultiplier:
+                    liveMultiplier ?? score?.multiplier ?? baseMultiplier,
+                visibleTotal: liveTotal ?? score?.total ?? 0,
+                settledCardIds: scoredCardIds,
+                phase: activeScoreEvent == null
+                    ? ScorePresentationPhase.idle
+                    : ScorePresentationPhase.beat,
+              );
+
+              Widget withPresentation(
+                Widget Function(ScoringPresentation presentation) builder,
+              ) {
+                final timeline = scoringTimeline;
+                if (timeline == null) return builder(legacyPresentation);
+                return ValueListenableBuilder<ScoringPresentation>(
+                  valueListenable: timeline,
+                  builder: (context, presentation, _) => builder(presentation),
+                );
+              }
+
+              Widget slyHeader() {
+                final reactions = slyReaction;
+                if (reactions == null) {
+                  return _SlyHeader(
+                    speech: slySpeech,
+                    expression: slyExpression,
+                    skin: slySkin,
+                    height: metrics.slyHeight,
+                  );
+                }
+                return ValueListenableBuilder<SlyReaction?>(
+                  valueListenable: reactions,
+                  builder: (context, reaction, _) => _SlyHeader(
+                    speech: reaction?.speech ?? slySpeech,
+                    expression: reaction?.expression ?? slyExpression,
+                    skin: slySkin,
+                    height: metrics.slyHeight,
+                    reaction: reaction,
+                  ),
+                );
+              }
+
               return SingleChildScrollView(
                 key: const Key('run-table-scroll'),
                 physics: const ClampingScrollPhysics(),
@@ -124,68 +189,123 @@ class RunTableScreen extends StatelessWidget {
                   horizontal: metrics.pagePadding,
                   vertical: metrics.outerGap,
                 ),
-                child: Column(
-                  children: [
-                    _SlyHeader(
-                      speech: slySpeech,
-                      expression: slyExpression,
-                      skin: slySkin,
-                      height: metrics.slyHeight,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentWidth),
+                    child: Column(
+                      children: [
+                        slyHeader(),
+                        SizedBox(height: metrics.outerGap),
+                        _HeatHud(
+                          state: state,
+                          stakeText: stakeText,
+                          compact: metrics.compact,
+                        ),
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation(
+                          (presentation) => _TargetPanel(
+                            state: state,
+                            compact: metrics.compact,
+                            stageScoreOverride:
+                                presentation.isActive && !presentation.complete
+                                ? state.stageScore + presentation.visibleTotal
+                                : null,
+                          ),
+                        ),
+                        if (state.hasAnyModifier) ...[
+                          SizedBox(height: metrics.outerGap),
+                          _ModifierPanel(
+                            state: state,
+                            compact: metrics.compact,
+                          ),
+                        ],
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation(
+                          (presentation) => _JokerSection(
+                            state: state,
+                            activeEvent: presentation.activeEvent,
+                            highlightedJokerIndex:
+                                presentation.activeJokerIndex,
+                            summary: presentation.label.isEmpty
+                                ? jokerSummary
+                                : presentation.label,
+                            presentationSequence: presentation.sequence,
+                            cardHeight: metrics.jokerHeight,
+                            onInspect: onInspectJoker,
+                          ),
+                        ),
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation((presentation) {
+                          final displayHand =
+                              presentation.handSnapshot.isNotEmpty
+                              ? presentation.handSnapshot
+                              : hand;
+                          return _ScoreEquation(
+                            state: state,
+                            hand: displayHand,
+                            score: presentation.result ?? score,
+                            compact: metrics.compact,
+                            liveRank: presentation.isActive
+                                ? presentation.visibleValuePoints
+                                : liveRank,
+                            liveMultiplier: presentation.isActive
+                                ? presentation.visibleMultiplier
+                                : liveMultiplier,
+                            liveTotal: presentation.isActive
+                                ? presentation.visibleTotal
+                                : liveTotal,
+                          );
+                        }),
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation((presentation) {
+                          final displayHand =
+                              presentation.handSnapshot.isNotEmpty
+                              ? presentation.handSnapshot
+                              : hand;
+                          final activeId = presentation.activeCardId;
+                          final activeIndex = activeId == null
+                              ? highlightedHandIndex
+                              : displayHand.indexWhere(
+                                  (card) => card.uid == activeId,
+                                );
+                          return _TableArea(
+                            tableFeltId: tableFeltId,
+                            hand: displayHand,
+                            activeEvent:
+                                presentation.activeEvent ?? activeScoreEvent,
+                            highlightedHandIndex:
+                                activeIndex == null || activeIndex < 0
+                                ? null
+                                : activeIndex,
+                            scoredCardIds: presentation.isActive
+                                ? presentation.settledCardIds
+                                : scoredCardIds,
+                            scoringCardIds: presentation.scoringCardIds,
+                            presentationSequence: presentation.sequence,
+                            chipLabel: presentation.label,
+                            chipStyle: presentation.chipStyle,
+                            selectedCount: displayHand
+                                .where((card) => card.selected)
+                                .length,
+                            maxSelected: state.effectiveMaxSelect,
+                            sortLabel: sortLabel,
+                            compact: metrics.compact,
+                            cardWidth: metrics.cardWidth,
+                            cardHeight: metrics.cardHeight,
+                            busy: busy,
+                            onToggleCard: onToggleCard,
+                            onOpenHands: onOpenHands,
+                            onOpenDeck: onOpenDeck,
+                            onSortCards: onSortCards,
+                            onPlay: onPlay,
+                            onDiscard: onDiscard,
+                            onAbandon: onAbandon,
+                          );
+                        }),
+                      ],
                     ),
-                    SizedBox(height: metrics.outerGap),
-                    _HeatHud(
-                      state: state,
-                      stakeText: stakeText,
-                      compact: metrics.compact,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _TargetPanel(state: state, compact: metrics.compact),
-                    if (state.hasAnyModifier) ...[
-                      SizedBox(height: metrics.outerGap),
-                      _ModifierPanel(state: state, compact: metrics.compact),
-                    ],
-                    SizedBox(height: metrics.outerGap),
-                    _JokerSection(
-                      state: state,
-                      activeEvent: activeScoreEvent,
-                      highlightedJokerIndex: highlightedJokerIndex,
-                      summary: jokerSummary,
-                      cardHeight: metrics.jokerHeight,
-                      onInspect: onInspectJoker,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _ScoreEquation(
-                      state: state,
-                      hand: hand,
-                      score: score,
-                      compact: metrics.compact,
-                      liveRank: liveRank,
-                      liveMultiplier: liveMultiplier,
-                      liveTotal: liveTotal,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _TableArea(
-                      tableFeltId: tableFeltId,
-                      hand: hand,
-                      activeEvent: activeScoreEvent,
-                      highlightedHandIndex: highlightedHandIndex,
-                      scoredCardIds: scoredCardIds,
-                      selectedCount: selectedCount,
-                      maxSelected: state.effectiveMaxSelect,
-                      sortLabel: sortLabel,
-                      compact: metrics.compact,
-                      cardWidth: metrics.cardWidth,
-                      cardHeight: metrics.cardHeight,
-                      busy: busy,
-                      onToggleCard: onToggleCard,
-                      onOpenHands: onOpenHands,
-                      onOpenDeck: onOpenDeck,
-                      onSortCards: onSortCards,
-                      onPlay: onPlay,
-                      onDiscard: onDiscard,
-                      onAbandon: onAbandon,
-                    ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -202,35 +322,54 @@ class _SlyHeader extends StatelessWidget {
     required this.expression,
     required this.skin,
     required this.height,
+    this.reaction,
   });
 
   final String speech;
   final SlyExpression expression;
   final SlySkin skin;
   final double height;
+  final SlyReaction? reaction;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
+    final reactionColor = _slyReactionColor(tokens, reaction?.mood);
     return SizedBox(
       height: height,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: height,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: tokens.panelStrong,
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: tokens.violet, width: 2),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SlySprite(
-              expression: expression,
-              skin: skin,
-              size: height - 4,
-              borderRadius: 10,
+          _SlyReactionMotion(
+            key: ValueKey('sly-reaction-${reaction?.sequence ?? 0}'),
+            profile: reaction?.motion ?? SlyMotionProfile.none,
+            child: Container(
+              width: height,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: tokens.panelStrong,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: reactionColor, width: 2.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: reactionColor.withValues(
+                      alpha: reaction == null ? 0.16 : 0.48,
+                    ),
+                    blurRadius: reaction == null ? 5 : 14,
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: SlySprite(
+                  key: ValueKey('sly-face-${expression.name}'),
+                  expression: expression,
+                  skin: skin,
+                  size: height - 4,
+                  borderRadius: 10,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 7),
@@ -250,21 +389,107 @@ class _SlyHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                speech,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: const Color(0xFF242329),
-                  fontSize: height < 72 ? 12 : 14,
-                  height: 1.23,
-                  fontWeight: FontWeight.w500,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 170),
+                child: Text(
+                  speech,
+                  key: ValueKey(
+                    'sly-speech-${reaction?.sequence ?? 0}-$speech',
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF242329),
+                    fontSize: height < 72 ? 12 : 14,
+                    height: 1.23,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SlyReactionMotion extends StatefulWidget {
+  const _SlyReactionMotion({
+    required this.profile,
+    required this.child,
+    super.key,
+  });
+
+  final SlyMotionProfile profile;
+  final Widget child;
+
+  @override
+  State<_SlyReactionMotion> createState() => _SlyReactionMotionState();
+}
+
+class _SlyReactionMotionState extends State<_SlyReactionMotion>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (!disabled && widget.profile != SlyMotionProfile.none) {
+      _controller.forward(from: 0);
+    } else {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.profile == SlyMotionProfile.none) return widget.child;
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _controller.value;
+        final envelope = math.sin(t * math.pi) * (1 - t * 0.25);
+        final (offset, angle, scale) = switch (widget.profile) {
+          SlyMotionProfile.pop => (
+            Offset(0, -5 * envelope),
+            0.0,
+            1 + 0.075 * envelope,
+          ),
+          SlyMotionProfile.rock => (
+            Offset(0, -3 * envelope),
+            math.sin(t * math.pi * 2.4) * 0.055 * (1 - t),
+            1 + 0.055 * envelope,
+          ),
+          SlyMotionProfile.tremble => (
+            Offset(
+              math.sin(t * math.pi * 9) * 3.2 * (1 - t),
+              math.cos(t * math.pi * 7) * 1.4 * (1 - t),
+            ),
+            math.sin(t * math.pi * 7) * 0.025 * (1 - t),
+            1.0,
+          ),
+          SlyMotionProfile.none => (Offset.zero, 0.0, 1.0),
+        };
+        return Transform.translate(
+          offset: offset,
+          child: Transform.rotate(
+            angle: angle,
+            child: Transform.scale(scale: scale, child: child),
+          ),
+        );
+      },
     );
   }
 }
@@ -382,16 +607,22 @@ class _HudCell extends StatelessWidget {
 }
 
 class _TargetPanel extends StatelessWidget {
-  const _TargetPanel({required this.state, required this.compact});
+  const _TargetPanel({
+    required this.state,
+    required this.compact,
+    this.stageScoreOverride,
+  });
 
   final ScoringState state;
   final bool compact;
+  final int? stageScoreOverride;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final target = math.max(1, state.target);
-    final progress = (state.stageScore / target).clamp(0.0, 1.0).toDouble();
+    final stageScore = stageScoreOverride ?? state.stageScore;
+    final progress = (stageScore / target).clamp(0.0, 1.0).toDouble();
     return Container(
       padding: EdgeInsets.fromLTRB(10, compact ? 7 : 9, 10, compact ? 7 : 9),
       decoration: BoxDecoration(
@@ -405,7 +636,7 @@ class _TargetPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Heat score: ${_formatNumber(state.stageScore)}',
+                  'Heat score: ${_formatNumber(stageScore)}',
                   style: TextStyle(
                     color: tokens.cream,
                     fontSize: compact ? 11 : 13,
@@ -520,6 +751,7 @@ class _JokerSection extends StatelessWidget {
     required this.activeEvent,
     required this.highlightedJokerIndex,
     required this.summary,
+    required this.presentationSequence,
     required this.cardHeight,
     required this.onInspect,
   });
@@ -528,6 +760,7 @@ class _JokerSection extends StatelessWidget {
   final ScoreEvent? activeEvent;
   final int? highlightedJokerIndex;
   final String? summary;
+  final int presentationSequence;
   final double cardHeight;
   final ValueChanged<JokerDefinition>? onInspect;
 
@@ -592,9 +825,8 @@ class _JokerSection extends StatelessWidget {
                           blocked:
                               id != null && state.blockedJokerIds.contains(id),
                           highlighted: activeJoker == index,
-                          triggerLabel: activeJoker == index
-                              ? activeEvent?.label
-                              : null,
+                          triggerLabel: activeJoker == index ? summary : null,
+                          triggerSequence: presentationSequence,
                           height: cardHeight,
                           onTap: joker == null || onInspect == null
                               ? null
@@ -738,7 +970,8 @@ class _EquationValueState extends State<_EquationValue>
   double? _toNum;
   bool _decimal = false;
 
-  static double? _parse(String value) => double.tryParse(value.replaceAll(',', ''));
+  static double? _parse(String value) =>
+      double.tryParse(value.replaceAll(',', ''));
 
   @override
   void initState() {
@@ -857,6 +1090,10 @@ class _TableArea extends StatelessWidget {
     required this.activeEvent,
     required this.highlightedHandIndex,
     required this.scoredCardIds,
+    required this.scoringCardIds,
+    required this.presentationSequence,
+    required this.chipLabel,
+    required this.chipStyle,
     required this.selectedCount,
     required this.maxSelected,
     required this.sortLabel,
@@ -878,6 +1115,10 @@ class _TableArea extends StatelessWidget {
   final ScoreEvent? activeEvent;
   final int? highlightedHandIndex;
   final Set<String> scoredCardIds;
+  final Set<String> scoringCardIds;
+  final int presentationSequence;
+  final String chipLabel;
+  final ScoreChipStyle chipStyle;
   final int selectedCount;
   final int maxSelected;
   final String sortLabel;
@@ -973,34 +1214,49 @@ class _TableArea extends StatelessWidget {
                             ),
                             index: index,
                             child: PlayingCardTile(
-                            key: ValueKey('hand-card-$index'),
-                            card: hand[index],
-                            width: tileWidth,
-                            height: tileHeight,
-                            highlighted:
-                                (highlightedHandIndex ??
-                                    activeEvent?.cardIndex) ==
-                                index,
-                            // Already scored earlier this hand: stays lifted.
-                            scored: hand[index].uid != null &&
-                                scoredCardIds.contains(hand[index].uid),
-                            // Points this card just contributed, so scoring is
-                            // visible on the card itself and not only in the
-                            // equation panel.
-                            scoreChip:
-                                (highlightedHandIndex ??
-                                            activeEvent?.cardIndex) ==
-                                        index &&
-                                    activeEvent != null &&
-                                    activeEvent!.amount > 0
-                                ? '+${activeEvent!.amount.round()}'
-                                : null,
-                            // Gold when the card itself scores; violet when a
-                            // Joker acted on it (the WebView's colour split).
-                            scoreChipColor: _chipColor(context, activeEvent),
-                            onTap: busy || onToggleCard == null
-                                ? null
-                                : () => onToggleCard!(index),
+                              key: ValueKey(
+                                'hand-card-${hand[index].uid ?? 'slot-$index'}',
+                              ),
+                              card: hand[index],
+                              width: tileWidth,
+                              height: tileHeight,
+                              highlighted:
+                                  (highlightedHandIndex ??
+                                      activeEvent?.cardIndex) ==
+                                  index,
+                              // Already scored earlier this hand: settled glow.
+                              scored:
+                                  hand[index].uid != null &&
+                                  scoredCardIds.contains(hand[index].uid),
+                              dimmed:
+                                  scoringCardIds.isNotEmpty &&
+                                  hand[index].selected &&
+                                  !scoringCardIds.contains(hand[index].uid),
+                              // Points this card just contributed, so scoring is
+                              // visible on the card itself and not only in the
+                              // equation panel.
+                              scoreChip:
+                                  (highlightedHandIndex ??
+                                              activeEvent?.cardIndex) ==
+                                          index &&
+                                      activeEvent != null &&
+                                      chipLabel.isNotEmpty
+                                  ? chipLabel
+                                  : null,
+                              // Gold when the card itself scores; violet when a
+                              // Joker acted on it (the WebView's colour split).
+                              scoreChipColor: _chipColorForStyle(
+                                context,
+                                chipStyle,
+                              ),
+                              highlightColor: _chipColorForStyle(
+                                context,
+                                chipStyle,
+                              ),
+                              scoreChipSequence: presentationSequence,
+                              onTap: busy || onToggleCard == null
+                                  ? null
+                                  : () => onToggleCard!(index),
                             ),
                           ),
                         ],
@@ -1185,8 +1441,7 @@ class _DealIn extends StatefulWidget {
   State<_DealIn> createState() => _DealInState();
 }
 
-class _DealInState extends State<_DealIn>
-    with SingleTickerProviderStateMixin {
+class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 340),
@@ -1255,10 +1510,11 @@ class _RunMetrics {
   });
 
   factory _RunMetrics.from(Size size) {
-    final compact = size.width < 340 || size.height < 650;
-    final veryShort = size.height < 600;
+    final responsive = WildcardResponsiveMetrics.from(size);
+    final compact = responsive.isCompact;
+    final veryShort = responsive.isVeryShort;
     return _RunMetrics(
-      pagePadding: compact ? 6 : 9,
+      pagePadding: responsive.pagePadding,
       outerGap: veryShort
           ? 4
           : compact
@@ -1292,18 +1548,31 @@ class _RunMetrics {
   final bool compact;
 }
 
-/// The score number on a card is gold when the card scores, violet when a
-/// Joker (rank add, retrigger, mult/xmult) acted on that card.
-Color _chipColor(BuildContext context, ScoreEvent? event) {
-  final joker = switch (event?.type) {
-    ScoreEventType.rankJoker ||
-    ScoreEventType.retrigger ||
-    ScoreEventType.mult ||
-    ScoreEventType.xMult => true,
-    _ => false,
-  };
-  return joker ? context.wildcard.violet : const Color(0xFFF7C548);
-}
+Color _chipColorForStyle(BuildContext context, ScoreChipStyle style) =>
+    switch (style) {
+      ScoreChipStyle.card || ScoreChipStyle.jackpot => const Color(0xFFF7C548),
+      ScoreChipStyle.joker ||
+      ScoreChipStyle.multiplier => context.wildcard.violet,
+      ScoreChipStyle.modifier => context.wildcard.mint,
+      ScoreChipStyle.suspense => context.wildcard.creamDim,
+      ScoreChipStyle.miss => context.wildcard.coral,
+    };
+
+Color _slyReactionColor(WildcardThemeTokens tokens, SlyMood? mood) =>
+    switch (mood) {
+      SlyMood.sevenMiss || SlyMood.scared || SlyMood.clutch => tokens.coral,
+      SlyMood.unbelievable ||
+      SlyMood.quads ||
+      SlyMood.straightFlush ||
+      SlyMood.royalFlush ||
+      SlyMood.sevenHit => tokens.gold,
+      SlyMood.impressed ||
+      SlyMood.fullHouse ||
+      SlyMood.straight ||
+      SlyMood.flush => tokens.mint,
+      SlyMood.laughing || SlyMood.highCard => tokens.wild,
+      _ => tokens.violet,
+    };
 
 String _formatNumber(int value) {
   final negative = value < 0;

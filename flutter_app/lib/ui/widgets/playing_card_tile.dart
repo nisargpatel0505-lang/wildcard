@@ -15,10 +15,13 @@ class PlayingCardTile extends StatelessWidget {
     this.onTap,
     this.highlighted = false,
     this.scored = false,
+    this.dimmed = false,
     this.width = 48,
     this.height = 86,
     this.scoreChip,
     this.scoreChipColor,
+    this.highlightColor,
+    this.scoreChipSequence = 0,
     super.key,
   });
 
@@ -31,6 +34,7 @@ class PlayingCardTile extends StatelessWidget {
   /// This card has already scored earlier in the same hand: it keeps a soft
   /// mint glow so the player can read which cards contributed.
   final bool scored;
+  final bool dimmed;
 
   final double width;
   final double height;
@@ -42,6 +46,8 @@ class PlayingCardTile extends StatelessWidget {
   /// Colour of that number: gold when the card itself scores, violet when a
   /// Joker acted on it — the WebView's gold/purple split.
   final Color? scoreChipColor;
+  final Color? highlightColor;
+  final int scoreChipSequence;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +66,7 @@ class PlayingCardTile extends StatelessWidget {
     final border = card.selected
         ? tokens.coral
         : highlighted || scored
-        ? tokens.mint
+        ? (highlightColor ?? (highlighted ? tokens.gold : tokens.mint))
         : enhancement ?? const Color(0xFFD7CFBD);
 
     final chip = scoreChip;
@@ -72,22 +78,27 @@ class PlayingCardTile extends StatelessWidget {
       onTap: onTap,
       child: RepaintBoundary(
         child: ExcludeSemantics(
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              // Static: the card never moves. Only its border/glow changes.
-              _cardBody(context, tokens, suit, ink, border),
-              if (chip != null && chip.isNotEmpty)
-                Positioned(
-                  top: -height * 0.28,
-                  child: _RisingScoreChip(
-                    key: ValueKey(chip),
-                    text: chip,
-                    color: scoreChipColor ?? const Color(0xFFF7C548),
+          child: Opacity(
+            opacity: dimmed ? 0.42 : 1,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                // Static: the card never moves. Only its border/glow changes.
+                _cardBody(context, tokens, suit, ink, border),
+                if (chip != null && chip.isNotEmpty)
+                  Positioned(
+                    top: -height * 0.28,
+                    child: _RisingScoreChip(
+                      key: ValueKey(
+                        '${card.uid ?? card.rank.label}-$scoreChipSequence',
+                      ),
+                      text: chip,
+                      color: scoreChipColor ?? const Color(0xFFF7C548),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -312,7 +323,10 @@ class _RisingScoreChipState extends State<_RisingScoreChip>
                 offset: Offset(0, 2),
                 blurRadius: 3,
               ),
-              Shadow(color: widget.color.withValues(alpha: 0.75), blurRadius: 14),
+              Shadow(
+                color: widget.color.withValues(alpha: 0.75),
+                blurRadius: 14,
+              ),
             ],
           ),
         ),

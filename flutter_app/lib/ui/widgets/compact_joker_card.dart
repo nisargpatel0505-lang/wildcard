@@ -15,6 +15,7 @@ class CompactJokerCard extends StatelessWidget {
     this.blocked = false,
     this.highlighted = false,
     this.triggerLabel,
+    this.triggerSequence = 0,
     this.onTap,
     this.height = 58,
     super.key,
@@ -24,6 +25,7 @@ class CompactJokerCard extends StatelessWidget {
   final bool blocked;
   final bool highlighted;
   final String? triggerLabel;
+  final int triggerSequence;
   final VoidCallback? onTap;
   final double height;
 
@@ -84,11 +86,13 @@ class CompactJokerCard extends StatelessWidget {
           // A Joker proc springs up and settles with overshoot rather than
           // easing to a dead stop, so it reads as a punch when it fires.
           child: SpringValue(
-            target: highlighted ? 1.13 : 1,
+            target: highlighted ? 1.055 : 1,
             stiffness: 340,
             damping: 0.42,
-            builder: (context, scale, child) =>
-                Transform.scale(scale: scale, child: child),
+            builder: (context, scale, child) => Transform.translate(
+              offset: Offset(0, highlighted ? -3 : 0),
+              child: Transform.scale(scale: scale, child: child),
+            ),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 170),
               height: height,
@@ -183,30 +187,31 @@ class CompactJokerCard extends StatelessWidget {
                               left: 0,
                               right: 0,
                               bottom: 0,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: accent.withValues(alpha: 0.92),
-                                  borderRadius: BorderRadius.circular(5),
+                              child: Text(
+                                label,
+                                key: ValueKey(
+                                  'joker-proc-$triggerSequence-$label',
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 2,
-                                  ),
-                                  child: Text(
-                                    label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Color(0xFF07120F),
-                                      fontFamily: 'SpaceGrotesk',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 8.5,
-                                      letterSpacing: 0.2,
-                                      height: 1,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: accent,
+                                  fontFamily: 'Bungee',
+                                  fontSize: 9,
+                                  letterSpacing: 0.2,
+                                  height: 1,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0xFF05060A),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 2,
                                     ),
-                                  ),
+                                    Shadow(
+                                      color: Color(0xE6000000),
+                                      blurRadius: 5,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

@@ -30,6 +30,10 @@ class _BootstrapGate extends StatefulWidget {
 class _BootstrapGateState extends State<_BootstrapGate> {
   AppController? _controller;
   bool _failed = false;
+  final ValueNotifier<BootProgress> _progress =
+      ValueNotifier<BootProgress>(
+        const BootProgress(.03, 'Opening the table…'),
+      );
 
   @override
   void initState() {
@@ -39,11 +43,18 @@ class _BootstrapGateState extends State<_BootstrapGate> {
 
   Future<void> _boot() async {
     setState(() => _failed = false);
+    _progress.value = const BootProgress(.03, 'Opening the table…');
     try {
       // Hold the loading screen for at least a beat so the load bar reads as
       // intentional rather than flashing for a single frame.
       final results = await Future.wait(<Future<Object?>>[
-        AppController.bootstrap(),
+        AppController.bootstrap(
+          onProgress: (fraction, label) {
+            if (mounted) {
+              _progress.value = BootProgress(fraction, label);
+            }
+          },
+        ),
         Future<void>.delayed(const Duration(milliseconds: 750)),
       ]);
       if (!mounted) return;
@@ -54,12 +65,22 @@ class _BootstrapGateState extends State<_BootstrapGate> {
   }
 
   @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = _controller;
     if (controller != null) return WildcardApp(controller: controller);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: BootLoadingScreen(failed: _failed, onRetry: _failed ? _boot : null),
+      home: BootLoadingScreen(
+        failed: _failed,
+        onRetry: _failed ? _boot : null,
+        progress: _progress,
+      ),
     );
   }
 }

@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../services/audio_service.dart';
 import '../../services/haptics_service.dart';
 import '../../services/sfx_service.dart';
+import '../effects_profile.dart';
 import '../wildcard_theme.dart';
 import 'wildcard_background.dart';
 import 'wildcard_button.dart';
@@ -119,33 +121,38 @@ Future<void> showRoyalVaultAnimation({
   required RoyalVaultVisualTier tier,
   required RoyalVaultRewardViewModel reward,
   required bool fast,
+  AudioService? audio,
   SfxService? sfx,
   HapticsService? haptics,
-}) {
-  return showGeneralDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    barrierLabel: 'Royal Vault reward',
-    barrierColor: const Color(0xE6000308),
-    transitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (dialogContext, _, _) => RoyalVaultAnimation(
-      tier: tier,
-      reward: reward,
-      fast: fast,
-      sfx: sfx,
-      haptics: haptics,
-      onClaim: () => Navigator.of(dialogContext).pop(),
-    ),
-    transitionBuilder: (context, animation, _, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-      child: ScaleTransition(
-        scale: Tween<double>(begin: 0.975, end: 1).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        ),
+}) async {
+  await audio?.setCeremonyDuck(true);
+  if (!context.mounted) {
+    await audio?.setCeremonyDuck(false);
+    return;
+  }
+  try {
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Royal Vault reward',
+      barrierColor: const Color(0xE6000308),
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (dialogContext, _, _) => RoyalVaultAnimation(
+        tier: tier,
+        reward: reward,
+        fast: fast,
+        sfx: sfx,
+        haptics: haptics,
+        onClaim: () => Navigator.of(dialogContext).pop(),
+      ),
+      transitionBuilder: (context, animation, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
         child: child,
       ),
-    ),
-  );
+    );
+  } finally {
+    await audio?.setCeremonyDuck(false);
+  }
 }
 
 class RoyalVaultAnimation extends StatefulWidget {
@@ -188,11 +195,11 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
   /// reveal chord, each scaled to the win's rarity.
   static const List<(double, String, int)> _cues = <(double, String, int)>[
     // (progress, sound, haptic: 0 none · 1 medium · 2 heavy)
-    (0.001, 'chest_charge', 1),
-    (0.02, 'chest_scan', 0),
-    (0.36, 'seal', 2),
-    (0.46, 'burst', 2),
-    (0.72, 'reveal', 0),
+    (0.18, 'chest_charge', 1),
+    (0.29, 'chest_scan', 0),
+    (0.45, 'seal', 2),
+    (0.55, 'burst', 2),
+    (0.84, 'reveal', 1),
   ];
 
   String get _rarityKey {
@@ -200,6 +207,19 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
     if (rarity.contains('wild')) return 'wild';
     if (rarity.contains('rare')) return 'rare';
     return 'common';
+  }
+
+  Duration get _ceremonyDuration {
+    final rarity = widget.reward.rarity.toLowerCase();
+    final base = widget.fast ? 1950 : 3650;
+    final extra = rarity.contains('wild')
+        ? (widget.fast ? 430 : 680)
+        : rarity.contains('rare')
+        ? (widget.fast ? 260 : 420)
+        : rarity.contains('uncommon')
+        ? (widget.fast ? 120 : 220)
+        : 0;
+    return Duration(milliseconds: base + extra);
   }
 
   void _fireCues() {
@@ -220,8 +240,28 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
         _ => sound,
       };
       sfx?.play(name);
-      if (haptic == 1) widget.haptics?.play();
-      if (haptic == 2) widget.haptics?.success();
+      final feel = widget.haptics;
+      if (feel == null || haptic == 0) continue;
+      switch (sound) {
+        case 'chest_charge':
+          feel.light();
+          break;
+        case 'seal':
+        case 'burst':
+          feel.medium();
+          break;
+        case 'reveal':
+          if (_rarityKey == 'wild') {
+            feel.wildSuccess();
+          } else if (_rarityKey == 'rare') {
+            feel.success();
+          } else {
+            feel.light();
+          }
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -231,11 +271,7 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
     _controller =
         AnimationController(
           vsync: this,
-          duration:
-              widget.durationOverride ??
-              (widget.fast
-                  ? const Duration(milliseconds: 2050)
-                  : const Duration(milliseconds: 3850)),
+          duration: widget.durationOverride ?? _ceremonyDuration,
         )..addStatusListener((status) {
           if (status == AnimationStatus.completed && mounted) {
             setState(() => _claimEnabled = true);
@@ -259,7 +295,6 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.wildcard;
     return PopScope(
       canPop: false,
       child: Semantics(
@@ -278,41 +313,22 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
-                    maxWidth: 520,
-                    maxHeight: 760,
+                    maxWidth: 620,
+                    maxHeight: 860,
                   ),
-                  child: DecoratedBox(
+                  // The Vault is the room, rather than a modal card floating
+                  // above it. A single repaint boundary contains the ceremony.
+                  child: RepaintBoundary(
                     key: const Key('royal-vault-dialog'),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: tokens.violet.withValues(alpha: 0.92),
-                        width: 2.5,
-                      ),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFA1A0A3B), Color(0xFC050B18)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: tokens.violet.withValues(alpha: 0.3),
-                          blurRadius: 28,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(21),
-                      child: AnimatedBuilder(
-                        animation: _controller,
-                        builder: (context, _) => _VaultLayout(
-                          progress: _controller.value,
-                          tier: widget.tier,
-                          reward: widget.reward,
-                          claimEnabled: _claimEnabled,
-                          onClaim: _claim,
-                        ),
+                    child: AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) => _VaultLayout(
+                        progress: _controller.value,
+                        tier: widget.tier,
+                        reward: widget.reward,
+                        reducedMotion: MediaQuery.disableAnimationsOf(context),
+                        claimEnabled: _claimEnabled,
+                        onClaim: _claim,
                       ),
                     ),
                   ),
@@ -331,6 +347,7 @@ class _VaultLayout extends StatelessWidget {
     required this.progress,
     required this.tier,
     required this.reward,
+    required this.reducedMotion,
     required this.claimEnabled,
     required this.onClaim,
   });
@@ -338,6 +355,7 @@ class _VaultLayout extends StatelessWidget {
   final double progress;
   final RoyalVaultVisualTier tier;
   final RoyalVaultRewardViewModel reward;
+  final bool reducedMotion;
   final bool claimEnabled;
   final VoidCallback onClaim;
 
@@ -357,19 +375,16 @@ class _VaultLayout extends StatelessWidget {
   };
 
   String get _status {
-    if (progress < .19) return 'THE LOCK IS READING YOUR PRIZE';
-    if (progress < .39) return 'RARITY SIGNAL FOUND';
-    if (progress < .55) return 'SEAL RELEASED';
-    if (progress < .82) return 'REWARD EMERGING';
-    return 'REWARD SECURED';
+    return progress < .90 ? '' : 'REWARD SECURED';
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final compact = MediaQuery.sizeOf(context).height < 650;
-    final rarityReveal = _interval(.20, .34, Curves.easeOutBack);
-    final detailsReveal = _interval(.75, .91, Curves.easeOutCubic);
+    // Nothing names or colours the actual rarity until the object has risen.
+    final rarityReveal = _interval(.82, .91, Curves.easeOutCubic);
+    final detailsReveal = _interval(.90, .98, Curves.easeOutCubic);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -381,7 +396,7 @@ class _VaultLayout extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            _vaultName,
+            'SLY\u2019S ROYAL VAULT',
             key: const Key('royal-vault-title'),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -392,7 +407,18 @@ class _VaultLayout extends StatelessWidget {
               letterSpacing: .7,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
+          Text(
+            _vaultName,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: tokens.mint.withValues(alpha: .88),
+              fontFamily: 'Bungee',
+              fontSize: compact ? 8.5 : 10,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 3),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 120),
             child: Text(
@@ -416,6 +442,7 @@ class _VaultLayout extends StatelessWidget {
               tier: tier,
               reward: reward,
               compact: compact,
+              reducedMotion: reducedMotion,
             ),
           ),
           SizedBox(height: compact ? 7 : 10),
@@ -475,12 +502,14 @@ class _VaultStage extends StatelessWidget {
     required this.tier,
     required this.reward,
     required this.compact,
+    required this.reducedMotion,
   });
 
   final double progress;
   final RoyalVaultVisualTier tier;
   final RoyalVaultRewardViewModel reward;
   final bool compact;
+  final bool reducedMotion;
 
   double _interval(double begin, double end, [Curve curve = Curves.easeOut]) {
     if (progress <= begin) return 0;
@@ -494,31 +523,32 @@ class _VaultStage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
+    final effects = EffectsProfile.resolve(context);
     // ---- Phase map (single forward timeline, so tests always settle) ----
     // charge 0–.36: the chest strains against the seal, energy converges.
     // seal  .36–.46: flash; the lock loses.
     // burst .46–.62: lid slams open, beam and debris erupt, stage kicks.
     // reveal .56–.86: the prize rises out of the light and settles.
-    final charge = _interval(0, .36, Curves.easeIn);
-    final unlock = _interval(.36, .46, Curves.easeInOutBack);
-    final opening = _interval(.46, .62, Curves.easeOutBack);
-    final beam = _interval(.46, .60, Curves.easeOutCubic);
-    final beamFade = _interval(.78, .96, Curves.easeIn);
-    final burst = _interval(.46, .78, Curves.easeOutCubic);
-    final rewardRise = _interval(.56, .82, Curves.easeOutBack);
-    final shine = _interval(.80, .94, Curves.easeInOut);
+    final arrival = _interval(0, .08, Curves.easeOutCubic);
+    final anticipation = _interval(.08, .18, Curves.easeInOut);
+    final charge = _interval(.18, .35, Curves.easeIn);
+    final scan = _interval(.27, .42, Curves.easeInOut);
+    final unlock = _interval(.42, .50, Curves.easeInOutCubic);
+    final opening = _interval(.50, .68, Curves.easeInOutCubic);
+    final beam = _interval(.53, .72, Curves.easeOutCubic);
+    final beamFade = _interval(.82, .98, Curves.easeIn);
+    final burst = _interval(.55, .82, Curves.easeOutCubic);
+    final rewardRise = _interval(.66, .84, Curves.easeOutCubic);
+    final shine = _interval(.88, .98, Curves.easeInOut);
     final lockPulse = .5 + .5 * math.sin(progress * math.pi * 12);
 
     // The chest fights the seal: jitter grows through the charge and a hard
     // decaying kick punctuates the burst.
-    final chargeShake =
-        charge * (1 - unlock) * math.sin(progress * math.pi * 46) * 3.4;
-    final burstKick = burst < 1
-        ? math.sin(burst * math.pi * 5) * (1 - burst) * 5.0
-        : 0.0;
-    // Unseal flash: snaps to full white-hot then dies quickly.
-    final flashRaw = _interval(.36, .395, Curves.easeOut) *
-        (1 - _interval(.395, .48, Curves.easeIn));
+    final rarityWeight = switch (reward.rarity.toLowerCase()) {
+      final value when value.contains('wild') => 1.25,
+      final value when value.contains('rare') => 1.0,
+      _ => .66,
+    };
 
     final bodyColor = switch (tier) {
       RoyalVaultVisualTier.wooden => const Color(0xFF8B4B25),
@@ -533,8 +563,12 @@ class _VaultStage extends StatelessWidget {
       Color(0xFF9B7BFF),
       Color(0xFFF7C548),
     ];
-    final scanColor = progress < .34
-        ? cycle[(progress * 30).floor() % cycle.length]
+    final scanColor = reducedMotion && progress < .82
+        ? tokens.violet
+        : progress < .27
+        ? tokens.violet
+        : progress < .82
+        ? cycle[(scan * (cycle.length - .001)).floor() % cycle.length]
         : reward.rarityColor;
 
     return RepaintBoundary(
@@ -547,11 +581,21 @@ class _VaultStage extends StatelessWidget {
             compact ? 226.0 : 290.0,
           );
           final chestHeight = chestWidth * .55;
-          final chestTop = math.max(
-            compact ? 28.0 : 42.0,
-            sceneHeight - chestHeight - (compact ? 8 : 14),
-          );
+          final chestTop =
+              math.max(
+                compact ? 28.0 : 42.0,
+                sceneHeight - chestHeight - (compact ? 8 : 14),
+              ) +
+              14 * (1 - arrival);
           final mouth = Offset(sceneWidth / 2, chestTop + chestHeight * .34);
+          final rewardWidth = compact ? 102.0 : 126.0;
+          final rewardHeight = compact ? 118.0 : 146.0;
+          final stageBurst =
+              (burst *
+                      rarityWeight *
+                      effects.glowScale *
+                      (reducedMotion ? .38 : 1))
+                  .clamp(0.0, 1.0);
 
           return DecoratedBox(
             decoration: BoxDecoration(
@@ -568,137 +612,136 @@ class _VaultStage extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Transform.translate(
-                // The whole stage kicks when the lid blows.
-                offset: Offset(chargeShake, burstKick),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CustomPaint(
-                      painter: _VaultAtmospherePainter(
-                        progress: progress,
-                        burst: burst,
-                        color: scanColor,
-                        line: tokens.violet,
-                      ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CustomPaint(
+                    painter: _VaultAtmospherePainter(
+                      progress: progress,
+                      burst: stageBurst,
+                      color: progress < .82 ? scanColor : reward.rarityColor,
+                      line: tokens.violet,
                     ),
-                    // Energy gathering into the lock while the chest charges.
-                    if (charge > 0 && unlock < 1)
-                      CustomPaint(
-                        painter: _ConvergePainter(
-                          progress: charge,
-                          fade: 1 - unlock,
-                          color: scanColor,
-                          focus: mouth.translate(0, chestHeight * .12),
-                        ),
-                      ),
-                    // The light beam out of the open chest.
-                    if (beam > 0)
-                      CustomPaint(
-                        painter: _BeamPainter(
-                          spread: beam,
-                          fade: 1 - beamFade,
-                          color: reward.rarityColor,
-                          mouth: mouth,
-                        ),
-                      ),
-                    if (burst > 0)
-                      CustomPaint(
-                        painter: _DebrisPainter(
-                          progress: burst,
-                          color: reward.rarityColor,
-                          origin: mouth,
-                        ),
-                      ),
-                    Positioned(
-                      left: (sceneWidth - chestWidth) / 2,
-                      top: chestTop + chestHeight * .32,
-                      width: chestWidth,
-                      height: chestHeight * .68,
-                      child: Transform.scale(
-                        // The body recoils into a slight squash as it opens.
-                        scaleY: 1 - .05 * math.sin(opening * math.pi),
-                        alignment: Alignment.bottomCenter,
-                        child: CustomPaint(
-                          painter: _ChestBasePainter(
-                            bodyColor: bodyColor,
-                            gold: tokens.gold,
-                            gem: tokens.mint,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: (sceneWidth - chestWidth) / 2,
-                      top: chestTop,
-                      width: chestWidth,
-                      height: chestHeight * .49,
-                      child: Transform(
-                        alignment: Alignment.bottomCenter,
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, .0015)
-                          ..rotateX(-opening * 1.18),
-                        child: CustomPaint(
-                          painter: _ChestLidPainter(
-                            bodyColor: bodyColor,
-                            gold: tokens.gold,
-                            gem: tokens.mint,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: sceneWidth / 2 - 28,
-                      top: chestTop + chestHeight * .39 - 40 * unlock,
-                      width: 56,
-                      height: 64,
-                      child: Opacity(
-                        opacity: (1 - unlock).clamp(0.0, 1.0),
-                        child: Transform.rotate(
-                          angle: unlock * 2.2,
-                          child: _AnimatedLock(
-                            pulse: lockPulse,
-                            color: tokens.gold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: sceneWidth / 2 - (compact ? 34 : 40),
-                      top:
-                          chestTop +
-                          chestHeight * .22 -
-                          rewardRise * (compact ? 54 : 72),
-                      width: compact ? 68 : 80,
-                      height: compact ? 76 : 90,
-                      child: Opacity(
-                        opacity: rewardRise.clamp(0.0, 1.0),
-                        child: Transform.rotate(
-                          angle: (1 - rewardRise) * -.22,
-                          child: Transform.scale(
-                            scale: .58 + .42 * rewardRise,
-                            child: _RewardToken(
-                              reward: reward,
-                              glow: burst,
-                              shine: shine,
+                  ),
+                  Positioned(
+                    left: sceneWidth * .16,
+                    right: sceneWidth * .16,
+                    top: chestTop + chestHeight * .82,
+                    height: compact ? 12 : 16,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: RadialGradient(
+                          colors: [
+                            reward.rarityColor.withValues(
+                              alpha: .16 + stageBurst * .22,
                             ),
-                          ),
+                            const Color(0xC8000000),
+                          ],
                         ),
                       ),
                     ),
-                    // The unseal flash covers everything for a few frames.
-                    if (flashRaw > 0.003)
-                      IgnorePointer(
-                        child: ColoredBox(
-                          color: Color.lerp(
-                            Colors.white,
-                            reward.rarityColor,
-                            .38,
-                          )!.withValues(alpha: (flashRaw * .92).clamp(0.0, 1.0)),
+                  ),
+                  if (charge > 0 && unlock < 1)
+                    CustomPaint(
+                      painter: _ConvergePainter(
+                        progress: charge,
+                        fade: 1 - unlock,
+                        color: scanColor,
+                        focus: mouth.translate(0, chestHeight * .12),
+                      ),
+                    ),
+                  if (beam > 0)
+                    CustomPaint(
+                      painter: _BeamPainter(
+                        spread: beam,
+                        fade: (1 - beamFade) * rarityWeight.clamp(.65, 1.0),
+                        color: reward.rarityColor,
+                        mouth: mouth,
+                      ),
+                    ),
+                  // The lid is a real hinge rotation: no rubber-band overshoot.
+                  Positioned(
+                    left: (sceneWidth - chestWidth) / 2,
+                    top: chestTop,
+                    width: chestWidth,
+                    height: chestHeight * .49,
+                    child: Transform(
+                      alignment: Alignment.bottomCenter,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, .0015)
+                        ..rotateX(-opening * 1.12),
+                      child: CustomPaint(
+                        painter: _ChestLidPainter(
+                          bodyColor: bodyColor,
+                          gold: tokens.gold,
+                          gem: tokens.mint,
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                  // Draw the reward before the chest front. Its lower edge is
+                  // naturally occluded while it is still inside the cavity.
+                  Positioned(
+                    left: sceneWidth / 2 - rewardWidth / 2,
+                    top:
+                        chestTop +
+                        chestHeight * .26 -
+                        rewardRise *
+                            (compact ? 88 : 112) *
+                            (reducedMotion ? .72 : 1),
+                    width: rewardWidth,
+                    height: rewardHeight,
+                    child: Opacity(
+                      opacity: rewardRise.clamp(0.0, 1.0),
+                      child: Transform.scale(
+                        scale: .82 + .18 * rewardRise,
+                        alignment: Alignment.bottomCenter,
+                        child: _RewardToken(
+                          reward: reward,
+                          glow: stageBurst,
+                          shine: reducedMotion ? 0 : shine,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: (sceneWidth - chestWidth) / 2,
+                    top: chestTop + chestHeight * .32,
+                    width: chestWidth,
+                    height: chestHeight * .68,
+                    child: CustomPaint(
+                      painter: _ChestBasePainter(
+                        bodyColor: bodyColor,
+                        gold: tokens.gold,
+                        gem: tokens.mint,
+                      ),
+                    ),
+                  ),
+                  // The released lock drops a short, believable distance and
+                  // stays attached to the chest instead of flying away.
+                  Positioned(
+                    left: sceneWidth / 2 - 28,
+                    top: chestTop + chestHeight * .39 + 12 * unlock,
+                    width: 56,
+                    height: 64,
+                    child: _AnimatedLock(
+                      pulse:
+                          lockPulse * (.45 + .25 * anticipation + .30 * charge),
+                      color: tokens.gold,
+                      unlocked: unlock > .55,
+                    ),
+                  ),
+                  if (burst > 0 && !reducedMotion && effects.particleScale > 0)
+                    CustomPaint(
+                      painter: _DebrisPainter(
+                        progress: burst,
+                        color: reward.rarityColor,
+                        origin: mouth,
+                        intensity: rarityWeight * effects.particleScale,
+                      ),
+                    ),
+                ],
               ),
             ),
           );
@@ -709,10 +752,15 @@ class _VaultStage extends StatelessWidget {
 }
 
 class _AnimatedLock extends StatelessWidget {
-  const _AnimatedLock({required this.pulse, required this.color});
+  const _AnimatedLock({
+    required this.pulse,
+    required this.color,
+    required this.unlocked,
+  });
 
   final double pulse;
   final Color color;
+  final bool unlocked;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -732,12 +780,20 @@ class _AnimatedLock extends StatelessWidget {
         const BoxShadow(color: Color(0x66000000), offset: Offset(0, 5)),
       ],
     ),
-    child: const Icon(Icons.lock_rounded, color: Color(0xFF321607), size: 30),
+    child: Icon(
+      unlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+      color: const Color(0xFF321607),
+      size: 30,
+    ),
   );
 }
 
 class _RewardToken extends StatelessWidget {
-  const _RewardToken({required this.reward, required this.glow, this.shine = 0});
+  const _RewardToken({
+    required this.reward,
+    required this.glow,
+    this.shine = 0,
+  });
 
   final RoyalVaultRewardViewModel reward;
   final double glow;
@@ -748,39 +804,85 @@ class _RewardToken extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(14),
-      gradient: const LinearGradient(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFFFF9E7), Color(0xFFE8DAC2)],
+        colors: const [Color(0xFFFFF9E7), Color(0xFFF0DFC1), Color(0xFFD5BE91)],
+        stops: const [0, .56, 1],
       ),
-      border: Border.all(color: reward.rarityColor, width: 2.5),
+      border: Border.all(color: reward.rarityColor, width: 3),
       boxShadow: [
         BoxShadow(
-          color: reward.rarityColor.withValues(alpha: .35 + .35 * glow),
-          blurRadius: 14 + 18 * glow,
+          color: reward.rarityColor.withValues(alpha: .28 + .42 * glow),
+          blurRadius: 13 + 20 * glow,
           spreadRadius: 1 + 2 * glow,
         ),
+        const BoxShadow(color: Color(0x88000000), offset: Offset(0, 7)),
       ],
     ),
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(13),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Icon(reward.icon, color: const Color(0xFF23102F), size: 38),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(7, 8, 7, 7),
+            child: Column(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: reward.rarityColor.withValues(alpha: .18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      reward.categoryLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF23102F),
+                        fontFamily: 'Bungee',
+                        fontSize: 6.5,
+                        letterSpacing: .35,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(reward.icon, color: const Color(0xFF23102F), size: 43),
+                const Spacer(),
+                Text(
+                  reward.name.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF23102F),
+                    fontFamily: 'Bungee',
+                    fontSize: 9,
+                    height: 1.04,
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (shine > 0 && shine < 1)
             Align(
               alignment: Alignment(-1.6 + 3.2 * shine, 0),
               child: Transform.rotate(
-                angle: .5,
+                angle: .42,
                 child: Container(
-                  width: 16,
+                  width: 18,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
                         Colors.white.withValues(alpha: 0),
-                        Colors.white.withValues(alpha: .75),
+                        Colors.white.withValues(alpha: .72),
                         Colors.white.withValues(alpha: 0),
                       ],
                     ),
@@ -1177,7 +1279,8 @@ class _ConvergePainter extends CustomPainter {
     for (var index = 0; index < 18; index++) {
       final seed = index * 37.0;
       final angle = (seed * .61) % (math.pi * 2);
-      final phase = ((progress * (1.1 + (index % 5) * .18)) + (seed * .137)) % 1;
+      final phase =
+          ((progress * (1.1 + (index % 5) * .18)) + (seed * .137)) % 1;
       final distance = size.shortestSide * .58 * (1 - phase);
       final point = Offset(
         focus.dx + math.cos(angle) * distance,
@@ -1257,18 +1360,21 @@ class _DebrisPainter extends CustomPainter {
     required this.progress,
     required this.color,
     required this.origin,
+    this.intensity = 1,
   });
 
   final double progress;
   final Color color;
   final Offset origin;
+  final double intensity;
 
   @override
   void paint(Canvas canvas, Size size) {
     final fade = (1 - ((progress - .55) / .45).clamp(0.0, 1.0)).clamp(0.0, 1.0);
     if (fade <= 0) return;
     final paint = Paint();
-    for (var index = 0; index < 34; index++) {
+    final particleCount = (20 + 14 * intensity).round().clamp(18, 38);
+    for (var index = 0; index < particleCount; index++) {
       final seed = index * 97.0;
       // Launch mostly upward in a fan.
       final angle = -math.pi / 2 + math.sin(seed) * 1.15;
@@ -1285,7 +1391,9 @@ class _DebrisPainter extends CustomPainter {
         1 => Colors.white,
         _ => color,
       };
-      paint.color = baseColor.withValues(alpha: (.9 * fade).clamp(0.0, 1.0));
+      paint.color = baseColor.withValues(
+        alpha: (.78 * intensity.clamp(.65, 1.0) * fade).clamp(0.0, 1.0),
+      );
       if (index % 3 == 0) {
         // Tumbling card-shard.
         canvas.save();
@@ -1311,5 +1419,7 @@ class _DebrisPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DebrisPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.intensity != intensity;
 }

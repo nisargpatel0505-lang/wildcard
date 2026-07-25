@@ -14,6 +14,7 @@ import '../domain/legacy_save_schema.dart';
 import '../domain/random_streams.dart';
 import '../domain/scoring_engine.dart';
 import 'game_models.dart';
+import 'scoring_timeline.dart';
 
 /// Owns one complete native WILDCARD run.
 ///
@@ -156,7 +157,8 @@ class GameController extends ChangeNotifier {
   RunPhase phase = RunPhase.game;
   RunEndReason? endReason;
   RunResultSummary? resultSummary;
-  ScoringPresentation scoringPresentation = const ScoringPresentation();
+  final ScoringTimelineController scoringTimeline = ScoringTimelineController();
+  ScoringPresentation get scoringPresentation => scoringTimeline.value;
   HeatRewardSummary? lastHeatReward;
 
   final List<PlayingCard> drawPile = <PlayingCard>[];
@@ -331,7 +333,11 @@ class GameController extends ChangeNotifier {
   }
 
   Future<GameActionResult> _runScoringSequence(List<PlayingCard> played) async {
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
+    final handSnapshot = <PlayingCard>[
+      for (final card in hand)
+        card.copyWith(selected: selectedCardIds.contains(_cardId(card))),
+    ];
     final preRollCounters = state.rngCounters.copy();
     pendingTransition = <String, Object?>{
       'kind': 'play',
@@ -342,10 +348,17 @@ class GameController extends ChangeNotifier {
     await _save(RunCheckpoint.scoringPrepared);
 
     final result = scoringEngine.scoreHand(played, commit: true);
-    scoringPresentation = ScoringPresentation(result: result);
-    notifyListeners();
-    await _wait(pacing.leadIn);
-    await _presentScoreEvents(played, result);
+    final timeline = const ScoringTimelineBuilder().build(
+      handSnapshot: handSnapshot,
+      playedCards: played,
+      result: result,
+      pacing: pacing,
+    );
+    await scoringTimeline.play(
+      plan: timeline,
+      wait: _wait,
+      onBeat: onScoreBeat,
+    );
 
     state.stageScore += result.total;
     totalScore += result.total;
@@ -369,15 +382,6 @@ class GameController extends ChangeNotifier {
     selectedCardIds.clear();
     _refillHand();
     state.deckCardsLeft = drawPile.length;
-    scoringPresentation = ScoringPresentation(
-      result: result,
-      visibleRank: result.rankSum,
-      visibleMultiplier: result.multiplier,
-      visibleTotal: result.total,
-      label: '+${result.total}',
-      complete: true,
-    );
-
     if (state.stageScore >= state.target) {
       pendingTransition = <String, Object?>{
         'kind': 'clear',
@@ -395,13 +399,13 @@ class GameController extends ChangeNotifier {
     await _save(RunCheckpoint.scoringCommitted);
     notifyListeners();
     await _wait(pacing.resultHold);
+    scoringTimeline.clear();
 
     if (pendingTransition?['kind'] == 'clear') {
       await _clearHeat();
     } else if (pendingTransition?['kind'] == 'fail') {
       await _offerOrFinishFailure(_string(pendingTransition?['reason']));
     } else {
-      scoringPresentation = const ScoringPresentation();
       isBusy = false;
       notifyListeners();
     }
@@ -707,7 +711,7 @@ class GameController extends ChangeNotifier {
     terminalPending = false;
     failureReason = '';
     pendingTransition = null;
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
     selectedCardIds.clear();
     state.endless = state.endless || state.stage > 12;
     ModifierSelector(state).assignForCurrentHeat();
@@ -762,62 +766,10 @@ class GameController extends ChangeNotifier {
     if (drew) hand.sort(_handCompare);
   }
 
-  /// Fired exactly when each scoring event is presented, with its ordinal in
+  /// Fired exactly when each scoring beat is presented, with its ordinal in
   /// the hand. The host layers sound and haptics on the beat without the
   /// controller knowing about either service.
-  void Function(ScoreEvent event, int ordinal)? onScoreBeat;
-
-  Future<void> _presentScoreEvents(
-    List<PlayingCard> played,
-    ScoreResult result,
-  ) async {
-    var visibleRank = 0;
-    var visibleMultiplier = baseMultiplier;
-    var ordinal = 0;
-    for (final event in result.events) {
-      if (event.type == ScoreEventType.card ||
-          event.type == ScoreEventType.rankJoker ||
-          event.type == ScoreEventType.retrigger ||
-          event.type == ScoreEventType.seven) {
-        visibleRank += event.amount.round();
-      }
-      if (event.multiplier != null) visibleMultiplier = event.multiplier!;
-      final cardIndex = event.cardIndex;
-      scoringPresentation = ScoringPresentation(
-        result: result,
-        activeEvent: event,
-        activeCardId:
-            cardIndex != null && cardIndex >= 0 && cardIndex < played.length
-            ? _cardId(played[cardIndex])
-            : null,
-        activeJokerIndex: event.jokerIndex != null && event.jokerIndex! >= 0
-            ? event.jokerIndex
-            : null,
-        label:
-            event.label ??
-            (event.hit == true
-                ? 'LUCKY HIT'
-                : event.hit == false
-                ? 'MISS'
-                : ''),
-        visibleRank: visibleRank,
-        visibleMultiplier: visibleMultiplier,
-        // Running total for the SCORE column. Without this it stayed 0 for the
-        // whole animation and only snapped to the final value at the end.
-        visibleTotal: (visibleRank * visibleMultiplier).round(),
-      );
-      notifyListeners();
-      // Sound and haptics are decoration: a failure here must never interrupt
-      // scoring or leave the run wedged.
-      try {
-        onScoreBeat?.call(event, ordinal++);
-      } catch (_) {
-        // Ignored on purpose; the beat still advances.
-      }
-      final isJoker = event.jokerIndex != null && event.jokerIndex! >= 0;
-      await _wait(isJoker ? pacing.jokerBeat : pacing.cardBeat);
-    }
-  }
+  ScoreBeatCallback? onScoreBeat;
 
   Future<void> _clearHeat() async {
     pendingTransition = null;
@@ -885,7 +837,7 @@ class GameController extends ChangeNotifier {
   void _openShop() {
     phase = RunPhase.shop;
     selectedCardIds.clear();
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
     shopBuysUsed = 0;
     suppliesBoughtThisShop.clear();
     pendingSwapOfferId = null;
@@ -1471,6 +1423,12 @@ class GameController extends ChangeNotifier {
     state.cards
       ..clear()
       ..addAll(stable);
+  }
+
+  @override
+  void dispose() {
+    scoringTimeline.dispose();
+    super.dispose();
   }
 }
 

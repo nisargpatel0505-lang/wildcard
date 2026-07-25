@@ -188,9 +188,13 @@ class _VaultScreenState extends State<VaultScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(color: context.wildcard.creamDim, fontSize: 12),
           ),
-          const SizedBox(height: 12),
+          if (available) ...[
+            const SizedBox(height: 9),
+            CoinPrice(price, label: 'ACCOUNT COINS'),
+          ],
+          const SizedBox(height: 9),
           WildcardButton(
-            label: available ? 'Open · $price Coins' : 'Complete',
+            label: available ? 'Open Vault' : 'Complete',
             onPressed: !_actionInFlight && available && account.coins >= price
                 ? () => _openJokerVault(tier)
                 : null,
@@ -234,9 +238,13 @@ class _VaultScreenState extends State<VaultScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(color: context.wildcard.creamDim, fontSize: 12),
           ),
-          const SizedBox(height: 12),
+          if (left > 0) ...[
+            const SizedBox(height: 9),
+            const CoinPrice(cosmeticVaultPrice, label: 'ACCOUNT COINS'),
+          ],
+          const SizedBox(height: 9),
           WildcardButton(
-            label: left == 0 ? 'Complete' : 'Open · $cosmeticVaultPrice Coins',
+            label: left == 0 ? 'Complete' : 'Open Vault',
             onPressed:
                 !_actionInFlight &&
                     left > 0 &&
@@ -262,6 +270,7 @@ class _VaultScreenState extends State<VaultScreen> {
       }
       await showRoyalVaultAnimation(
         context: context,
+        audio: widget.controller.audio,
         sfx: widget.controller.sfx,
         haptics: HapticsService(enabled: !widget.controller.account.muted),
         tier: tier == JokerChestTier.wood
@@ -299,6 +308,7 @@ class _VaultScreenState extends State<VaultScreen> {
       }
       await showRoyalVaultAnimation(
         context: context,
+        audio: widget.controller.audio,
         sfx: widget.controller.sfx,
         haptics: HapticsService(enabled: !widget.controller.account.muted),
         tier: RoyalVaultVisualTier.cosmetic,
@@ -345,22 +355,8 @@ class _VaultScreenState extends State<VaultScreen> {
 
   void _message(String value) => showWildcardToast(context, value);
 
-  Widget _coinBadge(int coins) => Semantics(
-    label: '$coins account coins',
-    child: ExcludeSemantics(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 6),
-        child: Text(
-          '★ $coins',
-          style: TextStyle(
-            color: context.wildcard.gold,
-            fontFamily: 'Bungee',
-            fontSize: 13,
-          ),
-        ),
-      ),
-    ),
-  );
+  Widget _coinBadge(int coins) =>
+      RunCoinBadge(coins: coins, account: true, compact: true);
 
   static String _rarityName(JokerRarity rarity) => switch (rarity) {
     JokerRarity.common => 'Common',

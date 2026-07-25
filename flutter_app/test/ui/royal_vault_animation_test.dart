@@ -4,7 +4,15 @@ import 'package:wildcard/ui/widgets/royal_vault_animation.dart';
 import 'package:wildcard/ui/wildcard_theme.dart';
 
 void main() {
-  const phoneSizes = <Size>[Size(320, 568), Size(360, 800)];
+  const phoneSizes = <Size>[
+    Size(320, 568),
+    Size(360, 640),
+    Size(360, 800),
+    Size(393, 873),
+    Size(412, 915),
+    Size(600, 960),
+    Size(800, 1280),
+  ];
 
   for (final size in phoneSizes) {
     testWidgets(
@@ -45,7 +53,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('REWARD SECURED'), findsOneWidget);
-        expect(find.text('FREQUENCY METER'), findsOneWidget);
+        expect(
+          find.byKey(const Key('royal-vault-reward-name')),
+          findsOneWidget,
+        );
         expect(find.text('RARITY  UNCOMMON'), findsOneWidget);
         expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -94,18 +105,67 @@ void main() {
     expect(find.text('REWARD SECURED'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('reward remains readable at 1.3 text scale and reduced motion', (
+    tester,
+  ) async {
+    await _setPhoneSize(tester, const Size(360, 640));
+    await tester.pumpWidget(
+      _Harness(
+        textScale: 1.3,
+        disableAnimations: true,
+        child: RoyalVaultAnimation(
+          tier: RoyalVaultVisualTier.golden,
+          reward: const RoyalVaultRewardViewModel(
+            name: 'Frequency Meter',
+            description:
+                '×1.4 Multiplier if your deck has one most common rank and you play it.',
+            rarity: 'RARE',
+            rarityColor: Color(0xFF9B7BFF),
+            categoryLabel: 'NEW JOKER UNLOCKED',
+            icon: Icons.style_rounded,
+          ),
+          fast: false,
+          durationOverride: const Duration(milliseconds: 120),
+          onClaim: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
+    expect(
+      find.byKey(const Key('royal-vault-reward-description')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _Harness extends StatelessWidget {
-  const _Harness({required this.child});
+  const _Harness({
+    required this.child,
+    this.textScale = 1,
+    this.disableAnimations = false,
+  });
 
   final Widget child;
+  final double textScale;
+  final bool disableAnimations;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: WildcardTheme.build(),
-    home: child,
+    home: Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+          disableAnimations: disableAnimations,
+        ),
+        child: child,
+      ),
+    ),
   );
 }
 
