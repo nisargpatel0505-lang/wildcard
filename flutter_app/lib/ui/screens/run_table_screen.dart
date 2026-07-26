@@ -284,6 +284,7 @@ class RunTableScreen extends StatelessWidget {
                                   (card) => card.uid == activeId,
                                 );
                           return _TableArea(
+                            state: state,
                             tableFeltId: tableFeltId,
                             hand: displayHand,
                             activeEvent:
@@ -939,11 +940,17 @@ class _JokerSection extends StatelessWidget {
                             ? state.jokerIds[index]
                             : null;
                         final joker = id == null ? null : jokersById[id];
+                        final modifierStatus = joker == null
+                            ? JokerModifierStatus.active
+                            : jokerModifierStatus(state, joker);
                         return CompactJokerCard(
                           key: ValueKey('run-joker-${id ?? index}'),
                           joker: joker,
-                          blocked:
-                              id != null && state.blockedJokerIds.contains(id),
+                          blocked: modifierStatus.blocked,
+                          multiplierSuppressed:
+                              modifierStatus.multiplierSuppressed,
+                          redundant: modifierStatus.redundant,
+                          modifierStatusLabel: modifierStatus.label,
                           highlighted: activeJoker == index,
                           triggerLabel: activeJoker == index
                               ? triggerLabel
@@ -1407,6 +1414,7 @@ class _EquationOperator extends StatelessWidget {
 
 class _TableArea extends StatelessWidget {
   const _TableArea({
+    required this.state,
     required this.tableFeltId,
     required this.hand,
     required this.activeEvent,
@@ -1432,6 +1440,7 @@ class _TableArea extends StatelessWidget {
     required this.onAbandon,
   });
 
+  final ScoringState state;
   final String tableFeltId;
   final List<PlayingCard> hand;
   final ScoreEvent? activeEvent;
@@ -1543,6 +1552,20 @@ class _TableArea extends StatelessWidget {
                                 child: Builder(
                                   builder: (context) {
                                     final card = hand[index];
+                                    final rankSuppressed = state
+                                        .cardRankSuppressed(card);
+                                    final selectionDisabled =
+                                        !card.selected &&
+                                        selectedCount >=
+                                            state.effectiveMaxSelect;
+                                    final enhancementSuppressed =
+                                        state.hasModifier(
+                                          HeatModifier.nullField,
+                                        ) &&
+                                        (card.enhancement ==
+                                                CardEnhancement.neon ||
+                                            card.enhancement ==
+                                                CardEnhancement.glass);
                                     ScoreVisualChip? retainedChip;
                                     for (final chip in activeChips) {
                                       if (chip.cardId == card.uid) {
@@ -1560,6 +1583,12 @@ class _TableArea extends StatelessWidget {
                                         chipLabel.isNotEmpty;
                                     final visibleStyle =
                                         retainedChip?.style ?? chipStyle;
+                                    final mutedChip =
+                                        retainedChip?.muted ??
+                                        (fallbackChip &&
+                                            activeEvent?.type ==
+                                                ScoreEventType.card &&
+                                            activeEvent?.amount == 0);
                                     return PlayingCardTile(
                                       key: ValueKey(
                                         'hand-card-${card.uid ?? 'slot-$index'}',
@@ -1575,13 +1604,21 @@ class _TableArea extends StatelessWidget {
                                           scoringCardIds.isNotEmpty &&
                                           card.selected &&
                                           !scoringCardIds.contains(card.uid),
+                                      rankSuppressed: rankSuppressed,
+                                      rankSuppressionLabel: state
+                                          .cardRankSuppressionLabel(card),
+                                      enhancementSuppressed:
+                                          enhancementSuppressed,
+                                      selectionDisabled: selectionDisabled,
                                       scoreChip:
                                           retainedChip?.label ??
                                           (fallbackChip ? chipLabel : null),
-                                      scoreChipColor: _chipColorForStyle(
-                                        context,
-                                        visibleStyle,
-                                      ),
+                                      scoreChipColor: mutedChip
+                                          ? tokens.creamDim
+                                          : _chipColorForStyle(
+                                              context,
+                                              visibleStyle,
+                                            ),
                                       highlightColor: _chipColorForStyle(
                                         context,
                                         chipStyle,
@@ -1590,7 +1627,10 @@ class _TableArea extends StatelessWidget {
                                           retainedChip?.sequence ??
                                           presentationSequence,
                                       liftWhenSelected: !busy,
-                                      onTap: busy || onToggleCard == null
+                                      onTap:
+                                          busy ||
+                                              selectionDisabled ||
+                                              onToggleCard == null
                                           ? null
                                           : () => onToggleCard!(index),
                                     );

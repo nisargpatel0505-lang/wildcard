@@ -14,6 +14,9 @@ class CompactJokerCard extends StatelessWidget {
   const CompactJokerCard({
     this.joker,
     this.blocked = false,
+    this.multiplierSuppressed = false,
+    this.redundant = false,
+    this.modifierStatusLabel,
     this.highlighted = false,
     this.triggerLabel,
     this.triggerEventType,
@@ -25,6 +28,9 @@ class CompactJokerCard extends StatelessWidget {
 
   final JokerDefinition? joker;
   final bool blocked;
+  final bool multiplierSuppressed;
+  final bool redundant;
+  final String? modifierStatusLabel;
   final bool highlighted;
   final String? triggerLabel;
   final ScoreEventType? triggerEventType;
@@ -78,9 +84,19 @@ class CompactJokerCard extends StatelessWidget {
     }
 
     final label = triggerLabel?.trim();
-    final additiveProc = highlighted && triggerEventType == ScoreEventType.mult;
+    final inactive = blocked || multiplierSuppressed || redundant;
+    final activeHighlight = highlighted && !inactive;
+    final statusText = modifierStatusLabel?.trim().isNotEmpty == true
+        ? modifierStatusLabel!.trim()
+        : blocked
+        ? 'BLOCKED THIS HEAT'
+        : redundant
+        ? 'REDUNDANT THIS HEAT'
+        : 'MULT OFF';
+    final additiveProc =
+        activeHighlight && triggerEventType == ScoreEventType.mult;
     final multiplicativeProc =
-        highlighted && triggerEventType == ScoreEventType.xMult;
+        activeHighlight && triggerEventType == ScoreEventType.xMult;
     final procAccent = additiveProc
         ? tokens.mint
         : multiplicativeProc
@@ -94,21 +110,21 @@ class CompactJokerCard extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       enabled: onTap != null,
-      liveRegion: highlighted && label?.isNotEmpty == true,
+      liveRegion: activeHighlight && label?.isNotEmpty == true,
       label:
           '${joker!.name}. ${joker!.description}'
-          '${blocked ? '. Blocked' : ''}'
-          '${highlighted && label?.isNotEmpty == true ? '. Triggered $label' : ''}',
+          '${inactive ? '. $statusText' : ''}'
+          '${activeHighlight && label?.isNotEmpty == true ? '. Triggered $label' : ''}',
       onTap: onTap,
       child: RepaintBoundary(
         child: ExcludeSemantics(
           // The short spring marks the active card without shifting the row.
           child: SpringValue(
-            target: highlighted ? 1.035 : 1,
+            target: activeHighlight ? 1.035 : 1,
             stiffness: 340,
             damping: 0.42,
             builder: (context, scale, child) => Transform.translate(
-              offset: Offset(0, highlighted ? -2 : 0),
+              offset: Offset(0, activeHighlight ? -2 : 0),
               child: Transform.scale(scale: scale, child: child),
             ),
             child: AnimatedContainer(
@@ -117,22 +133,31 @@ class CompactJokerCard extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: highlighted ? procAccent : accent,
-                  width: highlighted ? 2.2 : 1.5,
+                  color: inactive
+                      ? tokens.creamDim.withValues(alpha: .46)
+                      : activeHighlight
+                      ? procAccent
+                      : accent,
+                  width: activeHighlight ? 2.2 : 1.5,
                 ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color.lerp(
-                      tokens.panel,
-                      procAccent,
-                      highlighted ? 0.3 : 0.09,
-                    )!,
-                    tokens.panelStrong,
-                  ],
+                  colors: inactive
+                      ? [
+                          Color.lerp(tokens.panel, Colors.grey, .20)!,
+                          Color.lerp(tokens.panelStrong, Colors.black, .12)!,
+                        ]
+                      : [
+                          Color.lerp(
+                            tokens.panel,
+                            procAccent,
+                            activeHighlight ? 0.3 : 0.09,
+                          )!,
+                          tokens.panelStrong,
+                        ],
                 ),
-                boxShadow: highlighted
+                boxShadow: activeHighlight
                     ? [
                         BoxShadow(
                           color: procAccent.withValues(alpha: 0.3),
@@ -143,7 +168,7 @@ class CompactJokerCard extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: Opacity(
-                opacity: blocked ? 0.38 : 1,
+                opacity: inactive ? 0.64 : 1,
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -161,7 +186,11 @@ class CompactJokerCard extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: highlighted ? procAccent : accent,
+                                    color: inactive
+                                        ? tokens.creamDim
+                                        : activeHighlight
+                                        ? procAccent
+                                        : accent,
                                     fontFamily: 'SpaceGrotesk',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 9.5,
@@ -170,11 +199,19 @@ class CompactJokerCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (blocked)
+                              if (inactive)
                                 Icon(
-                                  Icons.block_rounded,
+                                  blocked
+                                      ? Icons.block_rounded
+                                      : redundant
+                                      ? Icons.layers_clear_rounded
+                                      : Icons.flash_off_rounded,
                                   size: 12,
-                                  color: tokens.coral,
+                                  color: blocked
+                                      ? tokens.coral
+                                      : redundant
+                                      ? tokens.creamDim
+                                      : tokens.gold,
                                 ),
                             ],
                           ),
@@ -185,7 +222,7 @@ class CompactJokerCard extends StatelessWidget {
                               switchInCurve: Curves.easeOut,
                               switchOutCurve: Curves.easeIn,
                               child:
-                                  highlighted &&
+                                  activeHighlight &&
                                       label != null &&
                                       label.isNotEmpty
                                   ? Container(
@@ -230,15 +267,28 @@ class CompactJokerCard extends StatelessWidget {
                                       ),
                                     )
                                   : Text(
-                                      blocked
-                                          ? 'Blocked this Heat'
+                                      inactive
+                                          ? statusText
                                           : joker!.description,
-                                      key: const ValueKey('joker-description'),
+                                      key: ValueKey(
+                                        inactive
+                                            ? 'joker-modifier-status-$statusText'
+                                            : 'joker-description',
+                                      ),
                                       maxLines: 3,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: tokens.creamDim,
-                                        fontSize: 8,
+                                        color: blocked
+                                            ? tokens.coral
+                                            : redundant
+                                            ? tokens.creamDim
+                                            : multiplierSuppressed
+                                            ? tokens.gold
+                                            : tokens.creamDim,
+                                        fontSize: inactive ? 8.5 : 8,
+                                        fontWeight: inactive
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
                                         height: 1.12,
                                       ),
                                     ),

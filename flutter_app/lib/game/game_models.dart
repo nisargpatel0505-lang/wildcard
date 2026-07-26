@@ -216,6 +216,7 @@ class ScoreVisualChip {
     required this.style,
     required this.start,
     required this.duration,
+    this.muted = false,
   });
 
   final int sequence;
@@ -224,6 +225,7 @@ class ScoreVisualChip {
   final ScoreChipStyle style;
   final Duration start;
   final Duration duration;
+  final bool muted;
 
   Duration get end => start + duration;
 }

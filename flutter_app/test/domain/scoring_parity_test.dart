@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/domain/cards.dart';
 import 'package:wildcard/domain/game_rules.dart';
+import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/random_streams.dart';
 import 'package:wildcard/domain/scoring_engine.dart';
 
@@ -273,6 +274,70 @@ void main() {
         expect(state.rngCounters[RandomStream.boss], counterAfterFirst);
       },
     );
+
+    test('modifier presentation mirrors each authoritative Joker channel', () {
+      JokerModifierStatus status(
+        HeatModifier modifier,
+        String jokerId, {
+        List<String> blocked = const <String>[],
+      }) => jokerModifierStatus(
+        ScoringState(
+          rngSeed: 1,
+          modifier: modifier,
+          blockedJokerIds: blocked.toSet(),
+        ),
+        jokersById[jokerId]!,
+      );
+
+      expect(
+        status(HeatModifier.deadAir, 'polish').state,
+        JokerModifierVisualState.multiplierSuppressed,
+      );
+      expect(
+        status(HeatModifier.deadAir, 'copper').state,
+        JokerModifierVisualState.active,
+      );
+      expect(
+        status(HeatModifier.nullField, 'copper').state,
+        JokerModifierVisualState.multiplierSuppressed,
+      );
+      expect(
+        status(HeatModifier.nullField, 'polish').state,
+        JokerModifierVisualState.multiplierSuppressed,
+      );
+      expect(
+        status(HeatModifier.lowCeiling, 'cheat').state,
+        JokerModifierVisualState.blocked,
+      );
+      expect(
+        status(HeatModifier.lowCeiling, 'fulltable').state,
+        JokerModifierVisualState.blocked,
+      );
+      expect(
+        status(HeatModifier.lowCeiling, 'prism_lens').state,
+        JokerModifierVisualState.blocked,
+      );
+      expect(
+        status(HeatModifier.lowCeiling, 'pocketflush').state,
+        JokerModifierVisualState.redundant,
+      );
+      expect(
+        status(HeatModifier.levelLock, 'boostfiend').state,
+        JokerModifierVisualState.active,
+      );
+      expect(
+        status(HeatModifier.levelLock, 'master_class').state,
+        JokerModifierVisualState.active,
+      );
+      expect(
+        status(
+          HeatModifier.theHouse,
+          'copper',
+          blocked: const <String>['copper'],
+        ).state,
+        JokerModifierVisualState.blocked,
+      );
+    });
 
     test(
       'Glass Joystick always survives first clear then uses one-in-six stream',

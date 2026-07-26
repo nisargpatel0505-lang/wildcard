@@ -16,6 +16,10 @@ class PlayingCardTile extends StatelessWidget {
     this.highlighted = false,
     this.scored = false,
     this.dimmed = false,
+    this.rankSuppressed = false,
+    this.rankSuppressionLabel,
+    this.enhancementSuppressed = false,
+    this.selectionDisabled = false,
     this.width = 48,
     this.height = 86,
     this.scoreChip,
@@ -36,6 +40,10 @@ class PlayingCardTile extends StatelessWidget {
   /// mint glow so the player can read which cards contributed.
   final bool scored;
   final bool dimmed;
+  final bool rankSuppressed;
+  final String? rankSuppressionLabel;
+  final bool enhancementSuppressed;
+  final bool selectionDisabled;
 
   final double width;
   final double height;
@@ -64,18 +72,28 @@ class PlayingCardTile extends StatelessWidget {
       CardEnhancement.wildsuit => tokens.wild,
       null => null,
     };
-    final border = card.selected
+    final inactive = rankSuppressed || selectionDisabled;
+    final border = inactive
+        ? tokens.creamDim.withValues(alpha: .58)
+        : card.selected
         ? tokens.coral
         : highlighted || scored
         ? (highlightColor ?? (highlighted ? tokens.gold : tokens.mint))
+        : enhancementSuppressed
+        ? tokens.creamDim.withValues(alpha: .62)
         : enhancement ?? const Color(0xFFD7CFBD);
 
     final chip = scoreChip;
     return Semantics(
-      button: onTap != null,
+      button: onTap != null || selectionDisabled,
+      enabled: onTap != null,
       selected: card.selected,
       label:
-          '${card.rank.label} of ${card.suit.name}${card.selected ? ', selected' : ''}',
+          '${card.rank.label} of ${card.suit.name}'
+          '${card.selected ? ', selected' : ''}'
+          '${rankSuppressed ? ', rank scores zero this Heat because of ${rankSuppressionLabel ?? 'the active modifier'}' : ''}'
+          '${enhancementSuppressed ? ', multiplier enhancement disabled by Null Field' : ''}'
+          '${selectionDisabled ? ', selection limit reached' : ''}',
       onTap: onTap,
       child: AnimatedSlide(
         // Selection gets a short, readable lift. When scoring takes control,
@@ -90,12 +108,71 @@ class PlayingCardTile extends StatelessWidget {
         child: RepaintBoundary(
           child: ExcludeSemantics(
             child: Opacity(
-              opacity: dimmed ? 0.42 : 1,
+              opacity: dimmed
+                  ? 0.42
+                  : rankSuppressed
+                  ? 0.52
+                  : selectionDisabled
+                  ? 0.46
+                  : 1,
               child: Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.topCenter,
                 children: [
-                  _cardBody(context, tokens, ink, border),
+                  ColorFiltered(
+                    colorFilter: inactive
+                        ? const ColorFilter.matrix(<double>[
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                          ])
+                        : const ColorFilter.mode(
+                            Colors.transparent,
+                            BlendMode.dst,
+                          ),
+                    child: _cardBody(context, tokens, ink, border),
+                  ),
+                  if (rankSuppressed)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: _CardStatusBadge(
+                        key: ValueKey(
+                          'modifier-rank-zero-${card.uid ?? card.toString()}',
+                        ),
+                        label: '0',
+                        color: tokens.coral,
+                      ),
+                    ),
+                  if (enhancementSuppressed)
+                    Positioned(
+                      left: 4,
+                      bottom: 4,
+                      child: _CardStatusBadge(
+                        key: ValueKey(
+                          'modifier-enhancement-off-${card.uid ?? card.toString()}',
+                        ),
+                        label: 'OFF',
+                        color: tokens.gold,
+                      ),
+                    ),
                   if (chip != null && chip.isNotEmpty)
                     Positioned(
                       top: -height * 0.28,
@@ -122,7 +199,10 @@ class PlayingCardTile extends StatelessWidget {
     Color ink,
     Color border,
   ) {
-    final glowing = highlighted || scored || card.selected;
+    final glowing =
+        !rankSuppressed &&
+        !selectionDisabled &&
+        (highlighted || scored || card.selected);
     return SizedBox(
       width: width,
       height: height,
@@ -205,6 +285,34 @@ class PlayingCardTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CardStatusBadge extends StatelessWidget {
+  const _CardStatusBadge({required this.label, required this.color, super.key});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xE61B1722),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: color.withValues(alpha: .9)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontFamily: 'Bungee',
+          fontSize: 7,
+          height: 1,
+        ),
+      ),
+    ),
+  );
 }
 
 class _CardCorner extends StatelessWidget {

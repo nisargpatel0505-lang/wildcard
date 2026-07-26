@@ -91,6 +91,20 @@ void main() {
       final first = find.byKey(const ValueKey('hand-card-slot-0'));
       final second = find.byKey(const ValueKey('hand-card-slot-1'));
       await tester.ensureVisible(first);
+      final frostbitten = tester.widget<PlayingCardTile>(first);
+      expect(frostbitten.rankSuppressed, isTrue);
+      expect(frostbitten.rankSuppressionLabel, 'Frostbite');
+      expect(
+        frostbitten.onTap,
+        isNotNull,
+        reason:
+            'A zero-rank card must stay selectable because it can still form a hand.',
+      );
+      expect(
+        find.byKey(const ValueKey('modifier-rank-zero-A♠')),
+        findsOneWidget,
+      );
+      expect(tester.widget<PlayingCardTile>(second).rankSuppressed, isFalse);
       final secondRect = tester.getRect(second);
       final firstSuit = tester.getRect(
         find.descendant(

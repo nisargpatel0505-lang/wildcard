@@ -1096,14 +1096,23 @@ class _GameHostScreenState extends State<GameHostScreen> {
 
   void _inspectJoker(JokerDefinition joker) {
     unawaited(widget.appController.audio.playUiClick());
-    final blocked = game.state.blockedJokerIds.contains(joker.id);
+    final modifierStatus = jokerModifierStatus(game.state, joker);
+    final heatStatus = game.phase != RunPhase.game
+        ? 'Available for a future Heat.'
+        : switch (modifierStatus.state) {
+            JokerModifierVisualState.blocked =>
+              '${modifierStatus.label}. This Joker cannot act this Heat.',
+            JokerModifierVisualState.multiplierSuppressed =>
+              '${modifierStatus.label}. Its scoring multiplier is disabled this Heat; any separate persistent or end-of-Heat hook remains active.',
+            JokerModifierVisualState.redundant =>
+              '${modifierStatus.label}. Its rule is already supplied by this modifier.',
+            JokerModifierVisualState.active => 'Active this Heat.',
+          };
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(joker.name.toUpperCase()),
-        content: Text(
-          '${joker.description}\n\n${blocked ? 'Blocked by this Heat\'s modifier.' : 'Active this Heat.'}',
-        ),
+        content: Text('${joker.description}\n\n$heatStatus'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

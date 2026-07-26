@@ -186,6 +186,44 @@ void main() {
     );
   });
 
+  test('only a zero-rank beat is muted on a modifier-suppressed card', () {
+    const result = ScoreResult(
+      handType: HandType.highCard,
+      base: 5,
+      rankSum: 0,
+      rankScore: 0,
+      valuePoints: 5,
+      multiplier: 1.3,
+      total: 7,
+      perCard: <int>[0],
+      scoringFlags: <bool>[false],
+      events: <ScoreEvent>[
+        ScoreEvent(
+          type: ScoreEventType.card,
+          cardIndex: 0,
+          amount: 0,
+          label: '+0',
+        ),
+        ScoreEvent(
+          type: ScoreEventType.mult,
+          cardIndex: 0,
+          amount: .2,
+          multiplier: 1.3,
+          label: 'NEON +0.20',
+        ),
+      ],
+    );
+    final plan = const ScoringTimelineBuilder().build(
+      handSnapshot: hand,
+      playedCards: hand,
+      result: result,
+      pacing: ScoringPacing.normal,
+    );
+
+    expect(plan.beats.first.frame.activeChips.single.muted, isTrue);
+    expect(plan.beats.last.frame.activeChips.last.muted, isFalse);
+  });
+
   test('Lucky Seven has a suspense beat before a truthful outcome', () {
     const result = ScoreResult(
       handType: HandType.highCard,

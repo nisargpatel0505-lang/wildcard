@@ -98,6 +98,7 @@ class ScoringTimelineBuilder {
               style: style,
               start: start,
               duration: duration,
+              muted: event.type == ScoreEventType.card && event.amount == 0,
             )
           : null;
       final activeChips = <ScoreVisualChip>[
@@ -143,7 +144,11 @@ class ScoringTimelineBuilder {
       beats.add(
         ScorePresentationBeat(start: cursor, duration: duration, frame: frame),
       );
-      if (frame.activeCardId case final id?) settled.add(id);
+      if (frame.activeCardId case final id?) {
+        final zeroRankCard =
+            event.type == ScoreEventType.card && event.amount == 0;
+        if (!zeroRankCard) settled.add(id);
+      }
       cursor += onsetGap;
     }
 
