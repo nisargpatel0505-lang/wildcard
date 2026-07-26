@@ -27,6 +27,26 @@ void main() {
     ),
   ];
 
+  test('Normal adds a fixed readable result hold while Fast is unchanged', () {
+    expect(ScoringPacing.normal.leadIn, const Duration(milliseconds: 333));
+    expect(ScoringPacing.normal.cardBeat, const Duration(milliseconds: 407));
+    expect(ScoringPacing.normal.jokerBeat, const Duration(milliseconds: 666));
+    expect(ScoringPacing.normal.resultHold, const Duration(milliseconds: 1400));
+    expect(
+      ScoringPacing.normal.transitionHold,
+      const Duration(milliseconds: 600),
+    );
+
+    expect(ScoringPacing.fast.leadIn, const Duration(milliseconds: 187));
+    expect(ScoringPacing.fast.cardBeat, const Duration(milliseconds: 229));
+    expect(ScoringPacing.fast.jokerBeat, const Duration(milliseconds: 270));
+    expect(ScoringPacing.fast.resultHold, const Duration(milliseconds: 620));
+    expect(
+      ScoringPacing.fast.transitionHold,
+      const Duration(milliseconds: 320),
+    );
+  });
+
   test('timeline exposes truthful WebView equation and exact finale', () {
     const result = ScoreResult(
       handType: HandType.pair,

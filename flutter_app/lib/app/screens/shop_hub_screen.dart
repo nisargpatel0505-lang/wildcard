@@ -425,6 +425,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
             skin: _slySkin(cosmetic.id),
             size: 58,
             borderRadius: 0,
+            animate: false,
           ),
         ),
         CosmeticKind.table => SizedBox(
@@ -555,6 +556,9 @@ SlySkin _slySkin(String id) => switch (id) {
   'sly_alien' => SlySkin.alien,
   'sly_devil' => SlySkin.devil,
   'sly_clown' => SlySkin.clown,
+  'sly_block_drop' => SlySkin.blockDrop,
+  'sly_abyssal' => SlySkin.abyssal,
+  'sly_desert' => SlySkin.desertMirage,
   _ => SlySkin.classic,
 };
 
@@ -572,5 +576,8 @@ WildcardThemeId _themeId(String id) => switch (id) {
   'theme_emerald_throne' => WildcardThemeId.emeraldThrone,
   'theme_haunted' => WildcardThemeId.hauntedCarnival,
   'theme_clockwork' => WildcardThemeId.clockworkRoyale,
+  'theme_block_drop' => WildcardThemeId.blockDropArcade,
+  'theme_abyssal' => WildcardThemeId.abyssalJackpot,
+  'theme_desert_mirage' => WildcardThemeId.desertMirage,
   _ => WildcardThemeId.classic,
 };

@@ -231,6 +231,33 @@ const List<CosmeticDefinition> cosmeticCatalog = <CosmeticDefinition>[
         'A premium Sly room of brass gears, sapphire clocks and a calculated house edge.',
   ),
   CosmeticDefinition(
+    id: 'theme_block_drop',
+    kind: CosmeticKind.theme,
+    name: 'Block Drop Arcade',
+    rarity: JokerRarity.wild,
+    price: 1000,
+    description:
+        'A geometric neon arcade where every falling block raises the stakes.',
+  ),
+  CosmeticDefinition(
+    id: 'theme_abyssal',
+    kind: CosmeticKind.theme,
+    name: 'Abyssal Jackpot',
+    rarity: JokerRarity.rare,
+    price: 1000,
+    description:
+        'A submerged casino cathedral lit by coral, pearls and cold blue luck.',
+  ),
+  CosmeticDefinition(
+    id: 'theme_desert_mirage',
+    kind: CosmeticKind.theme,
+    name: 'Desert Mirage',
+    rarity: JokerRarity.rare,
+    price: 1000,
+    description:
+        'An open-air card palace of turquoise glass, sunlit stone and gold.',
+  ),
+  CosmeticDefinition(
     id: 'sly_classic',
     kind: CosmeticKind.sly,
     name: 'Sly Classic',
@@ -300,6 +327,34 @@ const List<CosmeticDefinition> cosmeticCatalog = <CosmeticDefinition>[
     price: 350,
     description: 'Honks when you misplay. (Not really.)',
     skin: 'clown',
+  ),
+  CosmeticDefinition(
+    id: 'sly_block_drop',
+    kind: CosmeticKind.sly,
+    name: 'Block Drop Sly',
+    rarity: JokerRarity.wild,
+    price: 5000,
+    description:
+        'Sly rebuilt in sharp neon pixels for the ultimate high score.',
+    skin: 'blockDrop',
+  ),
+  CosmeticDefinition(
+    id: 'sly_abyssal',
+    kind: CosmeticKind.sly,
+    name: 'Abyssal Sly',
+    rarity: JokerRarity.wild,
+    price: 5000,
+    description: 'The deep-sea dealer who always knows what is below the deck.',
+    skin: 'abyssal',
+  ),
+  CosmeticDefinition(
+    id: 'sly_desert',
+    kind: CosmeticKind.sly,
+    name: 'Mirage Sly',
+    rarity: JokerRarity.rare,
+    price: 5000,
+    description: 'A sunlit card sharp dressed for the palace beyond the dunes.',
+    skin: 'desertMirage',
   ),
 ];
 

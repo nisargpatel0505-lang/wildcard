@@ -16,6 +16,9 @@ enum WildcardThemeId {
   emeraldThrone,
   hauntedCarnival,
   clockworkRoyale,
+  blockDropArcade,
+  abyssalJackpot,
+  desertMirage,
 }
 
 /// WILDCARD-specific colour and artwork tokens.
@@ -262,6 +265,70 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
           artTintBottom: const Color(0xA80E0C0C),
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-clockwork-royale.webp',
+        );
+      case WildcardThemeId.blockDropArcade:
+        return classic.copyWith(
+          ink: const Color(0xFF090A24),
+          felt: const Color(0xFF111746),
+          feltHighlight: const Color(0xFF20266B),
+          mint: const Color(0xFF45F4FF),
+          gold: const Color(0xFFFFDF4F),
+          violet: const Color(0xFF9A62FF),
+          coral: const Color(0xFFFF4FB8),
+          rare: const Color(0xFFFF8B42),
+          wild: const Color(0xFFFF4FDB),
+          panel: const Color(0xEB0B1034),
+          panelStrong: const Color(0xFA05071D),
+          line: const Color(0xB35AFAE8),
+          artTintTop: const Color(0x0801041A),
+          artTintMiddle: const Color(0x33101A58),
+          artTintBottom: const Color(0x99030419),
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-block-drop-arcade.webp',
+        );
+      case WildcardThemeId.abyssalJackpot:
+        return classic.copyWith(
+          ink: const Color(0xFF06191F),
+          felt: const Color(0xFF092D37),
+          feltHighlight: const Color(0xFF105064),
+          cream: const Color(0xFFF3F1DD),
+          creamDim: const Color(0xFFBFDAD5),
+          mint: const Color(0xFF65F4E3),
+          gold: const Color(0xFFFFBF70),
+          violet: const Color(0xFF819DFF),
+          coral: const Color(0xFFFF7666),
+          rare: const Color(0xFFFF9D62),
+          wild: const Color(0xFFBA7DFF),
+          panel: const Color(0xEB062A35),
+          panelStrong: const Color(0xFA03151D),
+          line: const Color(0xAD6BE8DD),
+          artTintTop: const Color(0x08001A22),
+          artTintMiddle: const Color(0x2E063C4A),
+          artTintBottom: const Color(0x9900141C),
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-abyssal-jackpot.webp',
+        );
+      case WildcardThemeId.desertMirage:
+        return classic.copyWith(
+          ink: const Color(0xFF172A2D),
+          felt: const Color(0xFF164B4D),
+          feltHighlight: const Color(0xFF237170),
+          cream: const Color(0xFFFFF4D8),
+          creamDim: const Color(0xFFE2CFA7),
+          mint: const Color(0xFF4CE0D1),
+          gold: const Color(0xFFFFC85D),
+          violet: const Color(0xFF4F87C8),
+          coral: const Color(0xFFE36E4B),
+          rare: const Color(0xFFFF9653),
+          wild: const Color(0xFFB768C7),
+          panel: const Color(0xEB123D3F),
+          panelStrong: const Color(0xFA092426),
+          line: const Color(0xADE7B956),
+          artTintTop: const Color(0x05FFF1C9),
+          artTintMiddle: const Color(0x241A5B5A),
+          artTintBottom: const Color(0x96112629),
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-desert-mirage.webp',
         );
     }
   }

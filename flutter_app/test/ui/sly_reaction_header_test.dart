@@ -9,7 +9,7 @@ import 'package:wildcard/ui/wildcard_theme.dart';
 
 void main() {
   testWidgets(
-    'premium Sly uses real expression frames then settles to equipped skin',
+    'premium Sly keeps equipped skin while its mood reaction changes',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(360, 800);
@@ -56,10 +56,14 @@ void main() {
       expect(find.byKey(const Key('sly-header-panel')), findsOneWidget);
       expect(find.text('PAIR'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('sly-expression-frame-thoughtful')),
+        find.byKey(const ValueKey('sly-skin-frame-devil')),
         findsOneWidget,
       );
-      _expectOnlySlyAsset(tester, slyExpressionSpriteAsset);
+      expect(
+        find.byKey(const ValueKey('sly-premium-reaction-thoughtful')),
+        findsOneWidget,
+      );
+      _expectOnlySlyAsset(tester, slySkinSpriteAsset);
 
       reactions.value = const SlyReaction(
         mood: SlyMood.fullHouse,
@@ -77,10 +81,14 @@ void main() {
       expect(identical(faceState, tester.state(find.byKey(faceKey))), isTrue);
       expect(find.text('FULL HOUSE'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('sly-expression-frame-shocked')),
+        find.byKey(const ValueKey('sly-skin-frame-devil')),
         findsOneWidget,
       );
-      _expectOnlySlyAsset(tester, slyExpressionSpriteAsset);
+      expect(
+        find.byKey(const ValueKey('sly-premium-reaction-shocked')),
+        findsOneWidget,
+      );
+      _expectOnlySlyAsset(tester, slySkinSpriteAsset);
 
       reactions.value = const SlyReaction(
         mood: SlyMood.heatFail,
@@ -95,9 +103,10 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.byKey(const ValueKey('sly-expression-frame-laughing')),
+        find.byKey(const ValueKey('sly-premium-reaction-laughing')),
         findsOneWidget,
       );
+      _expectOnlySlyAsset(tester, slySkinSpriteAsset);
 
       reactions.value = const SlyReaction(
         mood: SlyMood.clear,
@@ -112,9 +121,10 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.byKey(const ValueKey('sly-expression-frame-triumphant')),
+        find.byKey(const ValueKey('sly-premium-reaction-triumphant')),
         findsOneWidget,
       );
+      _expectOnlySlyAsset(tester, slySkinSpriteAsset);
 
       reactions.value = null;
       await tester.pump();
@@ -123,9 +133,88 @@ void main() {
         findsOneWidget,
       );
       _expectOnlySlyAsset(tester, slySkinSpriteAsset);
+      expect(
+        find.byKey(const ValueKey('sly-premium-reaction-triumphant')),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('classic Sly still uses authored facial-expression frames', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: SlySprite(
+            expression: SlyExpression.shocked,
+            skin: SlySkin.classic,
+            reactionActive: true,
+            animate: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('sly-expression-frame-shocked')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sly-premium-reaction-shocked')),
+      findsNothing,
+    );
+    final image = tester.widget<Image>(find.byType(Image));
+    final provider = image.image is ResizeImage
+        ? (image.image as ResizeImage).imageProvider
+        : image.image;
+    expect(provider, isA<AssetImage>());
+    expect((provider as AssetImage).assetName, slyExpressionSpriteAsset);
+  });
+
+  for (final themedSkin in <(SlySkin, String, String)>[
+    (SlySkin.blockDrop, 'blockDrop', slyBlockDropExpressionSpriteAsset),
+    (SlySkin.abyssal, 'abyssal', slyAbyssalExpressionSpriteAsset),
+    (SlySkin.desertMirage, 'desertMirage', slyDesertExpressionSpriteAsset),
+  ]) {
+    testWidgets(
+      '${themedSkin.$2} Sly uses its matching authored expression atlas',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: SlySprite(
+                expression: SlyExpression.shocked,
+                skin: themedSkin.$1,
+                reactionActive: true,
+                animate: false,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(
+          find.byKey(
+            ValueKey('sly-themed-expression-frame-${themedSkin.$2}-shocked'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('sly-premium-reaction-shocked')),
+          findsNothing,
+        );
+        final image = tester.widget<Image>(find.byType(Image));
+        final provider = image.image is ResizeImage
+            ? (image.image as ResizeImage).imageProvider
+            : image.image;
+        expect(provider, isA<AssetImage>());
+        expect((provider as AssetImage).assetName, themedSkin.$3);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }
 
 void _expectOnlySlyAsset(WidgetTester tester, String expected) {

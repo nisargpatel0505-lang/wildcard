@@ -169,7 +169,7 @@ class ScoringPacing {
     leadIn: Duration(milliseconds: 333),
     cardBeat: Duration(milliseconds: 407),
     jokerBeat: Duration(milliseconds: 666),
-    resultHold: Duration(milliseconds: 1120),
+    resultHold: Duration(milliseconds: 1400),
     transitionHold: Duration(milliseconds: 600),
   );
 

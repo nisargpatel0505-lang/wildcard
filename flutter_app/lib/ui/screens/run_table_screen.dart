@@ -142,11 +142,13 @@ class RunTableScreen extends StatelessWidget {
                 result: score,
                 activeEvent: activeScoreEvent,
                 activeJokerIndex: highlightedJokerIndex,
+                label: activeScoreEvent?.label ?? '',
                 visibleValuePoints: liveRank ?? score?.valuePoints ?? 0,
                 visibleMultiplier:
                     liveMultiplier ?? score?.multiplier ?? baseMultiplier,
                 visibleTotal: liveTotal ?? score?.total ?? 0,
                 settledCardIds: scoredCardIds,
+                sequence: activeScoreEvent == null ? 0 : 1,
                 phase: activeScoreEvent == null
                     ? ScorePresentationPhase.idle
                     : ScorePresentationPhase.beat,
@@ -264,6 +266,9 @@ class RunTableScreen extends StatelessWidget {
                             liveTotal: presentation.isActive
                                 ? presentation.visibleTotal
                                 : liveTotal,
+                            activeEvent: presentation.activeEvent,
+                            procLabel: presentation.label,
+                            presentationSequence: presentation.sequence,
                           );
                         }),
                         SizedBox(height: metrics.outerGap),
@@ -866,6 +871,22 @@ class _JokerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final activeJoker = highlightedJokerIndex ?? activeEvent?.jokerIndex;
+    final eventLabel = activeEvent?.label?.trim();
+    final fallbackLabel = summary?.trim();
+    final triggerLabel = eventLabel?.isNotEmpty == true
+        ? eventLabel
+        : fallbackLabel?.isNotEmpty == true
+        ? fallbackLabel
+        : null;
+    final activeJokerDefinition =
+        activeJoker != null &&
+            activeJoker >= 0 &&
+            activeJoker < state.jokerIds.length
+        ? jokersById[state.jokerIds[activeJoker]]
+        : null;
+    final activeSummary = activeJokerDefinition != null && triggerLabel != null
+        ? '${activeJokerDefinition.name} \u00b7 $triggerLabel'
+        : null;
     return Column(
       children: [
         Row(
@@ -882,7 +903,8 @@ class _JokerSection extends StatelessWidget {
             const SizedBox(width: 7),
             Expanded(
               child: Text(
-                summary ??
+                activeSummary ??
+                    summary ??
                     (activeEvent?.label?.isNotEmpty == true
                         ? activeEvent!.label!
                         : '${state.jokerIds.length} of $maxJokers equipped'),
@@ -923,7 +945,12 @@ class _JokerSection extends StatelessWidget {
                           blocked:
                               id != null && state.blockedJokerIds.contains(id),
                           highlighted: activeJoker == index,
-                          triggerLabel: activeJoker == index ? summary : null,
+                          triggerLabel: activeJoker == index
+                              ? triggerLabel
+                              : null,
+                          triggerEventType: activeJoker == index
+                              ? activeEvent?.type
+                              : null,
                           triggerSequence: presentationSequence,
                           height: cardHeight,
                           onTap: joker == null || onInspect == null
@@ -1037,6 +1064,9 @@ class _ScoreEquation extends StatelessWidget {
     this.liveRank,
     this.liveMultiplier,
     this.liveTotal,
+    this.activeEvent,
+    this.procLabel,
+    this.presentationSequence = 0,
   });
 
   final ScoringState state;
@@ -1050,11 +1080,33 @@ class _ScoreEquation extends StatelessWidget {
   final int? liveRank;
   final double? liveMultiplier;
   final int? liveTotal;
+  final ScoreEvent? activeEvent;
+  final String? procLabel;
+  final int presentationSequence;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final selected = hand.where((card) => card.selected).length;
+    final procKind = switch (activeEvent?.type) {
+      ScoreEventType.mult when (activeEvent?.jokerIndex ?? -1) >= 0 =>
+        _MultiplierProcKind.additive,
+      ScoreEventType.xMult when (activeEvent?.jokerIndex ?? -1) >= 0 =>
+        _MultiplierProcKind.multiplicative,
+      _ => null,
+    };
+    final exactProcLabel = procKind == null
+        ? null
+        : activeEvent?.label?.trim().isNotEmpty == true
+        ? activeEvent!.label!.trim()
+        : procLabel?.trim().isNotEmpty == true
+        ? procLabel!.trim()
+        : null;
+    final multiplierColor = switch (procKind) {
+      _MultiplierProcKind.additive => tokens.mint,
+      _MultiplierProcKind.multiplicative => tokens.wild,
+      null => tokens.mint,
+    };
     final label = score == null
         ? 'SELECT UP TO ${state.effectiveMaxSelect} CARDS'
         : '${score!.handType.legacyName.toUpperCase()} \u00b7 ${score!.scoringCount} CARDS SCORE';
@@ -1095,8 +1147,11 @@ class _ScoreEquation extends StatelessWidget {
                   value: (liveMultiplier ?? score?.multiplier ?? baseMultiplier)
                       .toStringAsFixed(2),
                   label: 'MULTIPLIER',
-                  color: tokens.mint,
+                  color: multiplierColor,
                   compact: compact,
+                  procLabel: exactProcLabel,
+                  procKind: procKind,
+                  procSequence: presentationSequence,
                 ),
               ),
               _EquationOperator('=', compact: compact),
@@ -1128,12 +1183,18 @@ class _EquationValue extends StatefulWidget {
     required this.label,
     required this.color,
     required this.compact,
+    this.procLabel,
+    this.procKind,
+    this.procSequence = 0,
   });
 
   final String value;
   final String label;
   final Color color;
   final bool compact;
+  final String? procLabel;
+  final _MultiplierProcKind? procKind;
+  final int procSequence;
 
   @override
   State<_EquationValue> createState() => _EquationValueState();
@@ -1141,9 +1202,9 @@ class _EquationValue extends StatefulWidget {
 
 class _EquationValueState extends State<_EquationValue>
     with SingleTickerProviderStateMixin {
-  // The number rolls up to its new value over ~520ms — slow enough to read the
-  // SCORE climbing rather than snapping. Kept just under the card beat so each
-  // step finishes before the next begins.
+  // The number rolls up over ~520ms so SCORE visibly climbs. Card beats can
+  // overlap that window; a restart therefore begins at the interpolated number
+  // already on screen instead of snapping to the previous target.
   late final AnimationController _pop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 520),
@@ -1156,6 +1217,14 @@ class _EquationValueState extends State<_EquationValue>
 
   static double? _parse(String value) =>
       double.tryParse(value.replaceAll(',', ''));
+
+  double? _currentNumber() {
+    final from = _fromNum;
+    final to = _toNum;
+    if (from == null || to == null) return to;
+    final t = Curves.easeOutCubic.transform(_pop.value);
+    return from + (to - from) * t;
+  }
 
   @override
   void initState() {
@@ -1170,10 +1239,15 @@ class _EquationValueState extends State<_EquationValue>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
       final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-      _fromNum = disabled ? _parse(widget.value) : _toNum;
-      _toNum = _parse(widget.value);
+      final next = _parse(widget.value);
+      _fromNum = disabled ? next : _currentNumber();
+      _toNum = next;
       _decimal = widget.value.contains('.');
-      if (!disabled) _pop.forward(from: 0);
+      if (disabled) {
+        _pop.value = 1;
+      } else {
+        _pop.forward(from: 0);
+      }
     }
   }
 
@@ -1195,55 +1269,119 @@ class _EquationValueState extends State<_EquationValue>
   Widget build(BuildContext context) {
     final color = widget.color;
     final compact = widget.compact;
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: AnimatedBuilder(
-            animation: _pop,
-            builder: (context, _) {
-              final t = Curves.easeOutCubic.transform(_pop.value);
-              // Swell and settle while the number rolls up.
-              final scale = 1 + 0.18 * (1 - t) * (1 - t);
-              final glow = (1 - t).clamp(0.0, 1.0);
-              return Transform.scale(
-                scale: scale,
-                child: Text(
-                  _display(t),
-                  style: TextStyle(
-                    color: Color.lerp(color, Colors.white, glow * 0.85),
-                    fontFamily: 'Bungee',
-                    fontSize: compact ? 23 : 28,
-                    height: 1,
-                    shadows: glow <= 0.02
-                        ? null
-                        : [
-                            Shadow(
-                              color: color.withValues(alpha: glow),
-                              blurRadius: 16 * glow,
-                            ),
-                          ],
-                  ),
+    final procKind = widget.procKind;
+    final procLabel = widget.procLabel;
+    final procActive = procKind != null && procLabel?.isNotEmpty == true;
+    final procName = procKind?.name;
+    return SizedBox(
+      height: compact ? 42 : 48,
+      child: Semantics(
+        excludeSemantics: true,
+        liveRegion: procActive,
+        label: procActive
+            ? 'Multiplier ${widget.value}. Joker triggered $procLabel'
+            : '${widget.label} ${widget.value}',
+        child: AnimatedContainer(
+          key: ValueKey('equation-${widget.label.toLowerCase()}-cell'),
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+          decoration: BoxDecoration(
+            color: procActive ? color.withValues(alpha: 0.13) : null,
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(
+              color: procActive
+                  ? color.withValues(alpha: 0.72)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: AnimatedBuilder(
+                  animation: _pop,
+                  builder: (context, _) {
+                    final t = Curves.easeOutCubic.transform(_pop.value);
+                    // Swell and settle while the number rolls up.
+                    final scale = 1 + 0.18 * (1 - t) * (1 - t);
+                    final glow = (1 - t).clamp(0.0, 1.0);
+                    return Transform.scale(
+                      scale: scale,
+                      child: Text(
+                        _display(t),
+                        key: ValueKey(
+                          'equation-${widget.label.toLowerCase()}-value',
+                        ),
+                        style: TextStyle(
+                          color: Color.lerp(color, Colors.white, glow * 0.85),
+                          fontFamily: 'Bungee',
+                          fontSize: compact ? 23 : 28,
+                          height: 1,
+                          shadows: glow <= 0.02
+                              ? null
+                              : [
+                                  Shadow(
+                                    color: color.withValues(alpha: glow),
+                                    blurRadius: 10 * glow,
+                                  ),
+                                ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 3),
+              SizedBox(
+                height: compact ? 12 : 13,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 140),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: procActive
+                      ? SizedBox(
+                          key: ValueKey(
+                            'equation-proc-$procName-${widget.procSequence}',
+                          ),
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              procLabel!,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: color,
+                                fontFamily: 'SpaceGrotesk',
+                                fontWeight: FontWeight.w700,
+                                fontSize: compact ? 9.5 : 10.5,
+                                height: 1,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Text(
+                          widget.label,
+                          key: ValueKey('equation-label-${widget.label}'),
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: context.wildcard.creamDim,
+                            fontSize: compact ? 7.5 : 8.5,
+                            height: 1,
+                            letterSpacing: 0.25,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 3),
-        Text(
-          widget.label,
-          maxLines: 1,
-          style: TextStyle(
-            color: context.wildcard.creamDim,
-            fontSize: compact ? 7.5 : 8.5,
-            height: 1,
-            letterSpacing: 0.25,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
+
+enum _MultiplierProcKind { additive, multiplicative }
 
 class _EquationOperator extends StatelessWidget {
   const _EquationOperator(this.value, {required this.compact});
