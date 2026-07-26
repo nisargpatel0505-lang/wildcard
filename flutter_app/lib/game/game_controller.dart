@@ -14,6 +14,7 @@ import '../domain/legacy_save_schema.dart';
 import '../domain/random_streams.dart';
 import '../domain/scoring_engine.dart';
 import 'game_models.dart';
+import 'scoring_timeline.dart';
 
 /// Owns one complete native WILDCARD run.
 ///
@@ -153,10 +154,13 @@ class GameController extends ChangeNotifier {
   final ScoringWait _wait;
 
   ScoringPace pace;
+  int guideStep = 0;
+  bool shopGuideShown = false;
   RunPhase phase = RunPhase.game;
   RunEndReason? endReason;
   RunResultSummary? resultSummary;
-  ScoringPresentation scoringPresentation = const ScoringPresentation();
+  final ScoringTimelineController scoringTimeline = ScoringTimelineController();
+  ScoringPresentation get scoringPresentation => scoringTimeline.value;
   HeatRewardSummary? lastHeatReward;
 
   final List<PlayingCard> drawPile = <PlayingCard>[];
@@ -293,6 +297,7 @@ class GameController extends ChangeNotifier {
     state.discardsLeft--;
     _refillHand();
     state.deckCardsLeft = drawPile.length;
+    if (guidedFirstRun && guideStep < 2) guideStep = 2;
     await _save(RunCheckpoint.discardCommitted);
     if (hand.isEmpty) {
       await _offerOrFinishFailure('cards');
@@ -331,7 +336,11 @@ class GameController extends ChangeNotifier {
   }
 
   Future<GameActionResult> _runScoringSequence(List<PlayingCard> played) async {
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
+    final handSnapshot = <PlayingCard>[
+      for (final card in hand)
+        card.copyWith(selected: selectedCardIds.contains(_cardId(card))),
+    ];
     final preRollCounters = state.rngCounters.copy();
     pendingTransition = <String, Object?>{
       'kind': 'play',
@@ -342,10 +351,18 @@ class GameController extends ChangeNotifier {
     await _save(RunCheckpoint.scoringPrepared);
 
     final result = scoringEngine.scoreHand(played, commit: true);
-    scoringPresentation = ScoringPresentation(result: result);
-    notifyListeners();
-    await _wait(pacing.leadIn);
-    await _presentScoreEvents(played, result);
+    if (guidedFirstRun && guideStep == 0) guideStep = 1;
+    final timeline = const ScoringTimelineBuilder().build(
+      handSnapshot: handSnapshot,
+      playedCards: played,
+      result: result,
+      pacing: pacing,
+    );
+    await scoringTimeline.play(
+      plan: timeline,
+      wait: _wait,
+      onBeat: onScoreBeat,
+    );
 
     state.stageScore += result.total;
     totalScore += result.total;
@@ -369,15 +386,6 @@ class GameController extends ChangeNotifier {
     selectedCardIds.clear();
     _refillHand();
     state.deckCardsLeft = drawPile.length;
-    scoringPresentation = ScoringPresentation(
-      result: result,
-      visibleRank: result.rankSum,
-      visibleMultiplier: result.multiplier,
-      visibleTotal: result.total,
-      label: '+${result.total}',
-      complete: true,
-    );
-
     if (state.stageScore >= state.target) {
       pendingTransition = <String, Object?>{
         'kind': 'clear',
@@ -395,13 +403,13 @@ class GameController extends ChangeNotifier {
     await _save(RunCheckpoint.scoringCommitted);
     notifyListeners();
     await _wait(pacing.resultHold);
+    scoringTimeline.clear();
 
     if (pendingTransition?['kind'] == 'clear') {
       await _clearHeat();
     } else if (pendingTransition?['kind'] == 'fail') {
       await _offerOrFinishFailure(_string(pendingTransition?['reason']));
     } else {
-      scoringPresentation = const ScoringPresentation();
       isBusy = false;
       notifyListeners();
     }
@@ -606,6 +614,7 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('Finish the current shop action.');
     }
     isBusy = true;
+    if (guidedFirstRun && guideStep < 4) guideStep = 4;
     state.stage++;
     state.stageScore = 0;
     state.handsPlayedThisStage = 0;
@@ -707,7 +716,7 @@ class GameController extends ChangeNotifier {
     terminalPending = false;
     failureReason = '';
     pendingTransition = null;
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
     selectedCardIds.clear();
     state.endless = state.endless || state.stage > 12;
     ModifierSelector(state).assignForCurrentHeat();
@@ -762,62 +771,10 @@ class GameController extends ChangeNotifier {
     if (drew) hand.sort(_handCompare);
   }
 
-  /// Fired exactly when each scoring event is presented, with its ordinal in
+  /// Fired exactly when each scoring beat is presented, with its ordinal in
   /// the hand. The host layers sound and haptics on the beat without the
   /// controller knowing about either service.
-  void Function(ScoreEvent event, int ordinal)? onScoreBeat;
-
-  Future<void> _presentScoreEvents(
-    List<PlayingCard> played,
-    ScoreResult result,
-  ) async {
-    var visibleRank = 0;
-    var visibleMultiplier = baseMultiplier;
-    var ordinal = 0;
-    for (final event in result.events) {
-      if (event.type == ScoreEventType.card ||
-          event.type == ScoreEventType.rankJoker ||
-          event.type == ScoreEventType.retrigger ||
-          event.type == ScoreEventType.seven) {
-        visibleRank += event.amount.round();
-      }
-      if (event.multiplier != null) visibleMultiplier = event.multiplier!;
-      final cardIndex = event.cardIndex;
-      scoringPresentation = ScoringPresentation(
-        result: result,
-        activeEvent: event,
-        activeCardId:
-            cardIndex != null && cardIndex >= 0 && cardIndex < played.length
-            ? _cardId(played[cardIndex])
-            : null,
-        activeJokerIndex: event.jokerIndex != null && event.jokerIndex! >= 0
-            ? event.jokerIndex
-            : null,
-        label:
-            event.label ??
-            (event.hit == true
-                ? 'LUCKY HIT'
-                : event.hit == false
-                ? 'MISS'
-                : ''),
-        visibleRank: visibleRank,
-        visibleMultiplier: visibleMultiplier,
-        // Running total for the SCORE column. Without this it stayed 0 for the
-        // whole animation and only snapped to the final value at the end.
-        visibleTotal: (visibleRank * visibleMultiplier).round(),
-      );
-      notifyListeners();
-      // Sound and haptics are decoration: a failure here must never interrupt
-      // scoring or leave the run wedged.
-      try {
-        onScoreBeat?.call(event, ordinal++);
-      } catch (_) {
-        // Ignored on purpose; the beat still advances.
-      }
-      final isJoker = event.jokerIndex != null && event.jokerIndex! >= 0;
-      await _wait(isJoker ? pacing.jokerBeat : pacing.cardBeat);
-    }
-  }
+  ScoreBeatCallback? onScoreBeat;
 
   Future<void> _clearHeat() async {
     pendingTransition = null;
@@ -885,12 +842,24 @@ class GameController extends ChangeNotifier {
   void _openShop() {
     phase = RunPhase.shop;
     selectedCardIds.clear();
-    scoringPresentation = const ScoringPresentation();
+    scoringTimeline.clear();
     shopBuysUsed = 0;
     suppliesBoughtThisShop.clear();
     pendingSwapOfferId = null;
+    if (guidedFirstRun && !shopGuideShown && guideStep < 3) guideStep = 3;
     _rollJokerOffers(countForPity: true);
     _rollSupplyOffers();
+  }
+
+  /// Marks Sly's first-shop lesson only after the player has actually seen it.
+  ///
+  /// Keeping this separate from [_openShop] means an app kill before the
+  /// dialog appears will show the lesson again when the saved shop resumes.
+  Future<void> markFirstShopGuideShown() async {
+    if (!guidedFirstRun || shopGuideShown) return;
+    shopGuideShown = true;
+    await _save(RunCheckpoint.shopChanged);
+    notifyListeners();
   }
 
   void _rollJokerOffers({required bool countForPity}) {
@@ -1351,8 +1320,8 @@ class GameController extends ChangeNotifier {
       'boughtThisShop': jokerBuyLimitReached,
       'shopBuysUsed': shopBuysUsed,
       'guidedFirstRun': guidedFirstRun,
-      'guideStep': _integer(_legacyBase['guideStep']),
-      'shopGuideShown': _legacyBase['shopGuideShown'] == true,
+      'guideStep': guideStep,
+      'shopGuideShown': shopGuideShown,
       'heat12SequenceStarted': _legacyBase['heat12SequenceStarted'] == true,
       'heat12InterstitialAttempted':
           _legacyBase['heat12InterstitialAttempted'] == true,
@@ -1405,6 +1374,8 @@ class GameController extends ChangeNotifier {
     glassDouble = raw['glassDouble'] == true;
     terminalPending = raw['terminalPending'] == true;
     failureReason = _string(raw['failureReason']);
+    guideStep = math.max(0, math.min(4, _integer(raw['guideStep'])));
+    shopGuideShown = raw['shopGuideShown'] == true;
     sortMode = raw['sortMode'] == HandSortMode.suit.name
         ? HandSortMode.suit
         : HandSortMode.rank;
@@ -1471,6 +1442,12 @@ class GameController extends ChangeNotifier {
     state.cards
       ..clear()
       ..addAll(stable);
+  }
+
+  @override
+  void dispose() {
+    scoringTimeline.dispose();
+    super.dispose();
   }
 }
 

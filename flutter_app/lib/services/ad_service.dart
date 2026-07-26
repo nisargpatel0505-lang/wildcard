@@ -61,6 +61,14 @@ class AdService extends ChangeNotifier {
   /// Must only be called after WILDCARD's first-launch privacy gate is accepted.
   Future<bool> initializeAfterPrivacyAcceptance() async {
     if (ready) return true;
+    if (_noAds) {
+      // Profile builds and paid ad-free accounts resolve the service without
+      // initializing UMP or Mobile Ads. The profile override lives only in
+      // memory, so this cannot create a release entitlement.
+      _state = AdServiceState.ready;
+      notifyListeners();
+      return true;
+    }
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       _state = AdServiceState.unavailable;
       notifyListeners();
@@ -177,6 +185,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<RewardItem?> showRewarded() async {
+    if (_noAds) return RewardItem(0, 'ad_free');
     if (!ready) return null;
     if (_rewarded == null) await _loadRewarded();
     final ad = _rewarded;

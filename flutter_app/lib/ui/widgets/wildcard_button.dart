@@ -147,28 +147,11 @@ class WildcardButton extends StatelessWidget {
                           color: foreground,
                           fontFamily: fontFamily ?? 'Bungee',
                           fontWeight: fontFamily == null
-                              ? null
+                              ? FontWeight.w400
                               : FontWeight.w700,
                           fontSize: fontSize ?? 14,
                           height: 1.2,
                           letterSpacing: fontFamily == null ? 0.25 : 0.6,
-                          // Primary buttons sit on bright gold, so a soft drop
-                          // shadow is enough; everything else sits over room
-                          // art and gets the hairline outline for legibility.
-                          shadows: variant == WildcardButtonVariant.primary
-                              ? const [
-                                  Shadow(
-                                    color: Color(0x66000000),
-                                    offset: Offset(0, 1),
-                                  ),
-                                ]
-                              : const [
-                                  Shadow(
-                                    color: Color(0xB0000000),
-                                    offset: Offset(0, 2),
-                                    blurRadius: 2,
-                                  ),
-                                ],
                         ),
                       ),
                     ),

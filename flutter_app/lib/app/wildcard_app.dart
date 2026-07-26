@@ -264,6 +264,9 @@ class _WildcardAppState extends State<WildcardApp> {
     'theme_emerald_throne' => WildcardThemeId.emeraldThrone,
     'theme_haunted' => WildcardThemeId.hauntedCarnival,
     'theme_clockwork' => WildcardThemeId.clockworkRoyale,
+    'theme_block_drop' => WildcardThemeId.blockDropArcade,
+    'theme_abyssal' => WildcardThemeId.abyssalJackpot,
+    'theme_desert_mirage' => WildcardThemeId.desertMirage,
     _ => WildcardThemeId.classic,
   };
 }

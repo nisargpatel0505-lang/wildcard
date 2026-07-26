@@ -3,7 +3,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wildcard/app/app_controller.dart';
 import 'package:wildcard/core/daily_utc_date.dart';
+import 'package:wildcard/domain/account_state.dart';
 import 'package:wildcard/domain/game_rules.dart';
+import 'package:wildcard/domain/progression_catalog.dart';
 import 'package:wildcard/game/game_models.dart';
 
 void main() {
@@ -19,6 +21,58 @@ void main() {
       buildSignature: 'test',
       installerStore: null,
     );
+  });
+
+  test('tutorial gift is durable and cannot be claimed twice', () async {
+    final app = await AppController.bootstrap();
+    addTearDown(app.dispose);
+
+    await app.completeTutorial();
+    expect(app.account.tutorialDone, isTrue);
+    expect(app.account.starterGiftClaimed, isTrue);
+    expect(app.account.coins, starterGiftCoins);
+    expect(app.account.unlockedJokerIds, containsAll(tutorialStarterJokerIds));
+
+    await app.completeTutorial();
+    expect(app.account.coins, starterGiftCoins);
+
+    final preferences = await SharedPreferences.getInstance();
+    final reloaded = AccountState.decode(
+      preferences.getString('wildcard_save_v1')!,
+    );
+    expect(reloaded.tutorialDone, isTrue);
+    expect(reloaded.starterGiftClaimed, isTrue);
+    expect(reloaded.coins, starterGiftCoins);
+  });
+
+  test('first genuine Normal loss grants one durable comeback Joker', () async {
+    final app = await AppController.bootstrap();
+    addTearDown(app.dispose);
+    await app.completeTutorial();
+    final callbacks = app.gamePersistenceCallbacks();
+
+    expect(
+      await callbacks.mutateAccount(
+        const AccountMutation(
+          claimId: 'lesson-loss:finished',
+          kind: AccountMutationKind.runFinished,
+          runMode: RunMode.normal,
+          won: false,
+          stagesCleared: 0,
+        ),
+      ),
+      isTrue,
+    );
+    expect(app.tutorialComebackChestAvailable, isTrue);
+
+    final beforeCoins = app.account.coins;
+    final reward = await app.claimTutorialComebackJoker();
+    expect(reward, isNotNull);
+    expect(app.account.unlockedJokerIds, contains(reward!.id));
+    expect(app.account.coins, beforeCoins);
+    expect(app.account.tutorialChestClaimed, isTrue);
+    expect(app.tutorialComebackChestAvailable, isFalse);
+    expect(await app.claimTutorialComebackJoker(), isNull);
   });
 
   test('run mutations are idempotent and update durable progression', () async {
@@ -39,6 +93,7 @@ void main() {
     expect(await callbacks.mutateAccount(entry), isTrue);
     expect(await callbacks.mutateAccount(entry), isTrue);
     expect(app.account.coins, 470);
+    expect(app.account.firstRunStarted, isTrue);
 
     const finished = AccountMutation(
       claimId: 'run-1:finished',
@@ -106,6 +161,7 @@ void main() {
       expect(await callbacks.mutateAccount(first), isTrue);
       expect(app.account.dailyRunDate, '2026-07-21');
       expect(app.account.unknownFields[dailyRunDateUtcMarkerKey], isTrue);
+      expect(app.account.firstRunStarted, isFalse);
       expect(await callbacks.mutateAccount(retry), isFalse);
 
       expect(

@@ -72,6 +72,138 @@ class GlassShatterResult {
   final bool twoOrMoreScored;
 }
 
+enum JokerModifierVisualState {
+  active,
+  blocked,
+  multiplierSuppressed,
+  redundant,
+}
+
+class JokerModifierStatus {
+  const JokerModifierStatus(this.state, this.label);
+
+  static const active = JokerModifierStatus(
+    JokerModifierVisualState.active,
+    '',
+  );
+
+  final JokerModifierVisualState state;
+  final String label;
+
+  bool get blocked => state == JokerModifierVisualState.blocked;
+  bool get multiplierSuppressed =>
+      state == JokerModifierVisualState.multiplierSuppressed;
+  bool get redundant => state == JokerModifierVisualState.redundant;
+}
+
+const Set<JokerEffect> _additiveMultiplierEffects = <JokerEffect>{
+  JokerEffect.copperChip,
+  JokerEffect.momentum,
+  JokerEffect.suitUniform,
+  JokerEffect.pairTrainer,
+  JokerEffect.dumpsterValue,
+  JokerEffect.fullTable,
+  JokerEffect.deckMiser,
+  JokerEffect.overtime,
+  JokerEffect.butcher,
+  JokerEffect.collector,
+  JokerEffect.piggyBank,
+  JokerEffect.heatSurge,
+  JokerEffect.cleaner,
+  JokerEffect.printer,
+  JokerEffect.practiceMode,
+  JokerEffect.openingAct,
+  JokerEffect.clutchGear,
+  JokerEffect.coldAdapter,
+  JokerEffect.encore,
+  JokerEffect.colorWash,
+};
+
+const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
+  JokerEffect.devTwentyX,
+  JokerEffect.pairPolisher,
+  JokerEffect.flushFund,
+  JokerEffect.straightWire,
+  JokerEffect.highRoller,
+  JokerEffect.lastCall,
+  JokerEffect.powerCouple,
+  JokerEffect.sniper,
+  JokerEffect.boostFiend,
+  JokerEffect.moddedOut,
+  JokerEffect.tailor,
+  JokerEffect.survivor,
+  JokerEffect.doubleDown,
+  JokerEffect.allIn,
+  JokerEffect.frequencyMeter,
+  JokerEffect.panicButton,
+  JokerEffect.stormHarness,
+  JokerEffect.guillotine,
+  JokerEffect.redline,
+  JokerEffect.masterClass,
+  JokerEffect.dangerMusic,
+  JokerEffect.rehearsalTape,
+  JokerEffect.prismLens,
+  JokerEffect.glassJoystick,
+};
+
+/// Presentation status derived from the same rule channels used by scoring.
+///
+/// `multiplierSuppressed` is intentionally distinct from a full block: Pair
+/// Trainer can still train and Glass Joystick can still resolve its later
+/// shatter hook even while their scoring multiplier is jammed.
+JokerModifierStatus jokerModifierStatus(
+  ScoringState state,
+  JokerDefinition joker,
+) {
+  if (state.blockedJokerIds.contains(joker.id)) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.blocked,
+      'BLOCKED BY THE HOUSE',
+    );
+  }
+  if (state.hasModifier(HeatModifier.lowCeiling) &&
+      const <JokerEffect>{
+        JokerEffect.theCheat,
+        JokerEffect.fullTable,
+        JokerEffect.prismLens,
+      }.contains(joker.effect)) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.blocked,
+      'BLOCKED BY LOW CEILING',
+    );
+  }
+  if (state.hasModifier(HeatModifier.lowCeiling) &&
+      joker.effect == JokerEffect.pocketFlush) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.redundant,
+      'REDUNDANT UNDER LOW CEILING',
+    );
+  }
+  if (state.hasModifier(HeatModifier.heartless) &&
+      joker.effect == JokerEffect.suitPresser) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.blocked,
+      'BLOCKED BY HEARTLESS',
+    );
+  }
+  if (state.hasModifier(HeatModifier.nullField) &&
+      (_additiveMultiplierEffects.contains(joker.effect) ||
+          _multiplicativeMultiplierEffects.contains(joker.effect))) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.multiplierSuppressed,
+      'MULT OFF',
+    );
+  }
+  if (state.hasModifier(HeatModifier.deadAir) &&
+      _multiplicativeMultiplierEffects.contains(joker.effect)) {
+    return const JokerModifierStatus(
+      JokerModifierVisualState.multiplierSuppressed,
+      '×MULT JAMMED',
+    );
+  }
+  return JokerModifierStatus.active;
+}
+
 class WildcardScoringEngine {
   WildcardScoringEngine(this.state);
 
@@ -212,7 +344,7 @@ class WildcardScoringEngine {
       if (state.hasModifier(HeatModifier.heartless) ||
           state.hasModifier(HeatModifier.frostbite)) {
         final liveCards = cards
-            .where((card) => !_rankSuppressed(card))
+            .where((card) => !state.cardRankSuppressed(card))
             .toList();
         if (liveCards.isNotEmpty) pool = liveCards;
       }
@@ -241,7 +373,7 @@ class WildcardScoringEngine {
   }
 
   int cardEffectiveRankForScoring(PlayingCard card) {
-    if (_rankSuppressed(card)) return 0;
+    if (state.cardRankSuppressed(card)) return 0;
     var value = card.value;
     for (final joker in _activeJokers) {
       value += _rankBonus(joker.definition.effect, card);
@@ -281,7 +413,7 @@ class WildcardScoringEngine {
         continue;
       }
       var value = 0;
-      if (!_rankSuppressed(card)) {
+      if (!state.cardRankSuppressed(card)) {
         value = card.value;
         rankSum += card.value;
         events.add(
@@ -546,13 +678,6 @@ class WildcardScoringEngine {
       }
     }
   }
-
-  bool _rankSuppressed(PlayingCard card) =>
-      (state.hasModifier(HeatModifier.heartless) &&
-          card.suit == CardSuit.hearts) ||
-      (state.hasModifier(HeatModifier.frostbite) &&
-          card.suit == CardSuit.spades) ||
-      (state.hasModifier(HeatModifier.counterfeit) && card.copied);
 
   int _rankBonus(JokerEffect effect, PlayingCard card) => switch (effect) {
     JokerEffect.suitPresser => card.suit == CardSuit.hearts ? 4 : 0,

@@ -8,7 +8,16 @@ import 'package:wildcard/domain/scoring_engine.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
-  const phoneSizes = <Size>[Size(320, 568), Size(360, 800)];
+  const phoneSizes = <Size>[
+    Size(320, 568),
+    Size(360, 640),
+    Size(360, 800),
+    Size(393, 873),
+    Size(412, 915),
+    Size(480, 960),
+    Size(600, 960),
+    Size(800, 1280),
+  ];
 
   testWidgets('home keeps its complete primary menu visible on a phone', (
     tester,
@@ -114,8 +123,11 @@ void main() {
           findsOneWidget,
         );
 
-        final firstCard = find.byKey(const ValueKey('hand-card-0'));
-        final secondCard = find.byKey(const ValueKey('hand-card-1'));
+        // Cards are keyed by durable identity in production so sorting and
+        // refills cannot accidentally replay their local animations. These
+        // fixture cards have no persisted uid, so they use the slot fallback.
+        final firstCard = find.byKey(const ValueKey('hand-card-slot-0'));
+        final secondCard = find.byKey(const ValueKey('hand-card-slot-1'));
         await tester.ensureVisible(firstCard);
         await tester.tap(firstCard);
         await tester.tap(secondCard);
@@ -124,9 +136,15 @@ void main() {
         final firstRect = tester.getRect(firstCard);
         final secondRect = tester.getRect(secondCard);
         expect(
-          secondRect.left,
-          greaterThan(firstRect.right),
-          reason: 'Adjacent cards must keep independent, non-overlapping taps.',
+          firstRect.width,
+          greaterThanOrEqualTo(44),
+          reason: 'Cards must remain large enough to read on every phone.',
+        );
+        expect(
+          secondRect.left - firstRect.left,
+          greaterThanOrEqualTo(28),
+          reason:
+              'The overlapping fan must expose a broad independent rank strip.',
         );
         expect(tester.takeException(), isNull);
       });

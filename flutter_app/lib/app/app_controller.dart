@@ -38,6 +38,16 @@ class CloudAccountConflict implements Exception {
       'phone progress before linking this account.';
 }
 
+/// Profile APKs are local owner builds and never request or display ads.
+///
+/// The override is deliberately derived from build mode and is never written
+/// into [AccountState], so installing a later Play release cannot manufacture
+/// or overwrite the paid `noAds` entitlement.
+bool effectiveNoAdsFor(
+  AccountState account, {
+  bool profileBuild = kProfileMode,
+}) => account.noAds || profileBuild;
+
 /// Coordinates durable progress and every consent-gated platform service.
 ///
 /// Gameplay remains local-first. Cloud writes are optimistic and versioned;
@@ -59,7 +69,7 @@ class AppController extends ChangeNotifier {
     billing = BillingService(firebase);
     _dailyScoreOutbox = DailyScoreOutbox(_local);
     billing.persistVerifiedGrant = _persistVerifiedPlayGrant;
-    ads.setNoAds(account.noAds);
+    ads.setNoAds(effectiveNoAds);
     audio.setEffectsEnabled(!account.muted);
     sfx.enabled = !account.muted;
   }
@@ -104,6 +114,9 @@ class AppController extends ChangeNotifier {
   bool get hasResumableRun => activeRunJson != null;
   bool get signedIn => firebase.signedIn;
   bool get cloudReady => cloudState == CloudLinkState.ready;
+  bool get effectiveNoAds => effectiveNoAdsFor(account);
+  bool get tutorialComebackChestAvailable =>
+      account.firstLossCoached && !account.tutorialChestClaimed;
 
   @visibleForTesting
   bool get cloudWritesDeferredForScoring => _cloudWritesDeferredForScoring;
@@ -118,9 +131,15 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static Future<AppController> bootstrap() async {
+  static Future<AppController> bootstrap({
+    void Function(double fraction, String label)? onProgress,
+    bool releaseBuild = kReleaseMode,
+  }) async {
+    onProgress?.call(.06, 'Opening local save…');
     final local = await LocalSaveRepository.open();
+    onProgress?.call(.22, 'Checking old progress…');
     final migration = await local.migrateLegacySaveIfNeeded();
+    onProgress?.call(.38, 'Reading your collection…');
     AccountState account;
     Object? loadError;
     final raw = local.accountJson;
@@ -139,10 +158,14 @@ class AppController extends ChangeNotifier {
       }
     }
 
-    final releaseSafeAccount = releaseSafeDeveloperAccount(account);
-    final clearedDeveloperState = !identical(releaseSafeAccount, account);
+    final releaseSafety = releaseSafeDeveloperAccountWithStatus(
+      account,
+      releaseBuild: releaseBuild,
+    );
+    onProgress?.call(.55, 'Verifying player progress…');
+    final clearedDeveloperState = releaseSafety.clearedDeveloperState;
     if (clearedDeveloperState) {
-      account = releaseSafeAccount;
+      account = releaseSafety.account;
       await local.writeAccountJson(account.encode());
       // A run created with granted Jokers or coins must not cross into the
       // public build after the account itself has been restored.
@@ -150,6 +173,7 @@ class AppController extends ChangeNotifier {
     }
 
     String? runJson = clearedDeveloperState ? null : local.runJson;
+    onProgress?.call(.69, 'Recovering the table…');
     if (runJson != null) {
       try {
         LegacyRunSave.decode(runJson);
@@ -169,6 +193,7 @@ class AppController extends ChangeNotifier {
       migrationResult: migration,
     );
     controller.bootError = loadError ?? migration.error;
+    onProgress?.call(.84, 'Preparing Sly’s arcade…');
     await controller._normalizeProgression();
     controller.bootState = controller.privacyAccepted
         ? AppBootState.ready
@@ -177,6 +202,7 @@ class AppController extends ChangeNotifier {
       unawaited(controller.startConsentGatedServices());
       unawaited(controller.audio.sync(enabled: controller.account.musicOn));
     }
+    onProgress?.call(1, 'Ready to deal');
     return controller;
   }
 
@@ -213,7 +239,7 @@ class AppController extends ChangeNotifier {
       playGames.initializeAfterPrivacyAcceptance().then((_) {}),
       billing.initializeAfterPrivacyAcceptance().then((_) {}),
     ]);
-    ads.setNoAds(account.noAds);
+    ads.setNoAds(effectiveNoAds);
     unawaited(audio.sync(enabled: account.musicOn));
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       _connectivitySubscription ??= Connectivity().onConnectivityChanged.listen(
@@ -326,6 +352,40 @@ class AppController extends ChangeNotifier {
       account.coins += starterGiftCoins;
     }
     await persistAccount();
+  }
+
+  /// Claims the deterministic, non-duplicate Joker shown after a new player's
+  /// first genuine Normal loss. This reward is persisted before the caller
+  /// starts the Royal Vault animation, so closing the app cannot lose it.
+  Future<JokerDefinition?> claimTutorialComebackJoker() async {
+    if (!tutorialComebackChestAvailable) return null;
+    const preferred = <String>[
+      'trainer',
+      'flushfund',
+      'wire',
+      'piggy',
+      'acemag',
+    ];
+    JokerDefinition? reward;
+    for (final id in preferred) {
+      final candidate = jokersById[id];
+      if (candidate != null && !account.unlockedJokerIds.contains(id)) {
+        reward = candidate;
+        break;
+      }
+    }
+    reward ??= jokerCatalog
+        .where(
+          (joker) =>
+              !account.unlockedJokerIds.contains(joker.id) &&
+              (joker.rarity == JokerRarity.common ||
+                  joker.rarity == JokerRarity.uncommon),
+        )
+        .firstOrNull;
+    account.tutorialChestClaimed = true;
+    if (reward != null) account.unlockedJokerIds.add(reward.id);
+    await persistAccount();
+    return reward;
   }
 
   Future<int> claimDailyLoginReward() async {
@@ -523,7 +583,7 @@ class AppController extends ChangeNotifier {
     // phone save with stale cloud data.
     if (shouldSync) await _markCloudDirty(stamp);
     await _local.writeAccountJson(account.encode(savedAtOverride: stamp));
-    ads.setNoAds(account.noAds);
+    ads.setNoAds(effectiveNoAds);
     audio.setEffectsEnabled(!account.muted);
     sfx.enabled = !account.muted;
     if (privacyAccepted) {
@@ -639,7 +699,8 @@ class AppController extends ChangeNotifier {
       account.rewardClaims.removeRange(0, account.rewardClaims.length - 256);
     }
 
-    if (mutation.kind == AccountMutationKind.runEntry) {
+    if (mutation.kind == AccountMutationKind.runEntry &&
+        mutation.runMode == RunMode.normal) {
       account.firstRunStarted = true;
     }
 
@@ -662,6 +723,14 @@ class AppController extends ChangeNotifier {
     }
 
     if (mutation.kind == AccountMutationKind.runFinished) {
+      final firstNormalLoss =
+          mutation.runMode == RunMode.normal &&
+          mutation.won != true &&
+          !mutation.abandoned &&
+          mutation.stagesCleared < 12 &&
+          !account.firstLossCoached &&
+          !account.tutorialChestClaimed;
+      if (firstNormalLoss) account.firstLossCoached = true;
       _recordFinishedRun(mutation);
     }
 
@@ -1225,7 +1294,7 @@ class AppController extends ChangeNotifier {
         cloudProgressVersion = _asInt(billingInfo['progressVersion']);
       }
       if (changed) await persistAccount();
-      ads.setNoAds(account.noAds);
+      ads.setNoAds(effectiveNoAds);
       notifyListeners();
     } catch (error) {
       cloudError = error;
@@ -1275,7 +1344,7 @@ class AppController extends ChangeNotifier {
 
   Future<bool> _completeRewardedPlacement() async {
     if (rewardedViewsLeftToday <= 0) return false;
-    if (!account.noAds && await ads.showRewarded() == null) return false;
+    if (!effectiveNoAds && await ads.showRewarded() == null) return false;
     final today = _todayString();
     if (account.adDate != today) {
       account.adDate = today;
@@ -1331,7 +1400,7 @@ class AppController extends ChangeNotifier {
     if (!cloudReady || !_ownsCurrentCloudAccount) return false;
     await _markCloudDirty(_latestLocalStamp());
     final saved = await cloudSaveNow();
-    if (saved) ads.setNoAds(account.noAds);
+    if (saved) ads.setNoAds(effectiveNoAds);
     return saved;
   }
 
@@ -1358,7 +1427,7 @@ class AppController extends ChangeNotifier {
       activeRunJson = runRaw;
       await _local.writeRunJson(runRaw);
     }
-    ads.setNoAds(account.noAds);
+    ads.setNoAds(effectiveNoAds);
     notifyListeners();
   }
 

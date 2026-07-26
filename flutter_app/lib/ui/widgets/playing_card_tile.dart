@@ -2,23 +2,31 @@ import 'package:flutter/material.dart';
 
 import '../../domain/cards.dart';
 import '../wildcard_theme.dart';
+import 'suit_glyph.dart';
 
 /// A compact, readable playing card with a non-overlapping touch target.
 ///
-/// The card itself is deliberately STATIC — no idle float, no lift, no scale,
-/// no shake. The player asked for the cards to stay put; all scoring feedback
-/// comes from the border/glow state and the score chip that floats above,
-/// never from moving the card.
+/// The card has no idle motion and stays planted throughout scoring. A selected
+/// card may use one small, selection-only lift so adjacent choices remain
+/// obvious; the table disables that lift as soon as scoring begins.
 class PlayingCardTile extends StatelessWidget {
   const PlayingCardTile({
     required this.card,
     this.onTap,
     this.highlighted = false,
     this.scored = false,
+    this.dimmed = false,
+    this.rankSuppressed = false,
+    this.rankSuppressionLabel,
+    this.enhancementSuppressed = false,
+    this.selectionDisabled = false,
     this.width = 48,
     this.height = 86,
     this.scoreChip,
     this.scoreChipColor,
+    this.highlightColor,
+    this.scoreChipSequence = 0,
+    this.liftWhenSelected = false,
     super.key,
   });
 
@@ -31,6 +39,11 @@ class PlayingCardTile extends StatelessWidget {
   /// This card has already scored earlier in the same hand: it keeps a soft
   /// mint glow so the player can read which cards contributed.
   final bool scored;
+  final bool dimmed;
+  final bool rankSuppressed;
+  final String? rankSuppressionLabel;
+  final bool enhancementSuppressed;
+  final bool selectionDisabled;
 
   final double width;
   final double height;
@@ -42,11 +55,13 @@ class PlayingCardTile extends StatelessWidget {
   /// Colour of that number: gold when the card itself scores, violet when a
   /// Joker acted on it — the WebView's gold/purple split.
   final Color? scoreChipColor;
+  final Color? highlightColor;
+  final int scoreChipSequence;
+  final bool liftWhenSelected;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
-    final suit = _suitGlyph(card.suit);
     final ink = card.suit.isRed
         ? const Color(0xFFD33A35)
         : const Color(0xFF18191D);
@@ -57,37 +72,121 @@ class PlayingCardTile extends StatelessWidget {
       CardEnhancement.wildsuit => tokens.wild,
       null => null,
     };
-    final border = card.selected
+    final inactive = rankSuppressed || selectionDisabled;
+    final border = inactive
+        ? tokens.creamDim.withValues(alpha: .58)
+        : card.selected
         ? tokens.coral
         : highlighted || scored
-        ? tokens.mint
+        ? (highlightColor ?? (highlighted ? tokens.gold : tokens.mint))
+        : enhancementSuppressed
+        ? tokens.creamDim.withValues(alpha: .62)
         : enhancement ?? const Color(0xFFD7CFBD);
 
     final chip = scoreChip;
     return Semantics(
-      button: onTap != null,
+      button: onTap != null || selectionDisabled,
+      enabled: onTap != null,
       selected: card.selected,
       label:
-          '${card.rank.label} of ${card.suit.name}${card.selected ? ', selected' : ''}',
+          '${card.rank.label} of ${card.suit.name}'
+          '${card.selected ? ', selected' : ''}'
+          '${rankSuppressed ? ', rank scores zero this Heat because of ${rankSuppressionLabel ?? 'the active modifier'}' : ''}'
+          '${enhancementSuppressed ? ', multiplier enhancement disabled by Null Field' : ''}'
+          '${selectionDisabled ? ', selection limit reached' : ''}',
       onTap: onTap,
-      child: RepaintBoundary(
-        child: ExcludeSemantics(
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              // Static: the card never moves. Only its border/glow changes.
-              _cardBody(context, tokens, suit, ink, border),
-              if (chip != null && chip.isNotEmpty)
-                Positioned(
-                  top: -height * 0.28,
-                  child: _RisingScoreChip(
-                    key: ValueKey(chip),
-                    text: chip,
-                    color: scoreChipColor ?? const Color(0xFFF7C548),
+      child: AnimatedSlide(
+        // Selection gets a short, readable lift. When scoring takes control,
+        // pin the card immediately so no table motion competes with the score.
+        duration: liftWhenSelected
+            ? const Duration(milliseconds: 120)
+            : Duration.zero,
+        curve: Curves.easeOutCubic,
+        offset: card.selected && liftWhenSelected
+            ? const Offset(0, -0.075)
+            : Offset.zero,
+        child: RepaintBoundary(
+          child: ExcludeSemantics(
+            child: Opacity(
+              opacity: dimmed
+                  ? 0.42
+                  : rankSuppressed
+                  ? 0.52
+                  : selectionDisabled
+                  ? 0.46
+                  : 1,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  ColorFiltered(
+                    colorFilter: inactive
+                        ? const ColorFilter.matrix(<double>[
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            .2126,
+                            .7152,
+                            .0722,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                          ])
+                        : const ColorFilter.mode(
+                            Colors.transparent,
+                            BlendMode.dst,
+                          ),
+                    child: _cardBody(context, tokens, ink, border),
                   ),
-                ),
-            ],
+                  if (rankSuppressed)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: _CardStatusBadge(
+                        key: ValueKey(
+                          'modifier-rank-zero-${card.uid ?? card.toString()}',
+                        ),
+                        label: '0',
+                        color: tokens.coral,
+                      ),
+                    ),
+                  if (enhancementSuppressed)
+                    Positioned(
+                      left: 4,
+                      bottom: 4,
+                      child: _CardStatusBadge(
+                        key: ValueKey(
+                          'modifier-enhancement-off-${card.uid ?? card.toString()}',
+                        ),
+                        label: 'OFF',
+                        color: tokens.gold,
+                      ),
+                    ),
+                  if (chip != null && chip.isNotEmpty)
+                    Positioned(
+                      top: -height * 0.28,
+                      child: _RisingScoreChip(
+                        key: ValueKey(
+                          '${card.uid ?? card.rank.label}-$scoreChipSequence',
+                        ),
+                        text: chip,
+                        color: scoreChipColor ?? const Color(0xFFF7C548),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -97,11 +196,13 @@ class PlayingCardTile extends StatelessWidget {
   Widget _cardBody(
     BuildContext context,
     WildcardThemeTokens tokens,
-    String suit,
     Color ink,
     Color border,
   ) {
-    final glowing = highlighted || scored || card.selected;
+    final glowing =
+        !rankSuppressed &&
+        !selectionDisabled &&
+        (highlighted || scored || card.selected);
     return SizedBox(
       width: width,
       height: height,
@@ -136,37 +237,31 @@ class PlayingCardTile extends StatelessWidget {
               // instead of crushing the corner glyphs.
               padding: EdgeInsets.fromLTRB(
                 width * 0.11,
-                width * 0.09,
+                width * 0.08,
                 width * 0.11,
-                width * 0.07,
+                width * 0.08,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  _CardCorner(
-                    rank: card.rank.label,
-                    suit: suit,
-                    ink: ink,
-                    cardWidth: width,
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: _CardCorner(
+                      key: const Key('playing-card-top-corner'),
+                      rank: card.rank.label,
+                      suit: card.suit,
+                      ink: ink,
+                      cardWidth: width,
+                    ),
                   ),
-                  // The centre pip used to be a raw Text with height:1 at a
-                  // large size, so the glyph's own ascent/descent overflowed
-                  // the line box and the card's clip sheared the bottom off —
-                  // "half the suit missing". A FittedBox always scales the
-                  // whole glyph to fit the space, so it can never clip.
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: width * 0.06),
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          suit,
-                          style: TextStyle(
-                            color: ink,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                  // Vector geometry gives the central mark a stable optical
+                  // weight, while Center pins it to the true card midpoint.
+                  Center(
+                    child: SuitGlyph(
+                      key: const Key('playing-card-center-suit'),
+                      suit: card.suit,
+                      color: ink,
+                      size: (width * 0.52).clamp(15.0, 25.0),
                     ),
                   ),
                   Align(
@@ -174,8 +269,9 @@ class PlayingCardTile extends StatelessWidget {
                     child: RotatedBox(
                       quarterTurns: 2,
                       child: _CardCorner(
+                        key: const Key('playing-card-bottom-corner'),
                         rank: card.rank.label,
-                        suit: suit,
+                        suit: card.suit,
                         ink: ink,
                         cardWidth: width,
                       ),
@@ -191,16 +287,45 @@ class PlayingCardTile extends StatelessWidget {
   }
 }
 
+class _CardStatusBadge extends StatelessWidget {
+  const _CardStatusBadge({required this.label, required this.color, super.key});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xE61B1722),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: color.withValues(alpha: .9)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontFamily: 'Bungee',
+          fontSize: 7,
+          height: 1,
+        ),
+      ),
+    ),
+  );
+}
+
 class _CardCorner extends StatelessWidget {
   const _CardCorner({
     required this.rank,
     required this.suit,
     required this.ink,
     required this.cardWidth,
+    super.key,
   });
 
   final String rank;
-  final String suit;
+  final CardSuit suit;
   final Color ink;
   final double cardWidth;
 
@@ -228,27 +353,11 @@ class _CardCorner extends StatelessWidget {
             height: 1.0,
           ),
         ),
-        Text(
-          suit,
-          maxLines: 1,
-          style: TextStyle(
-            color: ink,
-            fontWeight: FontWeight.w700,
-            fontSize: suitSize,
-            height: 1.0,
-          ),
-        ),
+        SuitGlyph(suit: suit, color: ink, size: suitSize),
       ],
     );
   }
 }
-
-String _suitGlyph(CardSuit suit) => switch (suit) {
-  CardSuit.spades => '\u2660',
-  CardSuit.hearts => '\u2665',
-  CardSuit.clubs => '\u2663',
-  CardSuit.diamonds => '\u2666',
-};
 
 /// The "+15" number that pops off a card the moment it scores — gold when the
 /// card scores, violet when a Joker acted on it.
@@ -312,7 +421,10 @@ class _RisingScoreChipState extends State<_RisingScoreChip>
                 offset: Offset(0, 2),
                 blurRadius: 3,
               ),
-              Shadow(color: widget.color.withValues(alpha: 0.75), blurRadius: 14),
+              Shadow(
+                color: widget.color.withValues(alpha: 0.75),
+                blurRadius: 14,
+              ),
             ],
           ),
         ),

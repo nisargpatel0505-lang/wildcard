@@ -328,6 +328,26 @@ class ScoringState {
   bool isJokerActive(String id) =>
       jokerIds.contains(id) && !blockedJokerIds.contains(id);
 
+  /// Whether this card's printed rank contributes zero under the active Heat
+  /// rules. The card remains legal to select because it can still form a hand
+  /// and its non-rank enhancement may still matter.
+  bool cardRankSuppressed(PlayingCard card) =>
+      (hasModifier(HeatModifier.heartless) && card.suit == CardSuit.hearts) ||
+      (hasModifier(HeatModifier.frostbite) && card.suit == CardSuit.spades) ||
+      (hasModifier(HeatModifier.counterfeit) && card.copied);
+
+  String? cardRankSuppressionLabel(PlayingCard card) {
+    final causes = <String>[
+      if (hasModifier(HeatModifier.heartless) && card.suit == CardSuit.hearts)
+        HeatModifier.heartless.displayName,
+      if (hasModifier(HeatModifier.frostbite) && card.suit == CardSuit.spades)
+        HeatModifier.frostbite.displayName,
+      if (hasModifier(HeatModifier.counterfeit) && card.copied)
+        HeatModifier.counterfeit.displayName,
+    ];
+    return causes.isEmpty ? null : causes.join(' + ');
+  }
+
   int get effectiveDiscards =>
       discardsPerHeat - (hasModifier(HeatModifier.cold) ? 1 : 0);
 

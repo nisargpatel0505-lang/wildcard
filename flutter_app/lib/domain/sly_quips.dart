@@ -35,7 +35,47 @@ enum SlyMood {
   wildBuy,
   buy,
   boost,
+  heatFail,
   fold,
+}
+
+enum SlyMotionProfile { none, pop, rock, tremble }
+
+/// One visible Sly reaction. Sequence identity guarantees that two consecutive
+/// reactions with the same line still replay their motion.
+class SlyReaction {
+  const SlyReaction({
+    required this.mood,
+    required this.priority,
+    required this.expression,
+    required this.speech,
+    required this.label,
+    required this.motion,
+    required this.hold,
+    required this.sequence,
+    required this.generation,
+  });
+
+  final SlyMood mood;
+  final int priority;
+  final SlyExpression expression;
+  final String speech;
+
+  /// Short, glanceable counterpart to the speech line. The WebView surfaced
+  /// these as badges ("PAIR", "JOKER", "JACKPOT"...) while the longer quip
+  /// changed alongside Sly's face.
+  final String label;
+  final SlyMotionProfile motion;
+  final Duration hold;
+  final int sequence;
+
+  /// Reactions compete only within one scoring/action context. A high-priority
+  /// finale from the previous hand must never swallow the first beat of the
+  /// next hand.
+  final int generation;
+
+  bool blocks({required int generation, required int priority}) =>
+      this.generation == generation && this.priority > priority;
 }
 
 class SlyQuipSet {
@@ -58,6 +98,49 @@ Duration slyHoldFor(SlyMood mood) => switch (mood) {
   SlyMood.unbelievable => const Duration(milliseconds: 5600),
   _ => const Duration(milliseconds: 4400),
 };
+
+/// The compact reaction badge used beside Sly's speech.
+String slyLabelFor(SlyMood mood) => switch (mood) {
+  SlyMood.unbelievable => 'BIG SCORE',
+  SlyMood.scared => 'DANGER',
+  SlyMood.impressed => 'NICE',
+  SlyMood.meh => 'LOW SCORE',
+  SlyMood.laughing || SlyMood.highCard => 'HIGH CARD',
+  SlyMood.pair => 'PAIR',
+  SlyMood.twoPair => '2 PAIR',
+  SlyMood.trips => 'TRIPS',
+  SlyMood.straight => 'STRAIGHT',
+  SlyMood.flush => 'FLUSH',
+  SlyMood.fullHouse => 'FULL HOUSE',
+  SlyMood.quads => 'QUADS',
+  SlyMood.straightFlush => 'STRAIGHT FLUSH',
+  SlyMood.royalFlush => 'ROYAL',
+  SlyMood.discard => 'DISCARD',
+  SlyMood.greet => 'NEW DEAL',
+  SlyMood.clear => 'HEAT CLEAR',
+  SlyMood.clutch => 'LAST PLAY',
+  SlyMood.modifier => 'MODIFIER',
+  SlyMood.sevenHit => 'JACKPOT',
+  SlyMood.sevenMiss => 'MISS',
+  SlyMood.wildBuy => 'WILD',
+  SlyMood.buy => 'BOUGHT',
+  SlyMood.boost => 'LEVEL UP',
+  SlyMood.heatFail => 'TARGET HELD',
+  SlyMood.fold => 'FOLD',
+};
+
+/// The scoring finale is emitted before [ScoringState] commits the hand, so
+/// both values must be projected to decide whether exactly one play remains.
+bool slyShouldWarnClutch({
+  required int handsLeftBeforePlay,
+  required int stageScoreBeforePlay,
+  required int handTotal,
+  required int target,
+}) {
+  final remainingHands = math.max(0, handsLeftBeforePlay - 1);
+  final projectedScore = stageScoreBeforePlay + handTotal;
+  return remainingHands == 1 && projectedScore < target;
+}
 
 const Map<SlyMood, SlyQuipSet> slyQuips = <SlyMood, SlyQuipSet>{
   SlyMood.unbelievable: SlyQuipSet(
@@ -261,6 +344,14 @@ const Map<SlyMood, SlyQuipSet> slyQuips = <SlyMood, SlyQuipSet>{
       'That hand type is worth chasing now.',
     ],
   ),
+  SlyMood.heatFail: SlyQuipSet(
+    expression: SlyExpression.laughing,
+    quips: [
+      'No plays left. The target held.',
+      'That was your last hand. The House wins this Heat.',
+      'Target missed. Build a better engine next run.',
+    ],
+  ),
   SlyMood.fold: SlyQuipSet(
     expression: SlyExpression.disappointed,
     quips: [
@@ -270,3 +361,27 @@ const Map<SlyMood, SlyQuipSet> slyQuips = <SlyMood, SlyQuipSet>{
     ],
   ),
 };
+
+/// Picks the finale reaction from projected state because scoring presentation
+/// completes before the controller commits the hand. This keeps clear/fail
+/// faces accurate without changing any score or transition timing.
+SlyMood slyFinaleMood({
+  required SlyMood handMood,
+  required int handsLeftBeforePlay,
+  required int stageScoreBeforePlay,
+  required int handTotal,
+  required int target,
+}) {
+  final projectedScore = stageScoreBeforePlay + handTotal;
+  if (projectedScore >= target) return SlyMood.clear;
+  if (handsLeftBeforePlay <= 1) return SlyMood.heatFail;
+  if (slyShouldWarnClutch(
+    handsLeftBeforePlay: handsLeftBeforePlay,
+    stageScoreBeforePlay: stageScoreBeforePlay,
+    handTotal: handTotal,
+    target: target,
+  )) {
+    return SlyMood.clutch;
+  }
+  return handMood;
+}

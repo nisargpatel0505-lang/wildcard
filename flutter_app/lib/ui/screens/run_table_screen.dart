@@ -1,12 +1,15 @@
-import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/cards.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
 import '../../domain/scoring_engine.dart';
+import '../../domain/sly_quips.dart';
+import '../../game/game_models.dart';
+import '../responsive_metrics.dart';
 import '../widgets/compact_joker_card.dart';
 import '../widgets/playing_card_tile.dart';
 import '../widgets/sly_sprite.dart';
@@ -26,6 +29,8 @@ class RunTableScreen extends StatelessWidget {
     required this.hand,
     required this.slySpeech,
     this.score,
+    this.scoringTimeline,
+    this.slyReaction,
     this.activeScoreEvent,
     this.liveRank,
     this.liveMultiplier,
@@ -42,6 +47,8 @@ class RunTableScreen extends StatelessWidget {
     this.backgroundRoom,
     this.backgroundAsset,
     this.tableFeltId = 'felt_classic',
+    this.guidedFirstRun = false,
+    this.guideStep = 0,
     this.onToggleCard,
     this.onInspectJoker,
     this.onOpenHands,
@@ -57,6 +64,8 @@ class RunTableScreen extends StatelessWidget {
   final List<PlayingCard> hand;
   final String slySpeech;
   final ScoreResult? score;
+  final ValueListenable<ScoringPresentation>? scoringTimeline;
+  final ValueListenable<SlyReaction?>? slyReaction;
 
   /// The domain event currently being paced by the controller.
   final ScoreEvent? activeScoreEvent;
@@ -86,6 +95,8 @@ class RunTableScreen extends StatelessWidget {
   final WildcardRoom? backgroundRoom;
   final String? backgroundAsset;
   final String tableFeltId;
+  final bool guidedFirstRun;
+  final int guideStep;
 
   final ValueChanged<int>? onToggleCard;
   final ValueChanged<JokerDefinition>? onInspectJoker;
@@ -98,7 +109,6 @@ class RunTableScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedCount = hand.where((card) => card.selected).length;
     final room =
         backgroundRoom ??
         (state.hasBossModifier
@@ -112,11 +122,71 @@ class RunTableScreen extends StatelessWidget {
         room: room,
         asset: backgroundAsset,
         tintStrength: 0.78,
+        energy: state.stageScore / math.max(1, state.target),
+        modifierActive: state.hasAnyModifier,
+        houseActive: state.hasBossModifier,
         child: SafeArea(
           minimum: const EdgeInsets.only(bottom: 4),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final metrics = _RunMetrics.from(constraints.biggest);
+              final responsive = WildcardResponsiveMetrics.from(
+                constraints.biggest,
+              );
+              final contentWidth = responsive.contentMaxWidth.isFinite
+                  ? math.min(constraints.maxWidth, responsive.contentMaxWidth)
+                  : constraints.maxWidth;
+              final metrics = _RunMetrics.from(
+                Size(contentWidth, constraints.maxHeight),
+              );
+              final legacyPresentation = ScoringPresentation(
+                result: score,
+                activeEvent: activeScoreEvent,
+                activeJokerIndex: highlightedJokerIndex,
+                label: activeScoreEvent?.label ?? '',
+                visibleValuePoints: liveRank ?? score?.valuePoints ?? 0,
+                visibleMultiplier:
+                    liveMultiplier ?? score?.multiplier ?? baseMultiplier,
+                visibleTotal: liveTotal ?? score?.total ?? 0,
+                settledCardIds: scoredCardIds,
+                sequence: activeScoreEvent == null ? 0 : 1,
+                phase: activeScoreEvent == null
+                    ? ScorePresentationPhase.idle
+                    : ScorePresentationPhase.beat,
+              );
+
+              Widget withPresentation(
+                Widget Function(ScoringPresentation presentation) builder,
+              ) {
+                final timeline = scoringTimeline;
+                if (timeline == null) return builder(legacyPresentation);
+                return ValueListenableBuilder<ScoringPresentation>(
+                  valueListenable: timeline,
+                  builder: (context, presentation, _) => builder(presentation),
+                );
+              }
+
+              Widget slyHeader() {
+                final reactions = slyReaction;
+                if (reactions == null) {
+                  return _SlyHeader(
+                    speech: slySpeech,
+                    expression: slyExpression,
+                    skin: slySkin,
+                    height: metrics.slyHeight,
+                  );
+                }
+                return ValueListenableBuilder<SlyReaction?>(
+                  valueListenable: reactions,
+                  builder: (context, reaction, _) => _SlyHeader(
+                    speech: reaction?.speech ?? slySpeech,
+                    expression: reaction?.expression ?? slyExpression,
+                    skin: slySkin,
+                    height: metrics.slyHeight,
+                    reaction: reaction,
+                  ),
+                );
+              }
+
               return SingleChildScrollView(
                 key: const Key('run-table-scroll'),
                 physics: const ClampingScrollPhysics(),
@@ -124,68 +194,133 @@ class RunTableScreen extends StatelessWidget {
                   horizontal: metrics.pagePadding,
                   vertical: metrics.outerGap,
                 ),
-                child: Column(
-                  children: [
-                    _SlyHeader(
-                      speech: slySpeech,
-                      expression: slyExpression,
-                      skin: slySkin,
-                      height: metrics.slyHeight,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentWidth),
+                    child: Column(
+                      children: [
+                        slyHeader(),
+                        SizedBox(height: metrics.outerGap),
+                        _HeatHud(
+                          state: state,
+                          stakeText: stakeText,
+                          compact: metrics.compact,
+                        ),
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation(
+                          (presentation) => _TargetPanel(
+                            state: state,
+                            compact: metrics.compact,
+                            stageScoreOverride:
+                                presentation.isActive && !presentation.complete
+                                ? state.stageScore + presentation.visibleTotal
+                                : null,
+                          ),
+                        ),
+                        if (state.hasAnyModifier) ...[
+                          SizedBox(height: metrics.outerGap),
+                          _ModifierPanel(
+                            state: state,
+                            compact: metrics.compact,
+                          ),
+                        ],
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation(
+                          (presentation) => _JokerSection(
+                            state: state,
+                            activeEvent: presentation.activeEvent,
+                            highlightedJokerIndex:
+                                presentation.activeJokerIndex,
+                            summary: presentation.label.isEmpty
+                                ? jokerSummary
+                                : presentation.label,
+                            presentationSequence: presentation.sequence,
+                            cardHeight: metrics.jokerHeight,
+                            onInspect: onInspectJoker,
+                          ),
+                        ),
+                        SizedBox(
+                          height: metrics.outerGap + metrics.playfieldDrop,
+                        ),
+                        if (guidedFirstRun) ...[
+                          _FirstRunCoach(step: guideStep),
+                          SizedBox(height: metrics.outerGap),
+                        ],
+                        withPresentation((presentation) {
+                          final displayHand =
+                              presentation.handSnapshot.isNotEmpty
+                              ? presentation.handSnapshot
+                              : hand;
+                          return _ScoreEquation(
+                            state: state,
+                            hand: displayHand,
+                            score: presentation.result ?? score,
+                            compact: metrics.compact,
+                            liveRank: presentation.isActive
+                                ? presentation.visibleValuePoints
+                                : liveRank,
+                            liveMultiplier: presentation.isActive
+                                ? presentation.visibleMultiplier
+                                : liveMultiplier,
+                            liveTotal: presentation.isActive
+                                ? presentation.visibleTotal
+                                : liveTotal,
+                            activeEvent: presentation.activeEvent,
+                            procLabel: presentation.label,
+                            presentationSequence: presentation.sequence,
+                          );
+                        }),
+                        SizedBox(height: metrics.outerGap),
+                        withPresentation((presentation) {
+                          final displayHand =
+                              presentation.handSnapshot.isNotEmpty
+                              ? presentation.handSnapshot
+                              : hand;
+                          final activeId = presentation.activeCardId;
+                          final activeIndex = activeId == null
+                              ? highlightedHandIndex
+                              : displayHand.indexWhere(
+                                  (card) => card.uid == activeId,
+                                );
+                          return _TableArea(
+                            state: state,
+                            tableFeltId: tableFeltId,
+                            hand: displayHand,
+                            activeEvent:
+                                presentation.activeEvent ?? activeScoreEvent,
+                            highlightedHandIndex:
+                                activeIndex == null || activeIndex < 0
+                                ? null
+                                : activeIndex,
+                            scoredCardIds: presentation.isActive
+                                ? presentation.settledCardIds
+                                : scoredCardIds,
+                            scoringCardIds: presentation.scoringCardIds,
+                            activeChips: presentation.activeChips,
+                            presentationSequence: presentation.sequence,
+                            chipLabel: presentation.label,
+                            chipStyle: presentation.chipStyle,
+                            selectedCount: displayHand
+                                .where((card) => card.selected)
+                                .length,
+                            sortLabel: sortLabel,
+                            compact: metrics.compact,
+                            cardWidth: metrics.cardWidth,
+                            cardHeight: metrics.cardHeight,
+                            busy: busy,
+                            onToggleCard: onToggleCard,
+                            onOpenHands: onOpenHands,
+                            onOpenDeck: onOpenDeck,
+                            onSortCards: onSortCards,
+                            onPlay: onPlay,
+                            onDiscard: onDiscard,
+                            onAbandon: onAbandon,
+                          );
+                        }),
+                      ],
                     ),
-                    SizedBox(height: metrics.outerGap),
-                    _HeatHud(
-                      state: state,
-                      stakeText: stakeText,
-                      compact: metrics.compact,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _TargetPanel(state: state, compact: metrics.compact),
-                    if (state.hasAnyModifier) ...[
-                      SizedBox(height: metrics.outerGap),
-                      _ModifierPanel(state: state, compact: metrics.compact),
-                    ],
-                    SizedBox(height: metrics.outerGap),
-                    _JokerSection(
-                      state: state,
-                      activeEvent: activeScoreEvent,
-                      highlightedJokerIndex: highlightedJokerIndex,
-                      summary: jokerSummary,
-                      cardHeight: metrics.jokerHeight,
-                      onInspect: onInspectJoker,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _ScoreEquation(
-                      state: state,
-                      hand: hand,
-                      score: score,
-                      compact: metrics.compact,
-                      liveRank: liveRank,
-                      liveMultiplier: liveMultiplier,
-                      liveTotal: liveTotal,
-                    ),
-                    SizedBox(height: metrics.outerGap),
-                    _TableArea(
-                      tableFeltId: tableFeltId,
-                      hand: hand,
-                      activeEvent: activeScoreEvent,
-                      highlightedHandIndex: highlightedHandIndex,
-                      scoredCardIds: scoredCardIds,
-                      selectedCount: selectedCount,
-                      maxSelected: state.effectiveMaxSelect,
-                      sortLabel: sortLabel,
-                      compact: metrics.compact,
-                      cardWidth: metrics.cardWidth,
-                      cardHeight: metrics.cardHeight,
-                      busy: busy,
-                      onToggleCard: onToggleCard,
-                      onOpenHands: onOpenHands,
-                      onOpenDeck: onOpenDeck,
-                      onSortCards: onSortCards,
-                      onPlay: onPlay,
-                      onDiscard: onDiscard,
-                      onAbandon: onAbandon,
-                    ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -202,69 +337,263 @@ class _SlyHeader extends StatelessWidget {
     required this.expression,
     required this.skin,
     required this.height,
+    this.reaction,
   });
 
   final String speech;
   final SlyExpression expression;
   final SlySkin skin;
   final double height;
+  final SlyReaction? reaction;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
+    final currentReaction = reaction;
+    final reactionColor = _slyReactionColor(tokens, currentReaction?.mood);
+    final active = currentReaction != null;
+    final sequence = currentReaction?.sequence ?? 0;
     return SizedBox(
       height: height,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: height,
-            padding: const EdgeInsets.all(2),
+      child: _SlyReactionMotion(
+        profile: currentReaction?.motion ?? SlyMotionProfile.none,
+        sequence: sequence,
+        child: Semantics(
+          container: true,
+          liveRegion: active,
+          child: AnimatedContainer(
+            key: const Key('sly-header-panel'),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: tokens.panelStrong,
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: tokens.violet, width: 2),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SlySprite(
-              expression: expression,
-              skin: skin,
-              size: height - 4,
-              borderRadius: 10,
-            ),
-          ),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Container(
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6EFDF),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: const Color(0xFFE3D8C1)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x66000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+              color: Color.alphaBlend(
+                reactionColor.withValues(alpha: active ? 0.17 : 0.05),
+                tokens.panelStrong,
               ),
-              child: Text(
-                speech,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: const Color(0xFF242329),
-                  fontSize: height < 72 ? 12 : 14,
-                  height: 1.23,
-                  fontWeight: FontWeight.w500,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: reactionColor.withValues(alpha: active ? 0.95 : 0.56),
+                width: active ? 2.0 : 1.25,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: reactionColor.withValues(alpha: active ? 0.42 : 0.14),
+                  blurRadius: active ? 17 : 7,
+                  spreadRadius: active ? -1 : -3,
                 ),
-              ),
+                const BoxShadow(
+                  color: Color(0x8A000000),
+                  blurRadius: 11,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: height - 6,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: tokens.panelStrong,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: reactionColor.withValues(
+                        alpha: active ? 0.74 : 0.28,
+                      ),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: SlySprite(
+                    key: const Key('sly-face'),
+                    expression: expression,
+                    skin: skin,
+                    reactionActive: active,
+                    size: height - 10,
+                    borderRadius: 9,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: height < 72 ? 9 : 12,
+                      vertical: height < 72 ? 5 : 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? reactionColor.withValues(alpha: 0.11)
+                          : tokens.cream.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: active
+                            ? reactionColor.withValues(alpha: 0.48)
+                            : tokens.line.withValues(alpha: 0.42),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (active) ...[
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 150),
+                            child: Container(
+                              key: ValueKey('sly-reaction-badge-$sequence'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: reactionColor.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(99),
+                                border: Border.all(
+                                  color: reactionColor.withValues(alpha: 0.78),
+                                ),
+                              ),
+                              child: Text(
+                                currentReaction.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                                style: TextStyle(
+                                  color: reactionColor,
+                                  fontSize: height < 72 ? 8.5 : 9.5,
+                                  height: 1.15,
+                                  letterSpacing: 0.85,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        Flexible(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 170),
+                            child: Text(
+                              speech,
+                              key: ValueKey('sly-speech-$sequence-$speech'),
+                              maxLines: active ? 2 : 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: tokens.cream,
+                                fontSize: height < 72 ? 11.5 : 13.5,
+                                height: 1.18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _SlyReactionMotion extends StatefulWidget {
+  const _SlyReactionMotion({
+    required this.profile,
+    required this.sequence,
+    required this.child,
+  });
+
+  final SlyMotionProfile profile;
+  final int sequence;
+  final Widget child;
+
+  @override
+  State<_SlyReactionMotion> createState() => _SlyReactionMotionState();
+}
+
+class _SlyReactionMotionState extends State<_SlyReactionMotion>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+    value: 1,
+  );
+
+  bool get _animationsDisabled =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+  void _play() {
+    if (_animationsDisabled || widget.profile == SlyMotionProfile.none) {
+      _controller.value = 1;
+    } else {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _play();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SlyReactionMotion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.sequence != widget.sequence ||
+        oldWidget.profile != widget.profile) {
+      _play();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.profile == SlyMotionProfile.none) return widget.child;
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _controller.value;
+        final envelope = math.sin(t * math.pi) * (1 - t * 0.18);
+        final (offset, angle, scale) = switch (widget.profile) {
+          SlyMotionProfile.pop => (
+            Offset(0, -7 * envelope),
+            0.0,
+            1 + 0.026 * envelope,
+          ),
+          SlyMotionProfile.rock => (
+            Offset(0, -4 * envelope),
+            math.sin(t * math.pi * 2.8) * 0.018 * (1 - t),
+            1 + 0.02 * envelope,
+          ),
+          SlyMotionProfile.tremble => (
+            Offset(
+              math.sin(t * math.pi * 10) * 5.2 * (1 - t),
+              math.cos(t * math.pi * 8) * 2.1 * (1 - t),
+            ),
+            math.sin(t * math.pi * 8) * 0.014 * (1 - t),
+            1.0,
+          ),
+          SlyMotionProfile.none => (Offset.zero, 0.0, 1.0),
+        };
+        return Transform.translate(
+          offset: offset,
+          child: Transform.rotate(
+            angle: angle,
+            child: Transform.scale(scale: scale, child: child),
+          ),
+        );
+      },
     );
   }
 }
@@ -382,16 +711,22 @@ class _HudCell extends StatelessWidget {
 }
 
 class _TargetPanel extends StatelessWidget {
-  const _TargetPanel({required this.state, required this.compact});
+  const _TargetPanel({
+    required this.state,
+    required this.compact,
+    this.stageScoreOverride,
+  });
 
   final ScoringState state;
   final bool compact;
+  final int? stageScoreOverride;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final target = math.max(1, state.target);
-    final progress = (state.stageScore / target).clamp(0.0, 1.0).toDouble();
+    final stageScore = stageScoreOverride ?? state.stageScore;
+    final progress = (stageScore / target).clamp(0.0, 1.0).toDouble();
     return Container(
       padding: EdgeInsets.fromLTRB(10, compact ? 7 : 9, 10, compact ? 7 : 9),
       decoration: BoxDecoration(
@@ -405,7 +740,7 @@ class _TargetPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Heat score: ${_formatNumber(state.stageScore)}',
+                  'Heat score: ${_formatNumber(stageScore)}',
                   style: TextStyle(
                     color: tokens.cream,
                     fontSize: compact ? 11 : 13,
@@ -520,6 +855,7 @@ class _JokerSection extends StatelessWidget {
     required this.activeEvent,
     required this.highlightedJokerIndex,
     required this.summary,
+    required this.presentationSequence,
     required this.cardHeight,
     required this.onInspect,
   });
@@ -528,6 +864,7 @@ class _JokerSection extends StatelessWidget {
   final ScoreEvent? activeEvent;
   final int? highlightedJokerIndex;
   final String? summary;
+  final int presentationSequence;
   final double cardHeight;
   final ValueChanged<JokerDefinition>? onInspect;
 
@@ -535,6 +872,22 @@ class _JokerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final activeJoker = highlightedJokerIndex ?? activeEvent?.jokerIndex;
+    final eventLabel = activeEvent?.label?.trim();
+    final fallbackLabel = summary?.trim();
+    final triggerLabel = eventLabel?.isNotEmpty == true
+        ? eventLabel
+        : fallbackLabel?.isNotEmpty == true
+        ? fallbackLabel
+        : null;
+    final activeJokerDefinition =
+        activeJoker != null &&
+            activeJoker >= 0 &&
+            activeJoker < state.jokerIds.length
+        ? jokersById[state.jokerIds[activeJoker]]
+        : null;
+    final activeSummary = activeJokerDefinition != null && triggerLabel != null
+        ? '${activeJokerDefinition.name} \u00b7 $triggerLabel'
+        : null;
     return Column(
       children: [
         Row(
@@ -551,7 +904,8 @@ class _JokerSection extends StatelessWidget {
             const SizedBox(width: 7),
             Expanded(
               child: Text(
-                summary ??
+                activeSummary ??
+                    summary ??
                     (activeEvent?.label?.isNotEmpty == true
                         ? activeEvent!.label!
                         : '${state.jokerIds.length} of $maxJokers equipped'),
@@ -586,15 +940,25 @@ class _JokerSection extends StatelessWidget {
                             ? state.jokerIds[index]
                             : null;
                         final joker = id == null ? null : jokersById[id];
+                        final modifierStatus = joker == null
+                            ? JokerModifierStatus.active
+                            : jokerModifierStatus(state, joker);
                         return CompactJokerCard(
                           key: ValueKey('run-joker-${id ?? index}'),
                           joker: joker,
-                          blocked:
-                              id != null && state.blockedJokerIds.contains(id),
+                          blocked: modifierStatus.blocked,
+                          multiplierSuppressed:
+                              modifierStatus.multiplierSuppressed,
+                          redundant: modifierStatus.redundant,
+                          modifierStatusLabel: modifierStatus.label,
                           highlighted: activeJoker == index,
                           triggerLabel: activeJoker == index
-                              ? activeEvent?.label
+                              ? triggerLabel
                               : null,
+                          triggerEventType: activeJoker == index
+                              ? activeEvent?.type
+                              : null,
+                          triggerSequence: presentationSequence,
                           height: cardHeight,
                           onTap: joker == null || onInspect == null
                               ? null
@@ -612,6 +976,92 @@ class _JokerSection extends StatelessWidget {
   }
 }
 
+class _FirstRunCoach extends StatelessWidget {
+  const _FirstRunCoach({required this.step});
+
+  final int step;
+
+  static const _lessons = <(String, String)>[
+    (
+      'YOUR FIRST HAND',
+      'Select cards that form a Pair or better, then check the live Value × Multiplier preview.',
+    ),
+    (
+      'READ THE ENGINE',
+      'Copper Chip adds safe Mult. Pair Polisher rewards Pair-or-better hands. Make the effects agree.',
+    ),
+    (
+      'DISCARD WITH A PLAN',
+      'Throw away cards that do not help your next Pair, Straight or Flush. They stay out this Heat.',
+    ),
+    (
+      'THE FIRST SHOP',
+      'Buy one Joker that strengthens the same plan. Coins you keep earn interest after a clear.',
+    ),
+    (
+      'KEEP THE PACE',
+      'Compare the target with Plays remaining. A focused engine beats unrelated bonuses.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final index = math.max(0, math.min(_lessons.length - 1, step));
+    final lesson = _lessons[index];
+    final tokens = context.wildcard;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Sly coaching. ${lesson.$1}. ${lesson.$2}',
+      child: Container(
+        key: Key('first-run-coach-$index'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: tokens.panelStrong.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: tokens.gold.withValues(alpha: 0.9)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.school_rounded, color: tokens.gold, size: 18),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'SLY · ${lesson.$1}',
+                    style: TextStyle(
+                      color: tokens.gold,
+                      fontFamily: 'SpaceGrotesk',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    lesson.$2,
+                    style: TextStyle(
+                      color: tokens.cream,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1.22,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ScoreEquation extends StatelessWidget {
   const _ScoreEquation({
     required this.state,
@@ -621,6 +1071,9 @@ class _ScoreEquation extends StatelessWidget {
     this.liveRank,
     this.liveMultiplier,
     this.liveTotal,
+    this.activeEvent,
+    this.procLabel,
+    this.presentationSequence = 0,
   });
 
   final ScoringState state;
@@ -634,11 +1087,33 @@ class _ScoreEquation extends StatelessWidget {
   final int? liveRank;
   final double? liveMultiplier;
   final int? liveTotal;
+  final ScoreEvent? activeEvent;
+  final String? procLabel;
+  final int presentationSequence;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
     final selected = hand.where((card) => card.selected).length;
+    final procKind = switch (activeEvent?.type) {
+      ScoreEventType.mult when (activeEvent?.jokerIndex ?? -1) >= 0 =>
+        _MultiplierProcKind.additive,
+      ScoreEventType.xMult when (activeEvent?.jokerIndex ?? -1) >= 0 =>
+        _MultiplierProcKind.multiplicative,
+      _ => null,
+    };
+    final exactProcLabel = procKind == null
+        ? null
+        : activeEvent?.label?.trim().isNotEmpty == true
+        ? activeEvent!.label!.trim()
+        : procLabel?.trim().isNotEmpty == true
+        ? procLabel!.trim()
+        : null;
+    final multiplierColor = switch (procKind) {
+      _MultiplierProcKind.additive => tokens.mint,
+      _MultiplierProcKind.multiplicative => tokens.wild,
+      null => tokens.mint,
+    };
     final label = score == null
         ? 'SELECT UP TO ${state.effectiveMaxSelect} CARDS'
         : '${score!.handType.legacyName.toUpperCase()} \u00b7 ${score!.scoringCount} CARDS SCORE';
@@ -679,8 +1154,11 @@ class _ScoreEquation extends StatelessWidget {
                   value: (liveMultiplier ?? score?.multiplier ?? baseMultiplier)
                       .toStringAsFixed(2),
                   label: 'MULTIPLIER',
-                  color: tokens.mint,
+                  color: multiplierColor,
                   compact: compact,
+                  procLabel: exactProcLabel,
+                  procKind: procKind,
+                  procSequence: presentationSequence,
                 ),
               ),
               _EquationOperator('=', compact: compact),
@@ -712,12 +1190,18 @@ class _EquationValue extends StatefulWidget {
     required this.label,
     required this.color,
     required this.compact,
+    this.procLabel,
+    this.procKind,
+    this.procSequence = 0,
   });
 
   final String value;
   final String label;
   final Color color;
   final bool compact;
+  final String? procLabel;
+  final _MultiplierProcKind? procKind;
+  final int procSequence;
 
   @override
   State<_EquationValue> createState() => _EquationValueState();
@@ -725,9 +1209,9 @@ class _EquationValue extends StatefulWidget {
 
 class _EquationValueState extends State<_EquationValue>
     with SingleTickerProviderStateMixin {
-  // The number rolls up to its new value over ~520ms — slow enough to read the
-  // SCORE climbing rather than snapping. Kept just under the card beat so each
-  // step finishes before the next begins.
+  // The number rolls up over ~520ms so SCORE visibly climbs. Card beats can
+  // overlap that window; a restart therefore begins at the interpolated number
+  // already on screen instead of snapping to the previous target.
   late final AnimationController _pop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 520),
@@ -738,7 +1222,16 @@ class _EquationValueState extends State<_EquationValue>
   double? _toNum;
   bool _decimal = false;
 
-  static double? _parse(String value) => double.tryParse(value.replaceAll(',', ''));
+  static double? _parse(String value) =>
+      double.tryParse(value.replaceAll(',', ''));
+
+  double? _currentNumber() {
+    final from = _fromNum;
+    final to = _toNum;
+    if (from == null || to == null) return to;
+    final t = Curves.easeOutCubic.transform(_pop.value);
+    return from + (to - from) * t;
+  }
 
   @override
   void initState() {
@@ -753,10 +1246,15 @@ class _EquationValueState extends State<_EquationValue>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
       final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-      _fromNum = disabled ? _parse(widget.value) : _toNum;
-      _toNum = _parse(widget.value);
+      final next = _parse(widget.value);
+      _fromNum = disabled ? next : _currentNumber();
+      _toNum = next;
       _decimal = widget.value.contains('.');
-      if (!disabled) _pop.forward(from: 0);
+      if (disabled) {
+        _pop.value = 1;
+      } else {
+        _pop.forward(from: 0);
+      }
     }
   }
 
@@ -778,55 +1276,119 @@ class _EquationValueState extends State<_EquationValue>
   Widget build(BuildContext context) {
     final color = widget.color;
     final compact = widget.compact;
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: AnimatedBuilder(
-            animation: _pop,
-            builder: (context, _) {
-              final t = Curves.easeOutCubic.transform(_pop.value);
-              // Swell and settle while the number rolls up.
-              final scale = 1 + 0.18 * (1 - t) * (1 - t);
-              final glow = (1 - t).clamp(0.0, 1.0);
-              return Transform.scale(
-                scale: scale,
-                child: Text(
-                  _display(t),
-                  style: TextStyle(
-                    color: Color.lerp(color, Colors.white, glow * 0.85),
-                    fontFamily: 'Bungee',
-                    fontSize: compact ? 23 : 28,
-                    height: 1,
-                    shadows: glow <= 0.02
-                        ? null
-                        : [
-                            Shadow(
-                              color: color.withValues(alpha: glow),
-                              blurRadius: 16 * glow,
-                            ),
-                          ],
-                  ),
+    final procKind = widget.procKind;
+    final procLabel = widget.procLabel;
+    final procActive = procKind != null && procLabel?.isNotEmpty == true;
+    final procName = procKind?.name;
+    return SizedBox(
+      height: compact ? 42 : 48,
+      child: Semantics(
+        excludeSemantics: true,
+        liveRegion: procActive,
+        label: procActive
+            ? 'Multiplier ${widget.value}. Joker triggered $procLabel'
+            : '${widget.label} ${widget.value}',
+        child: AnimatedContainer(
+          key: ValueKey('equation-${widget.label.toLowerCase()}-cell'),
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+          decoration: BoxDecoration(
+            color: procActive ? color.withValues(alpha: 0.13) : null,
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(
+              color: procActive
+                  ? color.withValues(alpha: 0.72)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: AnimatedBuilder(
+                  animation: _pop,
+                  builder: (context, _) {
+                    final t = Curves.easeOutCubic.transform(_pop.value);
+                    // Swell and settle while the number rolls up.
+                    final scale = 1 + 0.18 * (1 - t) * (1 - t);
+                    final glow = (1 - t).clamp(0.0, 1.0);
+                    return Transform.scale(
+                      scale: scale,
+                      child: Text(
+                        _display(t),
+                        key: ValueKey(
+                          'equation-${widget.label.toLowerCase()}-value',
+                        ),
+                        style: TextStyle(
+                          color: Color.lerp(color, Colors.white, glow * 0.85),
+                          fontFamily: 'Bungee',
+                          fontSize: compact ? 23 : 28,
+                          height: 1,
+                          shadows: glow <= 0.02
+                              ? null
+                              : [
+                                  Shadow(
+                                    color: color.withValues(alpha: glow),
+                                    blurRadius: 10 * glow,
+                                  ),
+                                ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 3),
+              SizedBox(
+                height: compact ? 12 : 13,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 140),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: procActive
+                      ? SizedBox(
+                          key: ValueKey(
+                            'equation-proc-$procName-${widget.procSequence}',
+                          ),
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              procLabel!,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: color,
+                                fontFamily: 'SpaceGrotesk',
+                                fontWeight: FontWeight.w700,
+                                fontSize: compact ? 9.5 : 10.5,
+                                height: 1,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Text(
+                          widget.label,
+                          key: ValueKey('equation-label-${widget.label}'),
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: context.wildcard.creamDim,
+                            fontSize: compact ? 7.5 : 8.5,
+                            height: 1,
+                            letterSpacing: 0.25,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 3),
-        Text(
-          widget.label,
-          maxLines: 1,
-          style: TextStyle(
-            color: context.wildcard.creamDim,
-            fontSize: compact ? 7.5 : 8.5,
-            height: 1,
-            letterSpacing: 0.25,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
+
+enum _MultiplierProcKind { additive, multiplicative }
 
 class _EquationOperator extends StatelessWidget {
   const _EquationOperator(this.value, {required this.compact});
@@ -852,13 +1414,18 @@ class _EquationOperator extends StatelessWidget {
 
 class _TableArea extends StatelessWidget {
   const _TableArea({
+    required this.state,
     required this.tableFeltId,
     required this.hand,
     required this.activeEvent,
     required this.highlightedHandIndex,
     required this.scoredCardIds,
+    required this.scoringCardIds,
+    required this.activeChips,
+    required this.presentationSequence,
+    required this.chipLabel,
+    required this.chipStyle,
     required this.selectedCount,
-    required this.maxSelected,
     required this.sortLabel,
     required this.compact,
     required this.cardWidth,
@@ -873,13 +1440,18 @@ class _TableArea extends StatelessWidget {
     required this.onAbandon,
   });
 
+  final ScoringState state;
   final String tableFeltId;
   final List<PlayingCard> hand;
   final ScoreEvent? activeEvent;
   final int? highlightedHandIndex;
   final Set<String> scoredCardIds;
+  final Set<String> scoringCardIds;
+  final List<ScoreVisualChip> activeChips;
+  final int presentationSequence;
+  final String chipLabel;
+  final ScoreChipStyle chipStyle;
   final int selectedCount;
-  final int maxSelected;
   final String sortLabel;
   final bool compact;
   final double cardWidth;
@@ -945,71 +1517,128 @@ class _TableArea extends StatelessWidget {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      // The whole hand must be visible in one look. Divide the
-                      // real width across the cards instead of using a fixed
-                      // card size in a horizontal scroller.
+                      // Match the WebView's readable fan: full-size cards with
+                      // a broad visible rank strip, rather than crushing nine
+                      // cards into ~35 dp slivers. Cards themselves remain
+                      // completely static; only their z-order overlaps.
                       const outerPadding = 4.0;
-                      final gap = compact ? 3.0 : 4.0;
                       final available =
                           constraints.maxWidth - (outerPadding * 2);
                       final count = hand.length;
-                      final fitted = (available - gap * (count - 1)) / count;
-                      // Below this the rank stops being legible; only then do
-                      // we fall back to scrolling (very large hands only).
-                      const minReadable = 27.0;
-                      final tileWidth = fitted.clamp(minReadable, cardWidth);
-                      final tileHeight = (cardHeight * (tileWidth / cardWidth))
-                          .clamp(cardHeight * 0.66, cardHeight);
-                      final scrolls = fitted < minReadable;
-                      final tiles = <Widget>[
-                        for (var index = 0; index < count; index++) ...[
-                          if (index > 0) SizedBox(width: gap),
-                          // Keyed by card identity: a genuinely new card deals
-                          // in with the staggered drop, while sorts and refills
-                          // of existing cards never re-animate.
-                          _DealIn(
-                            key: ValueKey(
-                              'deal-${hand[index].uid ?? 'slot-$index'}',
-                            ),
-                            index: index,
-                            child: PlayingCardTile(
-                            key: ValueKey('hand-card-$index'),
-                            card: hand[index],
-                            width: tileWidth,
-                            height: tileHeight,
-                            highlighted:
-                                (highlightedHandIndex ??
-                                    activeEvent?.cardIndex) ==
-                                index,
-                            // Already scored earlier this hand: stays lifted.
-                            scored: hand[index].uid != null &&
-                                scoredCardIds.contains(hand[index].uid),
-                            // Points this card just contributed, so scoring is
-                            // visible on the card itself and not only in the
-                            // equation panel.
-                            scoreChip:
-                                (highlightedHandIndex ??
-                                            activeEvent?.cardIndex) ==
-                                        index &&
-                                    activeEvent != null &&
-                                    activeEvent!.amount > 0
-                                ? '+${activeEvent!.amount.round()}'
-                                : null,
-                            // Gold when the card itself scores; violet when a
-                            // Joker acted on it (the WebView's colour split).
-                            scoreChipColor: _chipColor(context, activeEvent),
-                            onTap: busy || onToggleCard == null
-                                ? null
-                                : () => onToggleCard!(index),
-                            ),
-                          ),
-                        ],
-                      ];
-                      final row = Row(
+                      final tileWidth = math.min(cardWidth, available);
+                      final tileHeight = cardHeight;
+                      final naturalStep = count <= 1
+                          ? 0.0
+                          : (available - tileWidth) / (count - 1);
+                      // At least 28 dp of each rank strip remains exposed, so
+                      // neighbouring selections have a forgiving target.
+                      final step = count <= 1
+                          ? 0.0
+                          : naturalStep.clamp(28.0, tileWidth + 4);
+                      final handWidth = count <= 1
+                          ? tileWidth
+                          : tileWidth + step * (count - 1);
+                      final stack = SizedBox(
                         key: const Key('playing-card-row'),
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: tiles,
+                        width: handWidth,
+                        height: tileHeight,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            for (var index = 0; index < count; index++)
+                              Positioned(
+                                left: index * step,
+                                top: 0,
+                                child: Builder(
+                                  builder: (context) {
+                                    final card = hand[index];
+                                    final rankSuppressed = state
+                                        .cardRankSuppressed(card);
+                                    final selectionDisabled =
+                                        !card.selected &&
+                                        selectedCount >=
+                                            state.effectiveMaxSelect;
+                                    final enhancementSuppressed =
+                                        state.hasModifier(
+                                          HeatModifier.nullField,
+                                        ) &&
+                                        (card.enhancement ==
+                                                CardEnhancement.neon ||
+                                            card.enhancement ==
+                                                CardEnhancement.glass);
+                                    ScoreVisualChip? retainedChip;
+                                    for (final chip in activeChips) {
+                                      if (chip.cardId == card.uid) {
+                                        retainedChip = chip;
+                                      }
+                                    }
+                                    final active =
+                                        (highlightedHandIndex ??
+                                            activeEvent?.cardIndex) ==
+                                        index;
+                                    final fallbackChip =
+                                        retainedChip == null &&
+                                        active &&
+                                        activeEvent != null &&
+                                        chipLabel.isNotEmpty;
+                                    final visibleStyle =
+                                        retainedChip?.style ?? chipStyle;
+                                    final mutedChip =
+                                        retainedChip?.muted ??
+                                        (fallbackChip &&
+                                            activeEvent?.type ==
+                                                ScoreEventType.card &&
+                                            activeEvent?.amount == 0);
+                                    return PlayingCardTile(
+                                      key: ValueKey(
+                                        'hand-card-${card.uid ?? 'slot-$index'}',
+                                      ),
+                                      card: card,
+                                      width: tileWidth,
+                                      height: tileHeight,
+                                      highlighted: active,
+                                      scored:
+                                          card.uid != null &&
+                                          scoredCardIds.contains(card.uid),
+                                      dimmed:
+                                          scoringCardIds.isNotEmpty &&
+                                          card.selected &&
+                                          !scoringCardIds.contains(card.uid),
+                                      rankSuppressed: rankSuppressed,
+                                      rankSuppressionLabel: state
+                                          .cardRankSuppressionLabel(card),
+                                      enhancementSuppressed:
+                                          enhancementSuppressed,
+                                      selectionDisabled: selectionDisabled,
+                                      scoreChip:
+                                          retainedChip?.label ??
+                                          (fallbackChip ? chipLabel : null),
+                                      scoreChipColor: mutedChip
+                                          ? tokens.creamDim
+                                          : _chipColorForStyle(
+                                              context,
+                                              visibleStyle,
+                                            ),
+                                      highlightColor: _chipColorForStyle(
+                                        context,
+                                        chipStyle,
+                                      ),
+                                      scoreChipSequence:
+                                          retainedChip?.sequence ??
+                                          presentationSequence,
+                                      liftWhenSelected: !busy,
+                                      onTap:
+                                          busy ||
+                                              selectionDisabled ||
+                                              onToggleCard == null
+                                          ? null
+                                          : () => onToggleCard!(index),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
                       );
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -1018,13 +1647,13 @@ class _TableArea extends StatelessWidget {
                           outerPadding,
                           2,
                         ),
-                        child: scrolls
+                        child: handWidth > available
                             ? SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: row,
+                                physics: const ClampingScrollPhysics(),
+                                child: stack,
                               )
-                            : Center(child: row),
+                            : Center(child: stack),
                       );
                     },
                   ),
@@ -1082,17 +1711,6 @@ class _TableArea extends StatelessWidget {
               fontSize: 9.5,
               fontFamily: 'SpaceGrotesk',
               showIconFrame: false,
-            ),
-          ),
-          // The hand now scales to fit in one look, so the old "swipe sideways"
-          // hint would be actively misleading. Keep only the selection limit.
-          const SizedBox(height: 4),
-          Text(
-            'Select up to $maxSelected cards',
-            style: TextStyle(
-              color: tokens.creamDim.withValues(alpha: 0.78),
-              fontSize: 8,
-              height: 1,
             ),
           ),
         ],
@@ -1171,94 +1789,26 @@ class _TableControl extends StatelessWidget {
   }
 }
 
-/// Deals a newly-drawn card onto the table: a short staggered drop-and-fade,
-/// the WebView's `@keyframes deal`. The wrapper is keyed by card uid, so it
-/// fires exactly once per physical card — sorting or refilling the rest of the
-/// hand never re-deals them.
-class _DealIn extends StatefulWidget {
-  const _DealIn({required this.index, required this.child, super.key});
-
-  final int index;
-  final Widget child;
-
-  @override
-  State<_DealIn> createState() => _DealInState();
-}
-
-class _DealInState extends State<_DealIn>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 340),
-  );
-  Timer? _delay;
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    final disabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (disabled) {
-      _c.value = 1;
-      return;
-    }
-    // ~55ms between cards: enough to read as dealing one at a time, short
-    // enough that a full nine-card hand still lands in about half a second.
-    final wait = 55 * widget.index.clamp(0, 12);
-    if (wait == 0) {
-      _c.forward();
-    } else {
-      _delay = Timer(Duration(milliseconds: wait), () {
-        if (mounted) _c.forward();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _delay?.cancel();
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      child: widget.child,
-      builder: (context, child) {
-        final t = Curves.easeOutCubic.transform(_c.value);
-        if (t >= 1) return child!;
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, -16 * (1 - t)),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-}
-
+/// Responsive measurements for the compact, static phone table.
+///
 class _RunMetrics {
   const _RunMetrics({
     required this.pagePadding,
     required this.outerGap,
     required this.slyHeight,
     required this.jokerHeight,
+    required this.playfieldDrop,
     required this.cardWidth,
     required this.cardHeight,
     required this.compact,
   });
 
   factory _RunMetrics.from(Size size) {
-    final compact = size.width < 340 || size.height < 650;
-    final veryShort = size.height < 600;
+    final responsive = WildcardResponsiveMetrics.from(size);
+    final compact = responsive.isCompact;
+    final veryShort = responsive.isVeryShort;
     return _RunMetrics(
-      pagePadding: compact ? 6 : 9,
+      pagePadding: responsive.pagePadding,
       outerGap: veryShort
           ? 4
           : compact
@@ -1270,15 +1820,22 @@ class _RunMetrics {
           ? 70
           : 82,
       jokerHeight: veryShort
-          ? 53
+          ? 60
           : compact
-          ? 57
-          : 63,
-      // Cards are taller within the same width for a truer card shape and to
-      // give the centre pip room to breathe. Width is unchanged so a full hand
-      // still fits across without scrolling.
+          ? 72
+          : 86,
+      // Spend the otherwise-empty lower part of tall phone screens between the
+      // Joker engine and the playfield. The capped formula scales smoothly
+      // across phones, while short devices keep a compact, scroll-safe layout.
+      playfieldDrop: veryShort
+          ? 0
+          : ((size.height - 720) * 0.4)
+                .clamp(compact ? 6.0 : 10.0, 58.0)
+                .toDouble(),
+      // Full-size overlapping cards keep ranks readable without making the
+      // felt consume the lower half of the phone.
       cardWidth: compact ? 46 : 50,
-      cardHeight: compact ? 94 : 104,
+      cardHeight: compact ? 86 : 92,
       compact: compact,
     );
   }
@@ -1287,23 +1844,37 @@ class _RunMetrics {
   final double outerGap;
   final double slyHeight;
   final double jokerHeight;
+  final double playfieldDrop;
   final double cardWidth;
   final double cardHeight;
   final bool compact;
 }
 
-/// The score number on a card is gold when the card scores, violet when a
-/// Joker (rank add, retrigger, mult/xmult) acted on that card.
-Color _chipColor(BuildContext context, ScoreEvent? event) {
-  final joker = switch (event?.type) {
-    ScoreEventType.rankJoker ||
-    ScoreEventType.retrigger ||
-    ScoreEventType.mult ||
-    ScoreEventType.xMult => true,
-    _ => false,
-  };
-  return joker ? context.wildcard.violet : const Color(0xFFF7C548);
-}
+Color _chipColorForStyle(BuildContext context, ScoreChipStyle style) =>
+    switch (style) {
+      ScoreChipStyle.card || ScoreChipStyle.jackpot => const Color(0xFFF7C548),
+      ScoreChipStyle.joker ||
+      ScoreChipStyle.multiplier => context.wildcard.violet,
+      ScoreChipStyle.modifier => context.wildcard.mint,
+      ScoreChipStyle.suspense => context.wildcard.creamDim,
+      ScoreChipStyle.miss => context.wildcard.coral,
+    };
+
+Color _slyReactionColor(WildcardThemeTokens tokens, SlyMood? mood) =>
+    switch (mood) {
+      SlyMood.sevenMiss || SlyMood.scared || SlyMood.clutch => tokens.coral,
+      SlyMood.unbelievable ||
+      SlyMood.quads ||
+      SlyMood.straightFlush ||
+      SlyMood.royalFlush ||
+      SlyMood.sevenHit => tokens.gold,
+      SlyMood.impressed ||
+      SlyMood.fullHouse ||
+      SlyMood.straight ||
+      SlyMood.flush => tokens.mint,
+      SlyMood.laughing || SlyMood.highCard => tokens.wild,
+      _ => tokens.violet,
+    };
 
 String _formatNumber(int value) {
   final negative = value < 0;

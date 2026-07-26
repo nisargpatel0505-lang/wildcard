@@ -28,10 +28,14 @@ class AudioService {
   bool _enabled = false;
   bool _effectsEnabled = true;
   bool _ambienceActive = false;
+  bool _ceremonyDucked = false;
   int _syncGeneration = 0;
   int _ambienceGeneration = 0;
 
   bool get effectsEnabled => _effectsEnabled;
+
+  double get _currentMusicVolume =>
+      _ambienceActive || _ceremonyDucked ? _musicDucked : _musicVolume;
 
   /// Enables the native click channel used by table actions.
   ///
@@ -64,7 +68,7 @@ class AudioService {
       if (!_started) {
         final music = _music ??= AudioPlayer(playerId: 'wildcard_bgm');
         await music.setReleaseMode(ReleaseMode.loop);
-        await music.setVolume(_ambienceActive ? _musicDucked : _musicVolume);
+        await music.setVolume(_currentMusicVolume);
         if (!_enabled || generation != _syncGeneration) return;
         await music.play(AssetSource(musicAsset));
         if (!_enabled || generation != _syncGeneration) {
@@ -94,7 +98,7 @@ class AudioService {
     _ambienceActive = wanted;
     final generation = ++_ambienceGeneration;
     try {
-      await _music?.setVolume(wanted ? _musicDucked : _musicVolume);
+      await _music?.setVolume(_currentMusicVolume);
       if (!wanted) {
         await _ambience?.pause();
         return;
@@ -113,10 +117,24 @@ class AudioService {
     }
   }
 
+  /// Gives premium reveal audio room without stopping or restarting music.
+  /// This is presentation-only and intentionally survives overlapping calls.
+  Future<void> setCeremonyDuck(bool active) async {
+    if (_ceremonyDucked == active) return;
+    _ceremonyDucked = active;
+    if (!_enabled) return;
+    try {
+      await _music?.setVolume(_currentMusicVolume);
+    } catch (_) {
+      // A volume failure must never block a saved reward from being shown.
+    }
+  }
+
   Future<void> dispose() async {
     _enabled = false;
     _effectsEnabled = false;
     _ambienceActive = false;
+    _ceremonyDucked = false;
     _syncGeneration++;
     _ambienceGeneration++;
     await _music?.dispose();

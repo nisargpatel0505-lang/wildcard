@@ -15,17 +15,56 @@ class SfxService {
   bool enabled = true;
 
   final Map<String, AudioPool> _pools = <String, AudioPool>{};
-  final Map<String, Future<AudioPool?>> _loading = <String, Future<AudioPool?>>{};
+  final Map<String, Future<AudioPool?>> _loading =
+      <String, Future<AudioPool?>>{};
   bool _disposed = false;
 
   /// The sounds needed the moment a hand is played. Warmed when a run opens so
   /// the first scoring beat is not late while a pool spins up.
   static const List<String> scoringSet = <String>[
-    'select', 'deselect', 'discard',
-    'score_0', 'score_1', 'score_2', 'score_3', 'score_4',
-    'joker_0', 'joker_1', 'mult_0', 'mult_1',
-    'hand_total', 'callout_nice', 'callout_great', 'callout_mega',
-    'callout_wild', 'heat_clear',
+    'select',
+    'deselect',
+    'discard',
+    'score_0',
+    'score_1',
+    'score_2',
+    'score_3',
+    'score_4',
+    'score_5',
+    'score_6',
+    'score_7',
+    'score_8',
+    'score_9',
+    'joker_0',
+    'joker_1',
+    'joker_2',
+    'joker_3',
+    'joker_4',
+    'joker_5',
+    'joker_6',
+    'joker_7',
+    'joker_8',
+    'joker_9',
+    'mult_0',
+    'mult_1',
+    'mult_2',
+    'mult_3',
+    'mult_4',
+    'mult_5',
+    'mult_6',
+    'mult_7',
+    'mult_8',
+    'mult_9',
+    'retrigger',
+    'seven_roll',
+    'seven_miss',
+    'jackpot',
+    'hand_total',
+    'callout_nice',
+    'callout_great',
+    'callout_mega',
+    'callout_wild',
+    'heat_clear',
   ];
 
   /// Fire-and-forget. Sound must never block or fail an action.
@@ -51,14 +90,17 @@ class SfxService {
   }
 
   Future<AudioPool?> _load(String name) {
-    return _loading[name] ??= AudioPool.createFromAsset(
-      path: 'audio/sfx/$name.wav',
-      maxPlayers: 3,
-      playerMode: PlayerMode.lowLatency,
-    ).then<AudioPool?>((pool) {
-      if (_disposed) return null;
-      return _pools[name] = pool;
-    }).catchError((Object _) => null);
+    return _loading[name] ??=
+        AudioPool.createFromAsset(
+              path: 'audio/sfx/$name.wav',
+              maxPlayers: 3,
+              playerMode: PlayerMode.lowLatency,
+            )
+            .then<AudioPool?>((pool) {
+              if (_disposed) return null;
+              return _pools[name] = pool;
+            })
+            .catchError((Object _) => null);
   }
 
   Future<void> dispose() async {

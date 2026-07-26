@@ -3,21 +3,21 @@ import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/progression_catalog.dart';
 
 void main() {
-  group('v7.1.0 cosmetic catalogue', () {
-    test('contains every shipped table, UI theme and Sly look', () {
-      expect(cosmeticCatalog, hasLength(32));
-      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(32));
+  group('cosmetic catalogue', () {
+    test('contains every available table, UI theme and Sly look', () {
+      expect(cosmeticCatalog, hasLength(38));
+      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(38));
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.table),
         hasLength(10),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.theme),
-        hasLength(14),
+        hasLength(17),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.sly),
-        hasLength(8),
+        hasLength(11),
       );
       expect(
         cosmeticCatalog
@@ -28,7 +28,7 @@ void main() {
       );
       expect(
         cosmeticCatalog.fold<int>(0, (sum, item) => sum + item.price),
-        41150,
+        59150,
       );
     });
 
@@ -43,15 +43,21 @@ void main() {
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.rare),
-        hasLength(14),
+        hasLength(17),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.wild),
-        hasLength(6),
+        hasLength(9),
       );
       expect(cosmeticById('theme_neon_heist')?.price, 5000);
       expect(cosmeticById('theme_clockwork')?.price, 5000);
       expect(cosmeticById('sly_devil')?.skin, 'devil');
+      expect(cosmeticById('theme_block_drop')?.price, 1000);
+      expect(cosmeticById('theme_abyssal')?.price, 1000);
+      expect(cosmeticById('theme_desert_mirage')?.price, 1000);
+      expect(cosmeticById('sly_block_drop')?.price, 5000);
+      expect(cosmeticById('sly_abyssal')?.price, 5000);
+      expect(cosmeticById('sly_desert')?.price, 5000);
     });
 
     test('Cosmetic Vault uses the exact 0.8% theme gate', () {

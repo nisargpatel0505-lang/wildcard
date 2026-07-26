@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/joker_catalog.dart';
+import '../../domain/scoring_engine.dart';
 import '../wildcard_theme.dart';
 import 'springy.dart';
 
@@ -13,8 +14,13 @@ class CompactJokerCard extends StatelessWidget {
   const CompactJokerCard({
     this.joker,
     this.blocked = false,
+    this.multiplierSuppressed = false,
+    this.redundant = false,
+    this.modifierStatusLabel,
     this.highlighted = false,
     this.triggerLabel,
+    this.triggerEventType,
+    this.triggerSequence = 0,
     this.onTap,
     this.height = 58,
     super.key,
@@ -22,8 +28,13 @@ class CompactJokerCard extends StatelessWidget {
 
   final JokerDefinition? joker;
   final bool blocked;
+  final bool multiplierSuppressed;
+  final bool redundant;
+  final String? modifierStatusLabel;
   final bool highlighted;
   final String? triggerLabel;
+  final ScoreEventType? triggerEventType;
+  final int triggerSequence;
   final VoidCallback? onTap;
   final double height;
 
@@ -73,143 +84,216 @@ class CompactJokerCard extends StatelessWidget {
     }
 
     final label = triggerLabel?.trim();
+    final inactive = blocked || multiplierSuppressed || redundant;
+    final activeHighlight = highlighted && !inactive;
+    final statusText = modifierStatusLabel?.trim().isNotEmpty == true
+        ? modifierStatusLabel!.trim()
+        : blocked
+        ? 'BLOCKED THIS HEAT'
+        : redundant
+        ? 'REDUNDANT THIS HEAT'
+        : 'MULT OFF';
+    final additiveProc =
+        activeHighlight && triggerEventType == ScoreEventType.mult;
+    final multiplicativeProc =
+        activeHighlight && triggerEventType == ScoreEventType.xMult;
+    final procAccent = additiveProc
+        ? tokens.mint
+        : multiplicativeProc
+        ? tokens.wild
+        : accent;
+    final procKind = additiveProc
+        ? 'additive'
+        : multiplicativeProc
+        ? 'multiplicative'
+        : 'joker';
     return Semantics(
       button: onTap != null,
       enabled: onTap != null,
+      liveRegion: activeHighlight && label?.isNotEmpty == true,
       label:
-          '${joker!.name}. ${joker!.description}${blocked ? '. Blocked' : ''}',
+          '${joker!.name}. ${joker!.description}'
+          '${inactive ? '. $statusText' : ''}'
+          '${activeHighlight && label?.isNotEmpty == true ? '. Triggered $label' : ''}',
       onTap: onTap,
       child: RepaintBoundary(
         child: ExcludeSemantics(
-          // A Joker proc springs up and settles with overshoot rather than
-          // easing to a dead stop, so it reads as a punch when it fires.
+          // The short spring marks the active card without shifting the row.
           child: SpringValue(
-            target: highlighted ? 1.13 : 1,
+            target: activeHighlight ? 1.035 : 1,
             stiffness: 340,
             damping: 0.42,
-            builder: (context, scale, child) =>
-                Transform.scale(scale: scale, child: child),
+            builder: (context, scale, child) => Transform.translate(
+              offset: Offset(0, activeHighlight ? -2 : 0),
+              child: Transform.scale(scale: scale, child: child),
+            ),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 170),
               height: height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: highlighted ? tokens.cream : accent,
-                  width: highlighted ? 2.2 : 1.5,
+                  color: inactive
+                      ? tokens.creamDim.withValues(alpha: .46)
+                      : activeHighlight
+                      ? procAccent
+                      : accent,
+                  width: activeHighlight ? 2.2 : 1.5,
                 ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color.lerp(
-                      tokens.panel,
-                      accent,
-                      highlighted ? 0.26 : 0.09,
-                    )!,
-                    tokens.panelStrong,
-                  ],
+                  colors: inactive
+                      ? [
+                          Color.lerp(tokens.panel, Colors.grey, .20)!,
+                          Color.lerp(tokens.panelStrong, Colors.black, .12)!,
+                        ]
+                      : [
+                          Color.lerp(
+                            tokens.panel,
+                            procAccent,
+                            activeHighlight ? 0.3 : 0.09,
+                          )!,
+                          tokens.panelStrong,
+                        ],
                 ),
-                boxShadow: highlighted
+                boxShadow: activeHighlight
                     ? [
                         BoxShadow(
-                          color: accent.withValues(alpha: 0.32),
-                          blurRadius: 9,
+                          color: procAccent.withValues(alpha: 0.3),
+                          blurRadius: 7,
                         ),
                       ]
                     : const [],
               ),
               clipBehavior: Clip.antiAlias,
               child: Opacity(
-                opacity: blocked ? 0.38 : 1,
+                opacity: inactive ? 0.64 : 1,
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: onTap,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
-                      child: Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      joker!.name.toUpperCase(),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      // Bungee at 8.5px is an all-caps display
-                                      // face crushed too small to read. Space
-                                      // Grotesk bold stays legible at this size.
-                                      style: TextStyle(
-                                        color: accent,
-                                        fontFamily: 'SpaceGrotesk',
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 9.5,
-                                        letterSpacing: 0.3,
-                                        height: 1.1,
-                                      ),
-                                    ),
-                                  ),
-                                  if (blocked)
-                                    Icon(
-                                      Icons.block_rounded,
-                                      size: 12,
-                                      color: tokens.coral,
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 3),
                               Expanded(
                                 child: Text(
-                                  blocked
-                                      ? 'Blocked this Heat'
-                                      : joker!.description,
-                                  maxLines: 3,
+                                  joker!.name.toUpperCase(),
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: tokens.creamDim,
-                                    fontSize: 8,
-                                    height: 1.12,
+                                    color: inactive
+                                        ? tokens.creamDim
+                                        : activeHighlight
+                                        ? procAccent
+                                        : accent,
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 9.5,
+                                    letterSpacing: 0.3,
+                                    height: 1.1,
                                   ),
                                 ),
                               ),
+                              if (inactive)
+                                Icon(
+                                  blocked
+                                      ? Icons.block_rounded
+                                      : redundant
+                                      ? Icons.layers_clear_rounded
+                                      : Icons.flash_off_rounded,
+                                  size: 12,
+                                  color: blocked
+                                      ? tokens.coral
+                                      : redundant
+                                      ? tokens.creamDim
+                                      : tokens.gold,
+                                ),
                             ],
                           ),
-                          if (highlighted && label != null && label.isNotEmpty)
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: accent.withValues(alpha: 0.92),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 2,
-                                  ),
-                                  child: Text(
-                                    label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Color(0xFF07120F),
-                                      fontFamily: 'SpaceGrotesk',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 8.5,
-                                      letterSpacing: 0.2,
-                                      height: 1,
+                          const SizedBox(height: 3),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 140),
+                              switchInCurve: Curves.easeOut,
+                              switchOutCurve: Curves.easeIn,
+                              child:
+                                  activeHighlight &&
+                                      label != null &&
+                                      label.isNotEmpty
+                                  ? Container(
+                                      key: ValueKey(
+                                        'joker-proc-$procKind-$triggerSequence',
+                                      ),
+                                      width: double.infinity,
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: procAccent.withValues(
+                                          alpha: 0.16,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: procAccent.withValues(
+                                            alpha: 0.76,
+                                          ),
+                                        ),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          label,
+                                          key: ValueKey(
+                                            'joker-proc-label-$triggerSequence-$label',
+                                          ),
+                                          maxLines: 1,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: procAccent,
+                                            fontFamily: 'SpaceGrotesk',
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                            letterSpacing: 0.25,
+                                            height: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Text(
+                                      inactive
+                                          ? statusText
+                                          : joker!.description,
+                                      key: ValueKey(
+                                        inactive
+                                            ? 'joker-modifier-status-$statusText'
+                                            : 'joker-description',
+                                      ),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: blocked
+                                            ? tokens.coral
+                                            : redundant
+                                            ? tokens.creamDim
+                                            : multiplierSuppressed
+                                            ? tokens.gold
+                                            : tokens.creamDim,
+                                        fontSize: inactive ? 8.5 : 8,
+                                        fontWeight: inactive
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                        height: 1.12,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
                             ),
+                          ),
                         ],
                       ),
                     ),

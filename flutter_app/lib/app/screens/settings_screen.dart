@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -9,9 +8,11 @@ import '../../app/developer_access.dart';
 import '../../core/app_constants.dart';
 import '../../domain/account_state.dart';
 import '../../domain/joker_catalog.dart';
+import '../../services/haptics_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/billing_service.dart';
 import '../../ui/wildcard_ui.dart';
+import '../../ui/widgets/royal_vault_animation.dart';
 import 'page_frame.dart';
 import 'tutorial_screen.dart';
 import '../../ui/widgets/wildcard_toast.dart';
@@ -73,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle:
                     'Normal remains readable. Fast shortens pauses without changing results.',
               ),
-              if (kDebugMode) ...[
+              if (developerBuild) ...[
                 const ScreenSectionTitle('Developer build'),
                 _developerPanel(account),
               ],
@@ -261,7 +262,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Available only in a debug APK. Developer changes stay on this test install.',
+              'Available only in a local debug or profile APK. Developer changes stay on this test install.',
               style: TextStyle(
                 color: context.wildcard.creamDim,
                 fontSize: 11.5,
@@ -342,6 +343,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.restart_alt_rounded,
                 onPressed: _resetFirstRunForTesting,
               ),
+              _developerAction(
+                key: const Key('developer-preview-vault'),
+                label: 'Preview Vault',
+                icon: Icons.inventory_2_outlined,
+                onPressed: _previewDeveloperVault,
+              ),
             ],
           ),
         ],
@@ -362,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 
   Future<void> _unlockDeveloperTools() async {
-    if (!kDebugMode) return;
+    if (!developerBuild) return;
     final input = TextEditingController();
     String? error;
     final accepted = await showDialog<bool>(
@@ -419,7 +426,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       state.unknownFields[developerUnlockedField] = true;
       state.unknownFields[developerGauntletField] = true;
     }, syncCloud: false);
-    _snack('Developer tools unlocked on this debug install.');
+    _snack('Developer tools unlocked on this local install.');
   }
 
   Future<void> _grantDeveloperCoins() async {
@@ -490,8 +497,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _previewDeveloperVault() async {
+    if (!developerToolsUnlocked(widget.controller.account)) return;
+    final tier = await showDialog<RoyalVaultVisualTier>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(
+          'PREVIEW VAULT',
+          style: TextStyle(fontFamily: 'Bungee'),
+        ),
+        content: const Text(
+          'This plays the full reveal without spending coins, changing ownership or writing a reward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            key: const Key('preview-vault-wooden'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, RoyalVaultVisualTier.wooden),
+            child: const Text('WOODEN'),
+          ),
+          TextButton(
+            key: const Key('preview-vault-golden'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, RoyalVaultVisualTier.golden),
+            child: const Text('GOLDEN'),
+          ),
+          TextButton(
+            key: const Key('preview-vault-cosmetic'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, RoyalVaultVisualTier.cosmetic),
+            child: const Text('COSMETIC'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || tier == null) return;
+
+    final reward = switch (tier) {
+      RoyalVaultVisualTier.wooden => RoyalVaultRewardViewModel(
+        name: 'Pair Trainer',
+        description:
+            'Preview reward only. No Joker is unlocked and no coins are spent.',
+        rarity: 'COMMON',
+        rarityColor: context.wildcard.gold,
+        categoryLabel: 'VAULT ANIMATION PREVIEW',
+        icon: Icons.style_rounded,
+      ),
+      RoyalVaultVisualTier.golden => RoyalVaultRewardViewModel(
+        name: 'Frequency Meter',
+        description:
+            'Preview reward only. No Joker is unlocked and no coins are spent.',
+        rarity: 'RARE',
+        rarityColor: context.wildcard.rare,
+        categoryLabel: 'VAULT ANIMATION PREVIEW',
+        icon: Icons.style_rounded,
+      ),
+      RoyalVaultVisualTier.cosmetic => RoyalVaultRewardViewModel(
+        name: 'Moonlit Masquerade',
+        description:
+            'Preview reward only. No cosmetic is unlocked and no coins are spent.',
+        rarity: 'COSMETIC',
+        rarityColor: context.wildcard.violet,
+        categoryLabel: 'VAULT ANIMATION PREVIEW',
+        icon: Icons.palette_rounded,
+      ),
+    };
+    await showRoyalVaultAnimation(
+      context: context,
+      audio: widget.controller.audio,
+      sfx: widget.controller.sfx,
+      haptics: HapticsService(enabled: !widget.controller.account.muted),
+      tier: tier,
+      reward: reward,
+      fast: widget.controller.account.speed == ScoringPace.fast,
+    );
+  }
+
   Future<void> _debugMutation(void Function(AccountState state) mutation) {
-    if (!kDebugMode || !developerToolsUnlocked(widget.controller.account)) {
+    if (!developerBuild || !developerToolsUnlocked(widget.controller.account)) {
       return Future<void>.value();
     }
     return widget.controller.mutateAccount(mutation, syncCloud: false);

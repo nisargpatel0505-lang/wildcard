@@ -14,21 +14,29 @@ const String developerBaselineField = 'flutterDeveloperBaseline';
 const String developerCoinGrantField = 'flutterDeveloperCoinGrant';
 const String developerJokerGrantField = 'flutterDeveloperJokerGrant';
 
+/// Developer tooling is compiled into local debug/profile builds only.
+///
+/// `kDebugMode` is false in a profile APK, so using it here made the phone
+/// performance build silently erase its developer state during bootstrap.
+/// This constant is false in release and allows the compiler to remove the
+/// guarded UI and code from the Play artifact.
+const bool developerBuild = !kReleaseMode;
+
 // This is the SHA-256 of the existing local tester code. The code itself is
 // intentionally never stored in Flutter source. All references to this value
-// are behind kDebugMode and are tree-shaken from release builds.
+// are behind [developerBuild] and are tree-shaken from release builds.
 const String _developerCodeDigest =
     '7df11fa33b21c72c35d01b5b5606b28c4ec7028a29b2f5c3aa0796e17f744108';
 
 bool developerToolsUnlocked(AccountState account) =>
-    kDebugMode && account.unknownFields[developerUnlockedField] == true;
+    developerBuild && account.unknownFields[developerUnlockedField] == true;
 
 bool developerGauntletUnlocked(AccountState account) =>
     developerToolsUnlocked(account) &&
     account.unknownFields[developerGauntletField] == true;
 
 bool developerCodeMatches(String input) {
-  if (!kDebugMode) return false;
+  if (!developerBuild) return false;
   return digestMatches(input: input, expectedDigest: _developerCodeDigest);
 }
 
@@ -37,10 +45,21 @@ bool developerCodeMatches(String input) {
 /// Play/release upgrade can restore the exact pre-test account instead of
 /// uploading granted coins, Jokers or test statistics to Firebase.
 void captureDeveloperBaseline(AccountState account) {
-  if (!kDebugMode || account.unknownFields[developerBaselineField] is String) {
+  if (!developerBuild ||
+      account.unknownFields[developerBaselineField] is String) {
     return;
   }
   account.unknownFields[developerBaselineField] = account.encode();
+}
+
+class ReleaseSafeDeveloperAccountResult {
+  const ReleaseSafeDeveloperAccountResult({
+    required this.account,
+    required this.clearedDeveloperState,
+  });
+
+  final AccountState account;
+  final bool clearedDeveloperState;
 }
 
 /// Returns a release-safe account. The returned object differs from [account]
@@ -48,11 +67,16 @@ void captureDeveloperBaseline(AccountState account) {
 ///
 /// The grant ledgers are a fallback for early debug builds that predate the
 /// full baseline snapshot.
-AccountState releaseSafeDeveloperAccount(
+ReleaseSafeDeveloperAccountResult releaseSafeDeveloperAccountWithStatus(
   AccountState account, {
-  bool releaseBuild = !kDebugMode,
+  bool releaseBuild = kReleaseMode,
 }) {
-  if (!releaseBuild) return account;
+  if (!releaseBuild) {
+    return ReleaseSafeDeveloperAccountResult(
+      account: account,
+      clearedDeveloperState: false,
+    );
+  }
   final fields = account.unknownFields;
   final hasDeveloperState =
       fields.containsKey(developerUnlockedField) ||
@@ -60,9 +84,14 @@ AccountState releaseSafeDeveloperAccount(
       fields.containsKey(developerBaselineField) ||
       fields.containsKey(developerCoinGrantField) ||
       fields.containsKey(developerJokerGrantField);
-  if (!hasDeveloperState) return account;
+  if (!hasDeveloperState) {
+    return ReleaseSafeDeveloperAccountResult(
+      account: account,
+      clearedDeveloperState: false,
+    );
+  }
 
-  AccountState restored = account;
+  AccountState? restored;
   final baseline = fields[developerBaselineField];
   if (baseline is String && baseline.isNotEmpty) {
     try {
@@ -71,7 +100,12 @@ AccountState releaseSafeDeveloperAccount(
       // Fall through to the bounded grant ledger below.
     }
   }
-  if (identical(restored, account)) {
+  if (restored == null) {
+    // Never mutate and return the original object. Bootstrap used object
+    // identity to decide whether the matching developer run must be cleared;
+    // the old fallback therefore cleaned the in-memory account but let that
+    // run cross into release. A clone makes the cleanup boundary explicit.
+    restored = AccountState.decode(account.encode());
     final grantedCoins = switch (fields[developerCoinGrantField]) {
       int value => value,
       num value => value.floor(),
@@ -91,8 +125,19 @@ AccountState releaseSafeDeveloperAccount(
   restored.unknownFields.remove(developerBaselineField);
   restored.unknownFields.remove(developerCoinGrantField);
   restored.unknownFields.remove(developerJokerGrantField);
-  return restored;
+  return ReleaseSafeDeveloperAccountResult(
+    account: restored,
+    clearedDeveloperState: true,
+  );
 }
+
+AccountState releaseSafeDeveloperAccount(
+  AccountState account, {
+  bool releaseBuild = kReleaseMode,
+}) => releaseSafeDeveloperAccountWithStatus(
+  account,
+  releaseBuild: releaseBuild,
+).account;
 
 void resetDeveloperFirstRunState(AccountState account) {
   if (!developerToolsUnlocked(account)) return;
