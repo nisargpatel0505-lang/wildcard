@@ -85,9 +85,11 @@ File: `releases/WILDCARD-v8.3.0-owner-profile.apk`
   bypass; it does not grant the paid no-ads entitlement.
 - Installation must use `adb install -r -t` so the existing app data remains.
 
-The first installation attempt reached the Android confirmation step but was
-cancelled by the device (`INSTALL_FAILED_USER_RESTRICTED`). The installed app
-and save were not changed. Retry is required after the phone reconnects.
+Physical-device installation passed on 26 July 2026 using
+`adb install -r -t`. Package inspection confirmed version `8.3.0` / code `61`;
+the original 13 July first-install timestamp remained intact. The launched
+home screen retained Best Heat 21 and 5,466 coins, confirming the existing save
+survived the in-place update.
 
 ## Public release AAB
 
@@ -124,7 +126,6 @@ Device used during presentation validation:
 - Android 16 / API 36
 - ADB serial `6TLZJV89Q4TCHYMN`
 
-Earlier device evidence on this branch confirms the lowered table, enlarged
-Joker area, lifted selected card, readable nine-card fan, immersive navigation
-and rebuilt Vault layout. Final Sly reaction installation remains pending only
-because the Android confirmation was cancelled before the phone disconnected.
+Device evidence on this branch confirms the lowered table, enlarged Joker
+area, lifted selected card, readable nine-card fan, immersive navigation,
+rebuilt Vault layout and successful launch of the Sly-reaction build.
