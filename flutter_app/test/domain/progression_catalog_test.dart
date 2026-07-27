@@ -5,11 +5,11 @@ import 'package:wildcard/domain/progression_catalog.dart';
 void main() {
   group('cosmetic catalogue', () {
     test('contains every available table, UI theme and Sly look', () {
-      expect(cosmeticCatalog, hasLength(38));
-      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(38));
+      expect(cosmeticCatalog, hasLength(48));
+      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(48));
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.table),
-        hasLength(10),
+        hasLength(20),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.theme),
@@ -28,26 +28,26 @@ void main() {
       );
       expect(
         cosmeticCatalog.fold<int>(0, (sum, item) => sum + item.price),
-        59150,
+        72650,
       );
     });
 
     test('rarities and premium theme pricing stay intact', () {
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.common),
-        hasLength(3),
+        hasLength(5),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.uncommon),
-        hasLength(9),
+        hasLength(11),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.rare),
-        hasLength(17),
+        hasLength(20),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.wild),
-        hasLength(9),
+        hasLength(12),
       );
       expect(cosmeticById('theme_neon_heist')?.price, 5000);
       expect(cosmeticById('theme_clockwork')?.price, 5000);
@@ -58,6 +58,57 @@ void main() {
       expect(cosmeticById('sly_block_drop')?.price, 5000);
       expect(cosmeticById('sly_abyssal')?.price, 5000);
       expect(cosmeticById('sly_desert')?.price, 5000);
+    });
+
+    test('new procedural and premium tables stay registered', () {
+      const proceduralIds = <String>{
+        'felt_herringbone',
+        'felt_art_deco',
+        'felt_honeycomb',
+        'felt_tartan',
+        'felt_circuit_v2',
+        'felt_nebula',
+      };
+      const premiumIds = <String>{
+        'felt_midnight_velvet',
+        'felt_emerald_royale',
+        'felt_neon_grid',
+        'felt_obsidian_marble',
+      };
+      const newTableIds = <String>{...proceduralIds, ...premiumIds};
+      final tables = cosmeticCatalog
+          .where((item) => newTableIds.contains(item.id))
+          .toList();
+      expect(tables, hasLength(newTableIds.length));
+      expect(tables.map((item) => item.name).toSet(), <String>{
+        'Herringbone',
+        'Art-Deco Sunburst',
+        'Honeycomb',
+        'Tartan',
+        'Circuit-Board v2',
+        'Nebula Felt',
+        'Midnight Velvet',
+        'Emerald Casino Royale',
+        'Neon Grid',
+        'Obsidian Marble',
+      });
+      expect(tables.every((item) => item.kind == CosmeticKind.table), isTrue);
+      expect(
+        tables
+            .where((item) => proceduralIds.contains(item.id))
+            .every((item) => item.price >= 250 && item.price <= 800),
+        isTrue,
+      );
+      expect(
+        tables
+            .where((item) => premiumIds.contains(item.id))
+            .every((item) => item.price >= 1500 && item.price <= 3000),
+        isTrue,
+      );
+      expect(cosmeticById('felt_midnight_velvet')?.price, 2200);
+      expect(cosmeticById('felt_emerald_royale')?.price, 2500);
+      expect(cosmeticById('felt_neon_grid')?.price, 2750);
+      expect(cosmeticById('felt_obsidian_marble')?.price, 3000);
     });
 
     test('Cosmetic Vault uses the exact 0.8% theme gate', () {

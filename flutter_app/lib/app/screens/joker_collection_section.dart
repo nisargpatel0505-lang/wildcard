@@ -500,12 +500,19 @@ class _CollectionSummary extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '$have/${pool.length}',
-                  style: TextStyle(
-                    color: color,
-                    fontFamily: 'Bungee',
-                    fontSize: 14,
+                SizedBox(
+                  height: 19,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '$have/${pool.length}',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: color,
+                        fontFamily: 'Bungee',
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
                 Text(
