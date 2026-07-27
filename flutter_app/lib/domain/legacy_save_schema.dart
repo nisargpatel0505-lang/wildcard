@@ -4,6 +4,7 @@ import 'cards.dart';
 import 'deck_integrity.dart';
 import 'economy.dart';
 import 'game_rules.dart';
+import 'joker_catalog.dart';
 import 'random_streams.dart';
 
 const String legacyAccountSaveKey = 'wildcard_save_v1';
@@ -234,7 +235,9 @@ class LegacyRunSave {
       discardsLeft: _int(raw['discardsLeft'], fallback: discardsPerHeat),
       handsPlayedThisStage: _int(raw['handsPlayedThisStage']),
       runCoins: _int(raw['runCoins']),
-      jokerIds: _strings(raw['jokerIds']),
+      jokerIds: _strings(raw['jokerIds'])
+          .where((id) => id != devTwentyXJoker.id || devJokerAvailable)
+          .toList(growable: false),
       blockedJokerIds: _strings(raw['bossBlockedJokerIds']).toSet(),
       jokerState: jokerState,
       cards: sculptedDeck,

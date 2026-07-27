@@ -3,39 +3,78 @@ import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_catalog.dart';
 
 void main() {
-  test('Joker catalogue mirrors all 57 shipped definitions', () {
-    expect(jokerCatalog, hasLength(57));
-    expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(57));
-    expect(jokerCatalog.map((joker) => joker.name).toSet(), hasLength(57));
-    expect(jokerCatalog.where((joker) => joker.starter), hasLength(10));
+  test('Joker catalogue mirrors all 102 public definitions', () {
+    expect(jokerCatalog, hasLength(102));
+    expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(102));
+    expect(jokerCatalog.map((joker) => joker.name).toSet(), hasLength(102));
+    expect(
+      jokerCatalog.map((joker) => joker.effect).toSet(),
+      hasLength(102),
+      reason: 'every public Joker must own one distinct gameplay effect',
+    );
+    final starters = jokerCatalog.where((joker) => joker.starter).toList();
+    expect(starters, hasLength(10));
+    expect(
+      starters.where((joker) => joker.rarity == JokerRarity.common),
+      hasLength(8),
+    );
+    expect(
+      starters.where((joker) => joker.rarity == JokerRarity.uncommon),
+      hasLength(2),
+    );
     expect(
       jokerCatalog.where((joker) => joker.rarity == JokerRarity.common),
-      hasLength(17),
+      hasLength(42),
     );
     expect(
       jokerCatalog.where((joker) => joker.rarity == JokerRarity.uncommon),
-      hasLength(17),
+      hasLength(32),
     );
     expect(
       jokerCatalog.where((joker) => joker.rarity == JokerRarity.rare),
-      hasLength(16),
+      hasLength(20),
     );
     expect(
       jokerCatalog.where((joker) => joker.rarity == JokerRarity.wild),
-      hasLength(7),
+      hasLength(8),
     );
     expect(
       jokerCatalog.every((joker) => joker.price >= 0 && joker.unlock >= 0),
       isTrue,
     );
+    expect(jokersById['copper']!.rarity, JokerRarity.common);
+    expect(jokersById['presser']!.rarity, JokerRarity.common);
+    expect(jokersById['polish']!.rarity, JokerRarity.uncommon);
+    expect(jokersById['roller']!.rarity, JokerRarity.uncommon);
+    expect(
+      jokersById['warm_up']!.rarity.index,
+      greaterThanOrEqualTo(JokerRarity.uncommon.index),
+    );
+    expect(
+      jokersById['marathoner']!.rarity.index,
+      greaterThanOrEqualTo(JokerRarity.uncommon.index),
+    );
+    for (final joker in jokerCatalog) {
+      final (minimum, maximum) = switch (joker.rarity) {
+        JokerRarity.common => (4, 5),
+        JokerRarity.uncommon => (6, 7),
+        JokerRarity.rare => (8, 9),
+        JokerRarity.wild => (10, 12),
+      };
+      expect(
+        joker.price,
+        inInclusiveRange(minimum, maximum),
+        reason: '${joker.id} must stay inside its measured rarity price band',
+      );
+    }
   });
 
-  test('rarity-weighted collection costs preserve the 10,875 coin sink', () {
+  test('rarity-weighted collection costs cover all 92 paid Jokers', () {
     final paid = jokerCatalog.where((joker) => joker.unlock > 0);
-    expect(paid, hasLength(47));
+    expect(paid, hasLength(92));
     expect(
       paid.fold<int>(0, (total, joker) => total + joker.collectionUnlockCost),
-      10875,
+      17075,
     );
   });
 

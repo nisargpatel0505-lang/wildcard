@@ -358,7 +358,9 @@ class ScoringState {
 
   int get effectiveHandsPerHeat => math.max(
     1,
-    handsPerHeat - (hasModifier(HeatModifier.closingTime) ? 1 : 0),
+    handsPerHeat -
+        (hasModifier(HeatModifier.closingTime) ? 1 : 0) -
+        (isJokerActive('overclock') ? 1 : 0),
   );
 
   int get effectiveMaxSelect {

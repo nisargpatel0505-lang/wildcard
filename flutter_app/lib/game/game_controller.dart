@@ -374,8 +374,8 @@ class GameController extends ChangeNotifier {
       bestPlay = result.total;
       bestPlayType = result.handType;
     }
-    scoringEngine.applyOnScored(result);
     _attributeJokerScore(result);
+    scoringEngine.applyOnScored(result);
     final glassResult = scoringEngine.resolveGlassCardShatters(
       played,
       result.scoringFlags,
@@ -721,6 +721,7 @@ class GameController extends ChangeNotifier {
     state.endless = state.endless || state.stage > 12;
     ModifierSelector(state).assignForCurrentHeat();
     scoringEngine.ensureBossBlocks();
+    scoringEngine.prepareHeatJokerState();
     state.stageScore = 0;
     state.handsPlayedThisStage = 0;
     state.handsLeft = state.effectiveHandsPerHeat;

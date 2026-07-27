@@ -117,6 +117,15 @@ const Set<JokerEffect> _additiveMultiplierEffects = <JokerEffect>{
   JokerEffect.coldAdapter,
   JokerEffect.encore,
   JokerEffect.colorWash,
+  JokerEffect.marathoner,
+  JokerEffect.metronome,
+  JokerEffect.comboist,
+  JokerEffect.neonDealer,
+  JokerEffect.hoarder,
+  JokerEffect.ensemble,
+  JokerEffect.warmUp,
+  JokerEffect.chaosTheory,
+  JokerEffect.safeCracker,
 };
 
 const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
@@ -144,6 +153,27 @@ const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
   JokerEffect.rehearsalTape,
   JokerEffect.prismLens,
   JokerEffect.glassJoystick,
+  JokerEffect.twinFlame,
+  JokerEffect.trident,
+  JokerEffect.quartet,
+  JokerEffect.faceValue,
+  JokerEffect.aceInTheHole,
+  JokerEffect.rainbow,
+  JokerEffect.underdog,
+  JokerEffect.frontrunner,
+  JokerEffect.perfectionist,
+  JokerEffect.goldsmith,
+  JokerEffect.wildWhisperer,
+  JokerEffect.purist,
+  JokerEffect.monochrome,
+  JokerEffect.twinStudy,
+  JokerEffect.rarityHunter,
+  JokerEffect.overclock,
+  JokerEffect.roulette,
+  JokerEffect.bloodMoney,
+  JokerEffect.fragileGenius,
+  JokerEffect.highWire,
+  JokerEffect.ruleBreaker,
 };
 
 /// Presentation status derived from the same rule channels used by scoring.
@@ -218,6 +248,9 @@ class WildcardScoringEngine {
 
   bool hasJoker(String id) => state.isJokerActive(id);
 
+  int _evaluationValue(PlayingCard card) =>
+      hasJoker('alchemist') && card.rank == CardRank.two ? 15 : card.value;
+
   List<String> ensureBossBlocks() {
     if (!state.hasBossModifier) {
       state.blockedJokerIds.clear();
@@ -245,56 +278,45 @@ class WildcardScoringEngine {
   }
 
   HandType evaluateHand(List<PlayingCard> cards) {
-    final values = cards.map((card) => card.value).toList();
+    final values = cards.map(_evaluationValue).toList();
     final counts = <int, int>{};
     for (final value in values) {
       counts[value] = (counts[value] ?? 0) + 1;
+    }
+    if (hasJoker('understudy') && values.isNotEmpty) {
+      final highest = values.reduce(math.max);
+      counts[highest] = (counts[highest] ?? 0) + 1;
     }
     final groups = counts.values.toList()..sort((a, b) => b.compareTo(a));
     final five = cards.length == 5;
     final flushFour =
         cards.length == 4 &&
         (state.hasModifier(HeatModifier.lowCeiling) || hasJoker('pocketflush'));
-    final nonWild = cards
-        .where((card) => card.enhancement != CardEnhancement.wildsuit)
-        .toList();
-    final sameSuit =
-        nonWild.isEmpty ||
-        nonWild.every((card) => card.suit == nonWild.first.suit);
-    final flush = (five || flushFour) && sameSuit;
+    final flush =
+        (five || flushFour) &&
+        _canFormFlush(cards, extraWildSlots: hasJoker('suit_swap') ? 1 : 0);
 
     final unique = values.toSet().toList()..sort();
-    var straight = false;
-    var royal = false;
-    if (five && unique.length == 5) {
-      if (unique.last - unique.first == 4) straight = true;
-      if (_sameInts(unique, const <int>[10, 11, 12, 13, 15])) {
-        straight = true;
-        royal = true;
-      }
-      if (_sameInts(unique, const <int>[2, 3, 4, 5, 15])) straight = true;
-    }
-    if (cards.length == 4 &&
-        state.hasModifier(HeatModifier.lowCeiling) &&
-        unique.length == 4) {
-      if (unique.last - unique.first == 3 ||
-          _sameInts(unique, const <int>[11, 12, 13, 15]) ||
-          _sameInts(unique, const <int>[2, 3, 4, 15])) {
-        straight = true;
-      }
-    }
-    if (cards.length == 3 && hasJoker('shortcut') && unique.length == 3) {
-      if (unique.last - unique.first == 2 ||
-          _sameInts(unique, const <int>[12, 13, 15]) ||
-          _sameInts(unique, const <int>[2, 3, 15])) {
-        straight = true;
-      }
-    }
+    final straightLength = five
+        ? 5
+        : cards.length == 4 && state.hasModifier(HeatModifier.lowCeiling)
+        ? 4
+        : cards.length == 3 && hasJoker('shortcut')
+        ? 3
+        : 0;
+    final straight =
+        straightLength > 0 &&
+        unique.length == straightLength &&
+        (_isConsecutiveStraight(unique) ||
+            (hasJoker('gap_filler') && _isSingleGapStraight(unique)));
+    final royal = five && _sameInts(unique, const <int>[10, 11, 12, 13, 15]);
 
     if (straight && flush) {
       return royal ? HandType.royalFlush : HandType.straightFlush;
     }
-    if (groups.isNotEmpty && groups[0] == 4) return HandType.fourOfAKind;
+    // Understudy can promote an existing four-of-a-kind to a synthetic count
+    // of five. It must preserve the authoritative four-of-a-kind result.
+    if (groups.isNotEmpty && groups[0] >= 4) return HandType.fourOfAKind;
     if (groups.length > 1 && groups[0] == 3 && groups[1] == 2) {
       return HandType.fullHouse;
     }
@@ -362,19 +384,27 @@ class WildcardScoringEngine {
     if (type == HandType.pair ||
         type == HandType.twoPair ||
         type == HandType.threeOfAKind ||
-        type == HandType.fourOfAKind) {
+        type == HandType.fourOfAKind ||
+        (type == HandType.fullHouse && hasJoker('understudy'))) {
       final counts = <int, int>{};
       for (final card in cards) {
-        counts[card.value] = (counts[card.value] ?? 0) + 1;
+        final value = _evaluationValue(card);
+        counts[value] = (counts[value] ?? 0) + 1;
       }
-      return cards.where((card) => counts[card.value]! >= 2).toSet();
+      if (hasJoker('understudy') && cards.isNotEmpty) {
+        final highest = cards.map(_evaluationValue).reduce(math.max);
+        counts[highest] = (counts[highest] ?? 0) + 1;
+      }
+      return cards
+          .where((card) => counts[_evaluationValue(card)]! >= 2)
+          .toSet();
     }
     return cards.toSet();
   }
 
   int cardEffectiveRankForScoring(PlayingCard card) {
     if (state.cardRankSuppressed(card)) return 0;
-    var value = card.value;
+    var value = _evaluationValue(card);
     for (final joker in _activeJokers) {
       value += _rankBonus(joker.definition.effect, card);
     }
@@ -403,6 +433,14 @@ class WildcardScoringEngine {
     final perCard = <int>[];
     final flags = <bool>[];
     var rankSum = 0;
+    final scoringIndices = <int>[
+      for (var index = 0; index < cards.length; index++)
+        if (analyzed.scoringCards.contains(cards[index])) index,
+    ];
+    final firstScoringIndex = scoringIndices.isEmpty
+        ? -1
+        : scoringIndices.first;
+    final lastScoringIndex = scoringIndices.isEmpty ? -1 : scoringIndices.last;
 
     for (var cardIndex = 0; cardIndex < cards.length; cardIndex++) {
       final card = cards[cardIndex];
@@ -414,18 +452,24 @@ class WildcardScoringEngine {
       }
       var value = 0;
       if (!state.cardRankSuppressed(card)) {
-        value = card.value;
-        rankSum += card.value;
+        value = _evaluationValue(card);
+        rankSum += value;
         events.add(
           ScoreEvent(
             type: ScoreEventType.card,
             cardIndex: cardIndex,
-            amount: card.value,
-            label: '+${card.value}',
+            amount: value,
+            label: '+$value',
           ),
         );
         for (final joker in _activeJokers) {
-          final bonus = _rankBonus(joker.definition.effect, card);
+          final bonus = _rankBonus(
+            joker.definition.effect,
+            card,
+            cardIndex: cardIndex,
+            firstScoringIndex: firstScoringIndex,
+            lastScoringIndex: lastScoringIndex,
+          );
           if (bonus != 0) {
             value += bonus;
             rankSum += bonus;
@@ -501,7 +545,11 @@ class WildcardScoringEngine {
     }
 
     final rankScore = (rankSum * rankScale).round();
-    final base = state.handBase(analyzed.type);
+    final base = hasJoker('two_faced') && analyzed.type == HandType.twoPair
+        ? handBasePoints[HandType.fullHouse]! +
+              state.handBase(HandType.twoPair) -
+              handBasePoints[HandType.twoPair]!
+        : state.handBase(analyzed.type);
     final valuePoints = base + rankScore;
     var multiplier = baseMultiplier;
 
@@ -548,6 +596,7 @@ class WildcardScoringEngine {
           joker.definition.effect,
           analyzed.type,
           cards,
+          commit: commit,
         );
         multiplier *= factor;
         if ((factor - 1).abs() > 0.001) {
@@ -608,10 +657,51 @@ class WildcardScoringEngine {
     );
   }
 
-  /// Applies the post-score stateful hooks from the v7.1.0 client.
+  /// Resets state that is explicitly scoped to one Heat.
+  void prepareHeatJokerState() {
+    if (state.jokerIds.contains('metronome')) {
+      state.jokerState['metronome'] = 0;
+    }
+    if (state.jokerIds.contains('perfectionist')) {
+      state.jokerState['perfect'] = 1;
+    }
+    if (state.jokerIds.contains('comboist')) {
+      state.jokerState['combo'] = 0;
+    }
+  }
+
+  /// Applies post-score stateful hooks after an authoritative committed play.
   void applyOnScored(ScoreResult result) {
     if (hasJoker('trainer') && result.handType != HandType.highCard) {
       state.jokerState['trainer'] = (state.jokerState['trainer'] ?? 0) + 0.05;
+    }
+    if (hasJoker('metronome')) {
+      state.jokerState['metronome'] = state.previousHandType == result.handType
+          ? (state.jokerState['metronome'] ?? 0) + 1
+          : 0;
+    }
+    if (hasJoker('perfectionist') &&
+        state.previousHandType != null &&
+        state.previousHandType != result.handType) {
+      state.jokerState['perfect'] = 0;
+    }
+    if (hasJoker('comboist')) {
+      final bit = 1 << result.handType.index;
+      state.jokerState['combo'] =
+          ((state.jokerState['combo'] ?? 0).round() | bit).toDouble();
+    }
+    if (hasJoker('blood_money') && state.runCoins > 0) {
+      state.runCoins--;
+    }
+    if (hasJoker('fragile_genius')) {
+      final hadPrevious = state.jokerState.containsKey('fragile');
+      final previous = state.jokerState['fragile'] ?? 0;
+      if (hadPrevious && result.total < previous) {
+        state.jokerIds.removeWhere((id) => id == 'fragile_genius');
+        state.jokerState.remove('fragile');
+      } else {
+        state.jokerState['fragile'] = result.total.toDouble();
+      }
     }
     state.previousHandType = result.handType;
   }
@@ -667,6 +757,10 @@ class WildcardScoringEngine {
     for (final id in equippedSnapshot) {
       if (!state.isJokerActive(id)) continue;
       if (id == 'dividend') state.runCoins += 2;
+      if (id == 'safe_cracker' && state.modifiers.isNotEmpty) {
+        state.jokerState['safecrack'] =
+            (state.jokerState['safecrack'] ?? 0) + state.modifiers.length;
+      }
       if (id == 'glass_joystick') {
         const key = 'glass_joystick_armed';
         if ((state.jokerState[key] ?? 0) == 0) {
@@ -679,7 +773,13 @@ class WildcardScoringEngine {
     }
   }
 
-  int _rankBonus(JokerEffect effect, PlayingCard card) => switch (effect) {
+  int _rankBonus(
+    JokerEffect effect,
+    PlayingCard card, {
+    int cardIndex = -1,
+    int firstScoringIndex = -1,
+    int lastScoringIndex = -1,
+  }) => switch (effect) {
     JokerEffect.suitPresser => card.suit == CardSuit.hearts ? 4 : 0,
     JokerEffect.royalRetainer =>
       const <CardRank>{
@@ -703,6 +803,31 @@ class WildcardScoringEngine {
           }.contains(card.rank)
           ? 4
           : 0,
+    JokerEffect.icePick => card.suit == CardSuit.diamonds ? 4 : 0,
+    JokerEffect.unionBoss => card.suit == CardSuit.clubs ? 4 : 0,
+    JokerEffect.gravedigger => card.suit == CardSuit.spades ? 4 : 0,
+    JokerEffect.roseTint => card.isRed ? 3 : 0,
+    JokerEffect.oddJob => card.value.isOdd ? 3 : 0,
+    JokerEffect.primeTime =>
+      const <CardRank>{
+            CardRank.two,
+            CardRank.three,
+            CardRank.five,
+            CardRank.seven,
+          }.contains(card.rank)
+          ? 4
+          : 0,
+    JokerEffect.kingpin => card.rank == CardRank.king ? 8 : 0,
+    JokerEffect.glazier =>
+      card.enhancement == CardEnhancement.glass
+          ? _evaluationValue(card) * 2
+          : 0,
+    JokerEffect.closer =>
+      cardIndex >= 0 && cardIndex == lastScoringIndex
+          ? _evaluationValue(card) * 2
+          : 0,
+    JokerEffect.leadoff =>
+      cardIndex >= 0 && cardIndex == firstScoringIndex ? 6 : 0,
     _ => 0,
   };
 
@@ -733,14 +858,36 @@ class WildcardScoringEngine {
     JokerEffect.coldAdapter => state.hasModifier(HeatModifier.cold) ? 0.30 : 0,
     JokerEffect.encore => state.previousHandType == handType ? 0.30 : 0,
     JokerEffect.colorWash => _allSameColor(played) ? 0.45 : 0,
+    JokerEffect.marathoner => 0.20 * state.handsLeft,
+    JokerEffect.metronome =>
+      0.30 *
+          (state.previousHandType == handType
+              ? (state.jokerState['metronome'] ?? 0) + 1
+              : 0),
+    JokerEffect.comboist =>
+      0.15 *
+          _bitCount(
+            (state.jokerState['combo'] ?? 0).round() | (1 << handType.index),
+          ),
+    JokerEffect.neonDealer =>
+      0.40 *
+          played
+              .where((card) => card.enhancement == CardEnhancement.neon)
+              .length,
+    JokerEffect.hoarder => 0.03 * math.max(0, state.cards.length - 40),
+    JokerEffect.ensemble => 0.12 * state.jokerIds.length,
+    JokerEffect.warmUp => state.handsPlayedThisStage == 0 ? 0.60 : 0,
+    JokerEffect.chaosTheory => 0.50 * state.modifiers.length,
+    JokerEffect.safeCracker => 0.35 * (state.jokerState['safecrack'] ?? 0),
     _ => 0,
   };
 
   double _multiplicativeMultiplier(
     JokerEffect effect,
     HandType handType,
-    List<PlayingCard> played,
-  ) => switch (effect) {
+    List<PlayingCard> played, {
+    required bool commit,
+  }) => switch (effect) {
     // Owner test Joker: flat x20 so late Heats are reachable quickly.
     JokerEffect.devTwentyX => 20,
     JokerEffect.pairPolisher => handType != HandType.highCard ? 1.4 : 1,
@@ -773,6 +920,64 @@ class WildcardScoringEngine {
     JokerEffect.rehearsalTape => state.handsPlayedThisStage == 0 ? 1.3 : 1,
     JokerEffect.prismLens => _fiveShareColor(played) ? 1.35 : 1,
     JokerEffect.glassJoystick => 3,
+    JokerEffect.twinFlame => played.length == 2 ? 1.5 : 1,
+    JokerEffect.trident => played.length == 3 ? 1.7 : 1,
+    JokerEffect.quartet => played.length == 4 ? 1.6 : 1,
+    JokerEffect.faceValue =>
+      played.any(
+            (card) => const <CardRank>{
+              CardRank.jack,
+              CardRank.queen,
+              CardRank.king,
+            }.contains(card.rank),
+          )
+          ? 1.5
+          : 1,
+    JokerEffect.aceInTheHole =>
+      played.any((card) => card.rank == CardRank.ace) ? 1.6 : 1,
+    JokerEffect.rainbow =>
+      played.map((card) => card.suit).toSet().length >= 3 ? 2 : 1,
+    JokerEffect.underdog => state.stageScore < state.target * .40 ? 2 : 1,
+    JokerEffect.frontrunner => state.stageScore > state.target * .80 ? 1.6 : 1,
+    JokerEffect.perfectionist =>
+      (state.jokerState['perfect'] ?? 1) > 0 &&
+              (state.previousHandType == null ||
+                  state.previousHandType == handType)
+          ? 2.5
+          : 1,
+    JokerEffect.goldsmith =>
+      played.any((card) => card.enhancement == CardEnhancement.gild) ? 1.5 : 1,
+    JokerEffect.wildWhisperer =>
+      math
+          .pow(
+            1.35,
+            played
+                .where((card) => card.enhancement == CardEnhancement.wildsuit)
+                .length,
+          )
+          .toDouble(),
+    JokerEffect.purist =>
+      played.every((card) => card.enhancement == null) ? 1.6 : 1,
+    JokerEffect.monochrome => _deckHasColorShare(state.cards, .60) ? 1.7 : 1,
+    JokerEffect.twinStudy => _matchingRankPairs(state.cards) >= 4 ? 1.4 : 1,
+    JokerEffect.rarityHunter =>
+      math
+          .pow(
+            1.25,
+            state.jokerIds.where((id) {
+              final rarity = jokersById[id]?.rarity;
+              return rarity == JokerRarity.rare || rarity == JokerRarity.wild;
+            }).length,
+          )
+          .toDouble(),
+    JokerEffect.overclock => 3,
+    JokerEffect.roulette =>
+      commit ? (state.nextRandom(RandomStream.luck) < .5 ? 2.5 : .6) : 1.55,
+    JokerEffect.bloodMoney => state.runCoins > 0 ? 1.8 : 1,
+    JokerEffect.fragileGenius => 4,
+    JokerEffect.highWire =>
+      state.discardsLeft == 0 && state.handsLeft == 1 ? 2.2 : 1,
+    JokerEffect.ruleBreaker => state.hasBossModifier ? 2.2 : 1,
     _ => 1,
   };
 
@@ -819,6 +1024,83 @@ bool _allSameColor(List<PlayingCard> cards) =>
 bool _fiveShareColor(List<PlayingCard> cards) {
   final reds = cards.where((card) => card.isRed).length;
   return reds >= 5 || cards.length - reds >= 5;
+}
+
+bool _canFormFlush(List<PlayingCard> cards, {int extraWildSlots = 0}) {
+  if (cards.isEmpty) return false;
+  final suitCounts = <CardSuit, int>{};
+  var wildSuitCards = 0;
+  for (final card in cards) {
+    if (card.enhancement == CardEnhancement.wildsuit) {
+      wildSuitCards++;
+      continue;
+    }
+    suitCounts[card.suit] = (suitCounts[card.suit] ?? 0) + 1;
+  }
+  final bestSuitCount = suitCounts.values.fold<int>(0, math.max);
+  return bestSuitCount + wildSuitCards + extraWildSlots >= cards.length;
+}
+
+bool _isConsecutiveStraight(List<int> values) =>
+    _straightOrders(values).any((ordered) {
+      for (var index = 1; index < ordered.length; index++) {
+        if (ordered[index] - ordered[index - 1] != 1) return false;
+      }
+      return true;
+    });
+
+bool _isSingleGapStraight(List<int> values) =>
+    _straightOrders(values).any((ordered) {
+      var gaps = 0;
+      for (var index = 1; index < ordered.length; index++) {
+        final difference = ordered[index] - ordered[index - 1];
+        if (difference == 2) {
+          gaps++;
+        } else if (difference != 1) {
+          return false;
+        }
+      }
+      return gaps == 1;
+    });
+
+Iterable<List<int>> _straightOrders(List<int> values) sync* {
+  // WILDCARD deliberately stores Ace as 15 (there is no rank value 14).
+  // Normalize it to 14 for high-Ace adjacency and to 1 for wheel straights.
+  final high = values.map((value) => value == 15 ? 14 : value).toList()..sort();
+  yield high;
+  if (values.contains(15)) {
+    final aceLow = values.map((value) => value == 15 ? 1 : value).toList()
+      ..sort();
+    yield aceLow;
+  }
+}
+
+int _bitCount(int value) {
+  var count = 0;
+  var remaining = value;
+  while (remaining > 0) {
+    count += remaining & 1;
+    remaining >>= 1;
+  }
+  return count;
+}
+
+bool _deckHasColorShare(List<PlayingCard> cards, double threshold) {
+  if (cards.isEmpty) return false;
+  final redCount = cards.where((card) => card.isRed).length;
+  final dominantCount = math.max(redCount, cards.length - redCount);
+  return dominantCount / cards.length >= threshold;
+}
+
+int _matchingRankPairs(List<PlayingCard> cards) {
+  final counts = <CardRank, int>{};
+  for (final card in cards) {
+    counts[card.rank] = (counts[card.rank] ?? 0) + 1;
+  }
+  // A "pair" here is a sculpted rank with exactly two cards remaining.
+  // Counting every possible pair would make an untouched 52-card deck trigger
+  // automatically (four cards of every rank contains 26 combinations).
+  return counts.values.where((count) => count == 2).length;
 }
 
 int _maxRankCount(List<PlayingCard> cards) {

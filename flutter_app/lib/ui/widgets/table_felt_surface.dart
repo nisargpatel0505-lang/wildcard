@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../wildcard_theme.dart';
 
-/// Static, paint-only table treatments for the ten collectible felts.
+/// Static table treatments for the collectible felts.
 ///
-/// The painter deliberately uses a small, fixed number of paths and is wrapped
-/// in a [RepaintBoundary]. It therefore changes the table's identity without
-/// adding images, animation controllers, blur filters or scoring-time work.
+/// Procedural treatments use batched paths, while the premium texture
+/// treatments use cached, repeating assets. The complete surface is wrapped in
+/// a [RepaintBoundary], so changing its identity adds no scoring-time work.
 enum TableFeltPattern {
   weave,
   grid,
@@ -20,6 +20,13 @@ enum TableFeltPattern {
   stars,
   circuit,
   petals,
+  herringbone,
+  artDecoSunburst,
+  honeycomb,
+  tartan,
+  circuitBoardV2,
+  nebula,
+  imageTexture,
 }
 
 @immutable
@@ -30,6 +37,7 @@ class TableFeltVisual {
     required this.secondary,
     required this.trim,
     required this.pattern,
+    this.assetPath,
   });
 
   final String id;
@@ -37,6 +45,9 @@ class TableFeltVisual {
   final Color secondary;
   final Color trim;
   final TableFeltPattern pattern;
+  final String? assetPath;
+
+  bool get isImageBased => assetPath != null;
 }
 
 const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
@@ -110,6 +121,82 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     trim: Color(0xFFFFA5D6),
     pattern: TableFeltPattern.petals,
   ),
+  'felt_herringbone': TableFeltVisual(
+    id: 'felt_herringbone',
+    primary: Color(0xFF242631),
+    secondary: Color(0xFF0B0D14),
+    trim: Color(0xFFC9A85B),
+    pattern: TableFeltPattern.herringbone,
+  ),
+  'felt_art_deco': TableFeltVisual(
+    id: 'felt_art_deco',
+    primary: Color(0xFF132747),
+    secondary: Color(0xFF070D1D),
+    trim: Color(0xFFF2C45D),
+    pattern: TableFeltPattern.artDecoSunburst,
+  ),
+  'felt_honeycomb': TableFeltVisual(
+    id: 'felt_honeycomb',
+    primary: Color(0xFF3D173B),
+    secondary: Color(0xFF16091C),
+    trim: Color(0xFFFFC64E),
+    pattern: TableFeltPattern.honeycomb,
+  ),
+  'felt_tartan': TableFeltVisual(
+    id: 'felt_tartan',
+    primary: Color(0xFF3B1721),
+    secondary: Color(0xFF090F20),
+    trim: Color(0xFFD6B76B),
+    pattern: TableFeltPattern.tartan,
+  ),
+  'felt_circuit_v2': TableFeltVisual(
+    id: 'felt_circuit_v2',
+    primary: Color(0xFF082E31),
+    secondary: Color(0xFF031115),
+    trim: Color(0xFF62F7DC),
+    pattern: TableFeltPattern.circuitBoardV2,
+  ),
+  'felt_nebula': TableFeltVisual(
+    id: 'felt_nebula',
+    primary: Color(0xFF251052),
+    secondary: Color(0xFF080516),
+    trim: Color(0xFFC9A0FF),
+    pattern: TableFeltPattern.nebula,
+  ),
+  // TODO(final AI art): Replace these seamless placeholders with approved
+  // 1024px production tiles after edge, contrast and on-device memory QA.
+  'felt_midnight_velvet': TableFeltVisual(
+    id: 'felt_midnight_velvet',
+    primary: Color(0xFF121B38),
+    secondary: Color(0xFF040711),
+    trim: Color(0xFF8FA9E8),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/midnight_velvet.webp',
+  ),
+  'felt_emerald_royale': TableFeltVisual(
+    id: 'felt_emerald_royale',
+    primary: Color(0xFF0B4A36),
+    secondary: Color(0xFF03150F),
+    trim: Color(0xFFE8C96D),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/emerald_casino_royale.webp',
+  ),
+  'felt_neon_grid': TableFeltVisual(
+    id: 'felt_neon_grid',
+    primary: Color(0xFF11103E),
+    secondary: Color(0xFF050516),
+    trim: Color(0xFF45E8F2),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/neon_grid.webp',
+  ),
+  'felt_obsidian_marble': TableFeltVisual(
+    id: 'felt_obsidian_marble',
+    primary: Color(0xFF17151D),
+    secondary: Color(0xFF050507),
+    trim: Color(0xFFC5A5F0),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/obsidian_marble.webp',
+  ),
 };
 
 TableFeltVisual resolveTableFeltVisual(String id) =>
@@ -163,7 +250,37 @@ class TableFeltSurface extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: borderRadius,
-                  child: CustomPaint(painter: _TableFeltPainter(visual)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (visual.assetPath case final assetPath?)
+                        Image.asset(
+                          assetPath,
+                          key: ValueKey('table-felt-texture-${visual.id}'),
+                          fit: BoxFit.none,
+                          repeat: ImageRepeat.repeat,
+                          scale: 2,
+                          cacheWidth: 512,
+                          cacheHeight: 512,
+                          filterQuality: FilterQuality.low,
+                          excludeFromSemantics: true,
+                        ),
+                      if (visual.isImageBased)
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: <Color>[
+                                visual.primary.withValues(alpha: .12),
+                                visual.secondary.withValues(alpha: .42),
+                              ],
+                            ),
+                          ),
+                        ),
+                      CustomPaint(painter: _TableFeltPainter(visual)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -327,6 +444,176 @@ class _TableFeltPainter extends CustomPainter {
           );
           canvas.restore();
         }
+      case TableFeltPattern.herringbone:
+        const unit = 24.0;
+        final path = Path();
+        for (double y = -unit; y < size.height + unit; y += unit) {
+          for (double x = -unit; x < size.width + unit; x += unit * 2) {
+            final shift = ((y / unit).round()).isEven ? 0.0 : unit;
+            path
+              ..moveTo(x + shift, y)
+              ..lineTo(x + shift + unit, y + unit / 2)
+              ..lineTo(x + shift, y + unit)
+              ..moveTo(x + shift + unit, y + unit / 2)
+              ..lineTo(x + shift + unit * 2, y);
+          }
+        }
+        canvas.drawPath(path, line);
+      case TableFeltPattern.artDecoSunburst:
+        final origin = Offset(size.width / 2, size.height * .92);
+        final rays = Path();
+        const rayCount = 14;
+        for (var index = 0; index <= rayCount; index++) {
+          final x = size.width * index / rayCount;
+          rays
+            ..moveTo(origin.dx, origin.dy)
+            ..lineTo(x, 0);
+        }
+        for (var index = 1; index <= 4; index++) {
+          final inset = index * 12.0;
+          rays.addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                inset,
+                inset,
+                math.max(0, size.width - inset * 2),
+                math.max(0, size.height - inset * 2),
+              ),
+              const Radius.circular(10),
+            ),
+          );
+        }
+        canvas.drawPath(rays, line);
+      case TableFeltPattern.honeycomb:
+        const radius = 15.0;
+        final columnStep = radius * 1.5;
+        final rowStep = radius * 1.74;
+        final cells = Path();
+        var column = 0;
+        for (double x = -radius; x < size.width + radius; x += columnStep) {
+          final rowOffset = column.isEven ? 0.0 : rowStep / 2;
+          for (
+            double y = -radius + rowOffset;
+            y < size.height + radius;
+            y += rowStep
+          ) {
+            cells.moveTo(x + radius, y);
+            for (var corner = 1; corner <= 6; corner++) {
+              final angle = corner * math.pi / 3;
+              cells.lineTo(
+                x + math.cos(angle) * radius,
+                y + math.sin(angle) * radius,
+              );
+            }
+          }
+          column++;
+        }
+        canvas.drawPath(cells, line);
+      case TableFeltPattern.tartan:
+        final broadStripes = Path();
+        for (double x = 18; x < size.width; x += 78) {
+          broadStripes.addRect(Rect.fromLTWH(x, 0, 13, size.height));
+        }
+        for (double y = 18; y < size.height; y += 78) {
+          broadStripes.addRect(Rect.fromLTWH(0, y, size.width, 13));
+        }
+        canvas.drawPath(
+          broadStripes,
+          Paint()
+            ..color = visual.trim.withValues(alpha: .09)
+            ..style = PaintingStyle.fill,
+        );
+        final fineStripes = Path();
+        for (double x = 42; x < size.width; x += 78) {
+          fineStripes
+            ..moveTo(x, 0)
+            ..lineTo(x, size.height)
+            ..moveTo(x + 4, 0)
+            ..lineTo(x + 4, size.height);
+        }
+        for (double y = 42; y < size.height; y += 78) {
+          fineStripes
+            ..moveTo(0, y)
+            ..lineTo(size.width, y)
+            ..moveTo(0, y + 4)
+            ..lineTo(size.width, y + 4);
+        }
+        canvas.drawPath(fineStripes, line);
+      case TableFeltPattern.circuitBoardV2:
+        final traces = Path();
+        const lanes = 7;
+        for (var lane = 0; lane < lanes; lane++) {
+          final y = size.height * (lane + 1) / (lanes + 1);
+          final direction = lane.isEven ? 1.0 : -1.0;
+          traces
+            ..moveTo(direction > 0 ? 0 : size.width, y)
+            ..lineTo(size.width * .20, y)
+            ..lineTo(size.width * .28, y + direction * 11)
+            ..lineTo(size.width * .56, y + direction * 11)
+            ..lineTo(size.width * .64, y - direction * 7)
+            ..lineTo(direction > 0 ? size.width : 0, y - direction * 7);
+          canvas.drawCircle(
+            Offset(size.width * .28, y + direction * 11),
+            2.4,
+            soft,
+          );
+          canvas.drawCircle(
+            Offset(size.width * .64, y - direction * 7),
+            2.4,
+            soft,
+          );
+        }
+        canvas.drawPath(traces, line..strokeWidth = 1.2);
+      case TableFeltPattern.nebula:
+        const clouds = <(Offset, double, Color)>[
+          (Offset(.22, .28), .34, Color(0xFFB15CFF)),
+          (Offset(.66, .64), .40, Color(0xFF4EDFD0)),
+          (Offset(.78, .18), .25, Color(0xFFFF6EBD)),
+        ];
+        for (final (position, radiusFactor, color) in clouds) {
+          final radius = size.shortestSide * radiusFactor;
+          final center = Offset(
+            position.dx * size.width,
+            position.dy * size.height,
+          );
+          canvas.drawCircle(
+            center,
+            radius,
+            Paint()
+              ..shader = RadialGradient(
+                colors: <Color>[
+                  color.withValues(alpha: .16),
+                  color.withValues(alpha: .04),
+                  Colors.transparent,
+                ],
+              ).createShader(Rect.fromCircle(center: center, radius: radius)),
+          );
+        }
+        const dust = <Offset>[
+          Offset(.08, .72),
+          Offset(.17, .19),
+          Offset(.31, .55),
+          Offset(.48, .24),
+          Offset(.57, .82),
+          Offset(.70, .41),
+          Offset(.84, .69),
+          Offset(.92, .16),
+        ];
+        for (final star in dust) {
+          canvas.drawCircle(
+            Offset(star.dx * size.width, star.dy * size.height),
+            1.25,
+            soft,
+          );
+        }
+      case TableFeltPattern.imageTexture:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(8, 8, size.width - 16, size.height - 16),
+            const Radius.circular(10),
+          ),
+          line..strokeWidth = 1.2,
+        );
     }
   }
 
