@@ -1,0 +1,100 @@
+name: Export WILDCARD v8.4 simulation pack
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export-simulation-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Assemble source pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p WILDCARD-v8.4.0-simulation-source/flutter_app
+          mkdir -p WILDCARD-v8.4.0-simulation-source/docs/release
+
+          cp -R flutter_app/lib WILDCARD-v8.4.0-simulation-source/flutter_app/
+          cp -R flutter_app/tool WILDCARD-v8.4.0-simulation-source/flutter_app/
+          cp -R flutter_app/test WILDCARD-v8.4.0-simulation-source/flutter_app/
+          cp flutter_app/pubspec.yaml WILDCARD-v8.4.0-simulation-source/flutter_app/
+          if [ -f flutter_app/pubspec.lock ]; then
+            cp flutter_app/pubspec.lock WILDCARD-v8.4.0-simulation-source/flutter_app/
+          fi
+          if [ -f flutter_app/analysis_options.yaml ]; then
+            cp flutter_app/analysis_options.yaml WILDCARD-v8.4.0-simulation-source/flutter_app/
+          fi
+
+          cp docs/release/WILDCARD-v8.4.0-owner-dev-notes.md WILDCARD-v8.4.0-simulation-source/docs/release/
+          cp docs/release/wildcard-v8.4.0-joker-balance.csv WILDCARD-v8.4.0-simulation-source/docs/release/
+          cp docs/release/wildcard-v8.4.0-joker-pairs.csv WILDCARD-v8.4.0-simulation-source/docs/release/
+          cp docs/release/wildcard-v8.4.0-economy-results.json WILDCARD-v8.4.0-simulation-source/docs/release/
+
+          cat > WILDCARD-v8.4.0-simulation-source/README_FOR_OPUS.md <<'EOF'
+          # WILDCARD v8.4.0+62 simulation source pack
+
+          Exact source branch: agent/flutter-v8.4.0-smart-jokers-tables
+          Exact source commit: b23642ce4e71abf81ec7bb3675759a10b43d5f13
+          Public Joker catalogue: 102 Jokers
+
+          This pack contains the Dart/Flutter source, simulation harness, tests,
+          sharded balance runners and existing v8.4 evidence. It intentionally
+          excludes the compiled APK because an APK cannot be used to inspect or
+          modify the simulator source.
+
+          ## Setup
+
+          Install Flutter with a Dart SDK compatible with pubspec.yaml, then:
+
+              cd flutter_app
+              flutter pub get
+              flutter analyze
+              flutter test
+
+          ## Main balance runner
+
+          Run the baseline and all single-Joker arms:
+
+              dart run tool/joker_balance_runner.dart --phase=singles --runs=1000
+
+          Run both singles and pairs in one process:
+
+              dart run tool/joker_balance_runner.dart --phase=both --runs=1000
+
+          For larger work, inspect:
+
+          - tool/run_balance_shards.ps1
+          - tool/merge_balance_results.ps1
+          - tool/joker_balance_runner.dart
+          - lib/domain/simulation.dart
+          - lib/domain/joker_balance_audit.dart
+          - lib/domain/joker_catalog.dart
+          - test/joker_contribution_test.dart
+
+          Do not assume the existing CSV conclusions are final. Re-run with
+          matched seeds, inspect invariant failures, compare the baseline against
+          every solo Joker and selected pair, and report confidence/variance.
+          EOF
+
+          find WILDCARD-v8.4.0-simulation-source -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > WILDCARD-v8.4.0-simulation-source/SHA256SUMS.txt
+
+      - name: Upload simulation source pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-v8.4.0-simulation-source
+          path: WILDCARD-v8.4.0-simulation-source
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 9
