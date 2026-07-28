@@ -112,13 +112,15 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
 
   @override
   Widget build(BuildContext context) {
-    const gold = Color(0xFFF7C548);
-    const mint = Color(0xFF45E0C6);
+    final tokens = context.wildcard;
+    final gold = tokens.gold;
+    final mint = tokens.mint;
     final width = MediaQuery.sizeOf(context).width;
     final logoWidth = (width * .60).clamp(205.0, 240.0).toDouble();
     final panelWidth = (width - 48).clamp(230.0, 300.0).toDouble();
     return ColoredBox(
-      color: const Color(0xFF080414),
+      key: const ValueKey('wildcard-surface-loading'),
+      color: tokens.pageBackground,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -128,19 +130,22 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
               curve: Curves.easeOutCubic,
             ),
             child: Image.asset(
-              WildcardThemeTokens.palaceBackground,
+              tokens.backgroundAssetFor(WildcardUiSurface.loading)!,
               fit: BoxFit.cover,
               gaplessPlayback: true,
               errorBuilder: (_, _, _) =>
-                  const ColoredBox(color: Color(0xFF080414)),
+                  ColoredBox(color: tokens.pageBackground),
             ),
           ),
-          const DecoratedBox(
+          DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0x76080414), Color(0xED080414)],
+                colors: [
+                  tokens.ink.withValues(alpha: .46),
+                  tokens.ink.withValues(alpha: .93),
+                ],
               ),
             ),
           ),
@@ -180,10 +185,10 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
                                   children: [
                                     _RetryPrompt(onRetry: widget.onRetry),
                                     const SizedBox(height: 14),
-                                    const Text(
+                                    Text(
                                       'Could not start',
                                       style: TextStyle(
-                                        color: Color(0xFFFF9A8A),
+                                        color: tokens.coral,
                                         fontFamily: 'Bungee',
                                         fontSize: 11,
                                         letterSpacing: 1.2,
@@ -198,6 +203,8 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
                                   motionDisabled: _motionDisabled,
                                   fill: gold,
                                   track: mint,
+                                  textColor: tokens.cream,
+                                  emptySegmentColor: tokens.disabledFill,
                                 ),
                         ),
                       ),
@@ -288,6 +295,8 @@ class _BootProgressPanel extends StatelessWidget {
     required this.motionDisabled,
     required this.fill,
     required this.track,
+    required this.textColor,
+    required this.emptySegmentColor,
   });
 
   final ValueListenable<BootProgress>? progress;
@@ -296,6 +305,8 @@ class _BootProgressPanel extends StatelessWidget {
   final bool motionDisabled;
   final Color fill;
   final Color track;
+  final Color textColor;
+  final Color emptySegmentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +341,12 @@ class _BootProgressPanel extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 9),
-      _SegmentedLoadBar(progress: visibleProgress, fill: fill, track: track),
+      _SegmentedLoadBar(
+        progress: visibleProgress,
+        fill: fill,
+        track: track,
+        emptyColor: emptySegmentColor,
+      ),
       const SizedBox(height: 14),
       AnimatedSwitcher(
         duration: motionDisabled
@@ -353,8 +369,8 @@ class _BootProgressPanel extends StatelessWidget {
               ),
               TextSpan(
                 text: tip,
-                style: const TextStyle(
-                  color: Color(0xFFF6EFDF),
+                style: TextStyle(
+                  color: textColor,
                   fontFamily: 'SpaceGrotesk',
                   fontSize: 11.5,
                   fontWeight: FontWeight.w500,
@@ -376,6 +392,7 @@ class _SegmentedLoadBar extends StatelessWidget {
     required this.progress,
     required this.fill,
     required this.track,
+    required this.emptyColor,
   });
 
   static const int segmentCount = 12;
@@ -383,6 +400,7 @@ class _SegmentedLoadBar extends StatelessWidget {
   final double progress;
   final Color fill;
   final Color track;
+  final Color emptyColor;
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +420,7 @@ class _SegmentedLoadBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: value >= (index + 1) / segmentCount
                         ? fill
-                        : const Color(0xFF15102E),
+                        : emptyColor,
                     borderRadius: BorderRadius.circular(2),
                     border: Border.all(
                       color: value >= (index + 1) / segmentCount
@@ -435,13 +453,16 @@ class _RetryPrompt extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) => FilledButton(
-    onPressed: onRetry,
-    style: FilledButton.styleFrom(
-      backgroundColor: const Color(0xFFF7C548),
-      foregroundColor: const Color(0xFF23180A),
-      minimumSize: const Size(140, 48),
-    ),
-    child: const Text('Retry', style: TextStyle(fontFamily: 'Bungee')),
-  );
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    return FilledButton(
+      onPressed: onRetry,
+      style: FilledButton.styleFrom(
+        backgroundColor: tokens.gold,
+        foregroundColor: tokens.onSecondaryAccent,
+        minimumSize: const Size(140, 48),
+      ),
+      child: const Text('Retry', style: TextStyle(fontFamily: 'Bungee')),
+    );
+  }
 }

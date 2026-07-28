@@ -77,25 +77,27 @@ class BetweenHeatShopScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final buyLimitReached = jokerBuysUsed >= jokerBuyLimit;
     return Scaffold(
-      backgroundColor: const Color(0xFF080414),
+      backgroundColor: context.wildcard.pageBackground,
       body: WildcardBackground(
         room: WildcardRoom.shop,
+        surface: WildcardUiSurface.betweenHeatShop,
         tintStrength: 0.9,
         child: SafeArea(
-          minimum: const EdgeInsets.fromLTRB(0, 4, 0, 5),
+          minimum: const EdgeInsets.fromLTRB(0, 4, 0, 8),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxWidth < 340;
-              final side = compact ? 8.0 : 12.0;
-              return Stack(
+              final metrics = WildcardResponsiveMetrics.from(
+                constraints.biggest,
+              );
+              final compact = metrics.isCompact;
+              final side = metrics.pagePadding;
+              return Column(
                 children: [
-                  Positioned.fill(
+                  Expanded(
                     child: SingleChildScrollView(
                       key: const Key('between-heat-shop-scroll'),
                       physics: const ClampingScrollPhysics(),
-                      // Extra bottom room so the content clears the raised
-                      // Next Heat button.
-                      padding: EdgeInsets.fromLTRB(side, 2, side, 96),
+                      padding: EdgeInsets.fromLTRB(side, 2, side, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -174,6 +176,7 @@ class BetweenHeatShopScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           WildcardButton(
+                            key: const Key('view-shop-deck-button'),
                             label: 'View This Heat\'s Deck',
                             icon: const Icon(Icons.style_outlined),
                             onPressed: busy ? null : onOpenDeck,
@@ -185,26 +188,87 @@ class BetweenHeatShopScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: side,
-                    right: side,
-                    // Lifted well clear of the gesture bar / rounded corner —
-                    // at bottom:5 it read as cut off on tall phones.
-                    bottom: 18,
-                    child: WildcardButton(
-                      key: const Key('next-heat-button'),
-                      label: 'Next Heat',
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                      onPressed: busy ? null : onNextHeat,
-                      variant: WildcardButtonVariant.primary,
-                      minHeight: 56,
-                      textAlign: TextAlign.center,
-                    ),
+                  _ShopExitDock(
+                    sidePadding: side,
+                    nextStage: stageCleared + 1,
+                    busy: busy,
+                    onNextHeat: onNextHeat,
                   ),
                 ],
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A reserved action dock keeps the run's primary action visibly above Android
+/// gesture/navigation areas. It is deliberately outside the shop scroll view,
+/// so the secondary Deck action can never slide underneath or overlap it.
+class _ShopExitDock extends StatelessWidget {
+  const _ShopExitDock({
+    required this.sidePadding,
+    required this.nextStage,
+    required this.busy,
+    required this.onNextHeat,
+  });
+
+  final double sidePadding;
+  final int nextStage;
+  final bool busy;
+  final VoidCallback? onNextHeat;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    return DecoratedBox(
+      key: const Key('shop-exit-dock'),
+      decoration: BoxDecoration(
+        color: tokens.surfaceStrong.withValues(alpha: .96),
+        border: Border(top: BorderSide(color: tokens.line, width: 1.25)),
+        boxShadow: [
+          BoxShadow(
+            color: tokens.shadow,
+            blurRadius: 16,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(sidePadding, 7, sidePadding, 9),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'READY FOR HEAT $nextStage',
+              key: const Key('shop-next-heat-caption'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: tokens.creamDim,
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.w700,
+                fontSize: 9.5,
+                height: 1.1,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            WildcardButton(
+              key: const Key('next-heat-button'),
+              label: 'Next Heat',
+              icon: const Icon(Icons.arrow_forward_rounded),
+              onPressed: busy ? null : onNextHeat,
+              variant: WildcardButtonVariant.primary,
+              minHeight: 58,
+              textAlign: TextAlign.center,
+              attention: true,
+            ),
+          ],
         ),
       ),
     );
@@ -351,28 +415,31 @@ class _GradeStampState extends State<_GradeStamp>
             BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 12),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.grade,
-              style: TextStyle(
-                color: color,
-                fontFamily: 'Bungee',
-                fontSize: widget.compact ? 17 : 20,
-                height: 1,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.grade,
+                style: TextStyle(
+                  color: color,
+                  fontFamily: 'Bungee',
+                  fontSize: widget.compact ? 17 : 20,
+                  height: 1,
+                ),
               ),
-            ),
-            Text(
-              'GRADE',
-              style: TextStyle(
-                color: color.withValues(alpha: 0.75),
-                fontSize: 6,
-                height: 1.4,
-                letterSpacing: 1.1,
+              Text(
+                'GRADE',
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.75),
+                  fontSize: 6,
+                  height: 1.4,
+                  letterSpacing: 1.1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -744,7 +811,7 @@ class _JokerOfferTile extends StatelessWidget {
               onPressed: canBuy ? onBuy : null,
               style: FilledButton.styleFrom(
                 backgroundColor: tokens.mint,
-                foregroundColor: const Color(0xFF061512),
+                foregroundColor: tokens.onPrimaryAccent,
                 disabledBackgroundColor: tokens.line.withValues(alpha: 0.3),
                 padding: const EdgeInsets.symmetric(horizontal: 5),
               ),
@@ -901,7 +968,7 @@ class _SupplyTile extends StatelessWidget {
               onPressed: !busy && !bought && canAfford ? onBuy : null,
               style: FilledButton.styleFrom(
                 backgroundColor: tokens.mint,
-                foregroundColor: const Color(0xFF061512),
+                foregroundColor: tokens.onPrimaryAccent,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
               ),
               child: Text(

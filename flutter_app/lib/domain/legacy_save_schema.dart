@@ -36,6 +36,7 @@ const Set<String> legacyAccountSaveFields = <String>{
   'dailyStreak',
   'achievements',
   'achievementClaimed',
+  'progressCounters',
   'adDate',
   'adViews',
   'cosmeticsOwned',

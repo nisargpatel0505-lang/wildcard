@@ -1,6 +1,7 @@
 /// Marker retained inside [AccountState.unknownFields] after the one-time
 /// conversion from the legacy client's device-local Daily date.
 const String dailyRunDateUtcMarkerKey = '_flutterDailyRunDateUtcV1';
+const String dailyLoginDateUtcMarkerKey = '_flutterDailyLoginDateUtcV1';
 
 String calendarDateKey(DateTime value) {
   String two(int part) => part.toString().padLeft(2, '0');

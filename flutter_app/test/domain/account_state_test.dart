@@ -61,4 +61,18 @@ void main() {
     expect(account.speed, ScoringPace.normal);
     expect(account.musicOn, isFalse);
   });
+
+  test('v8.5 persists exactly five weekly mission slots', () {
+    final account = AccountState.fromJson(<String, Object?>{
+      'missionSet': <String>['a', 'b', 'c', 'd', 'e', 'overflow'],
+    });
+    expect(account.missionSet, <String>['a', 'b', 'c', 'd', 'e']);
+    expect(AccountState.decode(account.encode()).missionSet, <String>[
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+    ]);
+  });
 }

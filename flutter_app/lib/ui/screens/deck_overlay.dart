@@ -46,7 +46,8 @@ class DeckOverlay extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: ColoredBox(
-          color: const Color(0xC9000308),
+          key: const ValueKey('wildcard-surface-overlay'),
+          color: tokens.overlayScrim.withValues(alpha: .88),
           child: SafeArea(
             minimum: const EdgeInsets.all(6),
             child: Center(
@@ -63,11 +64,11 @@ class DeckOverlay extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: tokens.violet, width: 2),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0xB8000000),
+                        color: tokens.shadow,
                         blurRadius: 18,
-                        offset: Offset(0, 8),
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -211,7 +212,7 @@ class _SummaryCell extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xA8051413),
+        color: tokens.surfaceMuted,
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: tokens.line),
       ),

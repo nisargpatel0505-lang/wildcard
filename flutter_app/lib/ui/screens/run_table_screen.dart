@@ -117,9 +117,12 @@ class RunTableScreen extends StatelessWidget {
             ? WildcardRoom.endless
             : WildcardRoom.themedHome);
     return Scaffold(
-      backgroundColor: const Color(0xFF080414),
+      backgroundColor: context.wildcard.pageBackground,
       body: WildcardBackground(
         room: room,
+        surface: room == WildcardRoom.themedHome
+            ? WildcardUiSurface.normalGameplay
+            : null,
         asset: backgroundAsset,
         tintStrength: 0.78,
         energy: state.stageScore / math.max(1, state.target),
@@ -776,7 +779,7 @@ class _TargetPanel extends StatelessWidget {
               minHeight: compact ? 8 : 10,
               value: progress,
               color: progress >= 1 ? tokens.gold : tokens.mint,
-              backgroundColor: const Color(0xC805110E),
+              backgroundColor: tokens.disabledFill,
             ),
           ),
         ],
@@ -809,7 +812,12 @@ class _ModifierPanel extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 7 : 9),
       decoration: BoxDecoration(
-        color: const Color(0xE02B1037),
+        color: Color.alphaBlend(
+          (state.hasBossModifier ? tokens.gold : tokens.violet).withValues(
+            alpha: .14,
+          ),
+          tokens.surfaceStrong,
+        ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: state.hasBossModifier ? tokens.gold : tokens.coral,
@@ -1852,7 +1860,7 @@ class _RunMetrics {
 
 Color _chipColorForStyle(BuildContext context, ScoreChipStyle style) =>
     switch (style) {
-      ScoreChipStyle.card || ScoreChipStyle.jackpot => const Color(0xFFF7C548),
+      ScoreChipStyle.card || ScoreChipStyle.jackpot => context.wildcard.gold,
       ScoreChipStyle.joker ||
       ScoreChipStyle.multiplier => context.wildcard.violet,
       ScoreChipStyle.modifier => context.wildcard.mint,

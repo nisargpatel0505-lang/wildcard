@@ -12,6 +12,7 @@ import '../domain/economy.dart';
 import '../domain/game_rules.dart';
 import '../domain/joker_catalog.dart';
 import '../domain/legacy_save_schema.dart';
+import '../domain/long_term_progression.dart';
 import '../domain/progression_catalog.dart';
 import '../game/game_models.dart';
 import '../services/ad_service.dart';
@@ -29,6 +30,8 @@ enum AppBootState { starting, privacyRequired, ready, failed }
 
 enum CloudLinkState { guest, connecting, ready, offline, accountConflict }
 
+const String _vaultClaimLedgerField = 'vaultClaimsV1';
+
 class CloudAccountConflict implements Exception {
   const CloudAccountConflict();
 
@@ -38,11 +41,12 @@ class CloudAccountConflict implements Exception {
       'phone progress before linking this account.';
 }
 
-/// Profile APKs are local owner builds and never request or display ads.
+/// Profile APKs are local owner builds and suppress forced interstitials.
 ///
 /// The override is deliberately derived from build mode and is never written
 /// into [AccountState], so installing a later Play release cannot manufacture
-/// or overwrite the paid `noAds` entitlement.
+/// or overwrite the paid `noAds` entitlement. Optional rewarded placements
+/// remain opt-in and still require a completed ad.
 bool effectiveNoAdsFor(
   AccountState account, {
   bool profileBuild = kProfileMode,
@@ -109,12 +113,17 @@ class AppController extends ChangeNotifier {
   bool _cloudWritePending = false;
   bool _cloudWritesDeferredForScoring = false;
   bool _disposed = false;
+  bool _vaultOpenInFlight = false;
+  int _vaultClaimSequence = 0;
+  bool _weeklyRefreshInFlight = false;
+  String? _trustedDailyDateKey;
 
   bool get privacyAccepted => _local.privacyAccepted;
   bool get hasResumableRun => activeRunJson != null;
   bool get signedIn => firebase.signedIn;
   bool get cloudReady => cloudState == CloudLinkState.ready;
   bool get effectiveNoAds => effectiveNoAdsFor(account);
+  bool get forcedAdsRemoved => effectiveNoAds;
   bool get tutorialComebackChestAvailable =>
       account.firstLossCoached && !account.tutorialChestClaimed;
 
@@ -193,7 +202,7 @@ class AppController extends ChangeNotifier {
       migrationResult: migration,
     );
     controller.bootError = loadError ?? migration.error;
-    onProgress?.call(.84, 'Preparing Sly’s arcade…');
+    onProgress?.call(.84, 'Setting Sly’s table…');
     await controller._normalizeProgression();
     controller.bootState = controller.privacyAccepted
         ? AppBootState.ready
@@ -228,6 +237,7 @@ class AppController extends ChangeNotifier {
       try {
         await pi.initialize();
         pi.queueAppOpen();
+        await _refreshTrustedDailyDate();
       } catch (_) {
         // Product counters are optional and must never affect local play.
       }
@@ -305,14 +315,28 @@ class AppController extends ChangeNotifier {
   DailyLoginOffer get dailyLoginOffer {
     DateTime? lastClaim;
     if (account.lastDaily.isNotEmpty) {
-      lastClaim = DateTime.tryParse(account.lastDaily);
+      lastClaim = DateTime.tryParse('${account.lastDaily}T00:00:00Z');
     }
+    final dateKey = _trustedDailyDateKey ?? dailyUtcDateKey();
+    final effectiveNow =
+        DateTime.tryParse('${dateKey}T00:00:00Z') ?? DateTime.now().toUtc();
     return nextDailyLoginOffer(
-      now: DateTime.now(),
+      now: effectiveNow,
       lastClaim: lastClaim,
       currentStreak: account.dailyStreak,
     );
   }
+
+  LongTermProgressSnapshot get longTermProgress =>
+      LongTermProgressSnapshot.fromCounters(
+        account.progressCounters,
+        jokersDiscovered: publicUnlockedJokerCount(account.unlockedJokerIds),
+      );
+
+  bool get weeklyMissionRefreshUsed => weeklyRefreshUsedForWeek(
+    storedRefreshKey: account.missionRefreshDate,
+    weekKey: account.missionWeek,
+  );
 
   bool get weeklyMissionsNeedAttention {
     for (final id in account.missionSet) {
@@ -341,6 +365,20 @@ class AppController extends ChangeNotifier {
         return true;
       }
     }
+    for (final family in LongTermFamily.values) {
+      final definition = visibleLongTermTier(
+        family,
+        account.achievementClaimed,
+      );
+      if (definition != null &&
+          longTermAchievementClaimable(
+            definition,
+            longTermProgress,
+            account.achievementClaimed,
+          )) {
+        return true;
+      }
+    }
     return false;
   }
 
@@ -359,17 +397,14 @@ class AppController extends ChangeNotifier {
   /// starts the Royal Vault animation, so closing the app cannot lose it.
   Future<JokerDefinition?> claimTutorialComebackJoker() async {
     if (!tutorialComebackChestAvailable) return null;
-    const preferred = <String>[
-      'trainer',
-      'flushfund',
-      'wire',
-      'piggy',
-      'acemag',
-    ];
+    const preferred = <String>['wire', 'piggy', 'acemag'];
     JokerDefinition? reward;
     for (final id in preferred) {
       final candidate = jokersById[id];
-      if (candidate != null && !account.unlockedJokerIds.contains(id)) {
+      if (candidate != null &&
+          !account.unlockedJokerIds.contains(id) &&
+          (candidate.rarity == JokerRarity.common ||
+              candidate.rarity == JokerRarity.uncommon)) {
         reward = candidate;
         break;
       }
@@ -378,6 +413,7 @@ class AppController extends ChangeNotifier {
         .where(
           (joker) =>
               !account.unlockedJokerIds.contains(joker.id) &&
+              !isHighImpactShopJoker(joker) &&
               (joker.rarity == JokerRarity.common ||
                   joker.rarity == JokerRarity.uncommon),
         )
@@ -392,7 +428,8 @@ class AppController extends ChangeNotifier {
     final offer = dailyLoginOffer;
     if (!offer.available) return 0;
     account.dailyStreak = offer.streak;
-    account.lastDaily = _todayString();
+    account.lastDaily = offer.dateKey;
+    _setProgressMax(ProgressCounterKey.bestDailyStreak, offer.streak);
     account.coins += offer.reward;
     await persistAccount();
     return offer.reward;
@@ -421,72 +458,163 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
-  /// Permanently unlocks one chosen Joker at the v7.1 collection price.
-  ///
-  /// Ownership and the coin debit are changed together before persistence, so
-  /// a repeated tap cannot charge twice while the first disk/cloud write is in
-  /// flight.
-  Future<bool> unlockJoker(String id) async {
-    final joker = jokerCatalog
-        .where((candidate) => candidate.id == id)
-        .firstOrNull;
-    if (joker == null || account.unlockedJokerIds.contains(id)) return false;
-    final cost = joker.collectionUnlockCost;
-    if (account.coins < cost) return false;
-    account.coins -= cost;
-    account.unlockedJokerIds.add(id);
-    await persistAccount();
-    return true;
+  Future<JokerDefinition?> openJokerVault(
+    JokerChestTier tier, {
+    String? claimId,
+    double? rarityRoll,
+    double? itemRoll,
+  }) async {
+    final normalizedClaim = _vaultClaimId(claimId, kind: tier.name);
+    if (normalizedClaim == null) return null;
+    final replay = _vaultClaimReward(
+      normalizedClaim,
+      kind: 'joker',
+      tier: tier.name,
+    );
+    if (replay != null) return jokersById[replay];
+    if (_vaultOpenInFlight) return null;
+    _vaultOpenInFlight = true;
+    try {
+      final chest = jokerChests[tier]!;
+      final locked = jokerCatalog
+          .where((joker) => !account.unlockedJokerIds.contains(joker.id))
+          .toList(growable: false);
+      final price = chest.price(
+        publicUnlockedJokerCount(account.unlockedJokerIds),
+      );
+      if (account.coins < price || chest.effectiveOdds(locked).isEmpty) {
+        return null;
+      }
+      final random = math.Random.secure();
+      final reward = chest.roll(
+        locked,
+        rarityRoll: rarityRoll ?? random.nextDouble(),
+        itemRoll: itemRoll ?? random.nextDouble(),
+      );
+      if (reward == null) return null;
+      account.coins -= price;
+      account.unlockedJokerIds.add(reward.id);
+      _recordVaultClaim(
+        normalizedClaim,
+        kind: 'joker',
+        tier: tier.name,
+        rewardId: reward.id,
+        price: price,
+      );
+      _bumpProgress(ProgressCounterKey.vaultsOpened, 1);
+      // Persist before any Vault animation so process death cannot lose a
+      // reward. Replaying the same claim returns this exact reward without a
+      // second debit or a second discovery.
+      await persistAccount();
+      return reward;
+    } finally {
+      _vaultOpenInFlight = false;
+    }
   }
 
-  Future<JokerDefinition?> openJokerVault(JokerChestTier tier) async {
-    final chest = jokerChests[tier]!;
-    final locked = jokerCatalog
-        .where((joker) => !account.unlockedJokerIds.contains(joker.id))
-        .toList(growable: false);
-    final price = chest.price(
-      publicUnlockedJokerCount(account.unlockedJokerIds),
+  Future<CosmeticDefinition?> openCosmeticVault({
+    String? claimId,
+    double? themeRoll,
+    double? itemRoll,
+  }) async {
+    final normalizedClaim = _vaultClaimId(claimId, kind: 'cosmetic');
+    if (normalizedClaim == null) return null;
+    final replay = _vaultClaimReward(
+      normalizedClaim,
+      kind: 'cosmetic',
+      tier: 'cosmetic',
     );
-    if (account.coins < price || chest.effectiveOdds(locked).isEmpty) {
+    if (replay != null) return cosmeticById(replay);
+    if (_vaultOpenInFlight) return null;
+    _vaultOpenInFlight = true;
+    try {
+      final locked = cosmeticCatalog
+          .where(
+            (cosmetic) =>
+                !cosmetic.isDefault &&
+                !account.cosmeticsOwned.contains(cosmetic.id),
+          )
+          .toList(growable: false);
+      if (account.coins < cosmeticVaultPrice || locked.isEmpty) return null;
+      final random = math.Random.secure();
+      final reward = rollCosmeticVault(
+        locked,
+        themeRoll: themeRoll ?? random.nextDouble(),
+        itemRoll: itemRoll ?? random.nextDouble(),
+      );
+      if (reward == null) return null;
+      account.coins -= cosmeticVaultPrice;
+      account.cosmeticsOwned.add(reward.id);
+      _recordVaultClaim(
+        normalizedClaim,
+        kind: 'cosmetic',
+        tier: 'cosmetic',
+        rewardId: reward.id,
+        price: cosmeticVaultPrice,
+      );
+      _bumpProgress(ProgressCounterKey.vaultsOpened, 1);
+      await persistAccount();
+      return reward;
+    } finally {
+      _vaultOpenInFlight = false;
+    }
+  }
+
+  String? _vaultClaimId(String? requested, {required String kind}) {
+    if (requested != null) {
+      final normalized = requested.trim();
+      if (normalized.isEmpty || normalized.length > 96) return null;
+      return normalized;
+    }
+    _vaultClaimSequence++;
+    return 'vault:$kind:${DateTime.now().microsecondsSinceEpoch}:'
+        '$_vaultClaimSequence';
+  }
+
+  String? _vaultClaimReward(
+    String claimId, {
+    required String kind,
+    required String tier,
+  }) {
+    final rawLedger = account.unknownFields[_vaultClaimLedgerField];
+    if (rawLedger is! Map) return null;
+    final rawClaim = rawLedger[claimId];
+    if (rawClaim is! Map ||
+        rawClaim['kind'] != kind ||
+        rawClaim['tier'] != tier) {
       return null;
     }
-    final random = math.Random.secure();
-    final reward = chest.roll(
-      locked,
-      rarityRoll: random.nextDouble(),
-      itemRoll: random.nextDouble(),
-    );
-    if (reward == null) return null;
-    account.coins -= price;
-    account.unlockedJokerIds.add(reward.id);
-    // Persist before any Vault animation so process death cannot lose a reward.
-    await persistAccount();
-    return reward;
+    final rewardId = rawClaim['rewardId'];
+    return rewardId is String && rewardId.isNotEmpty ? rewardId : null;
   }
 
-  Future<CosmeticDefinition?> openCosmeticVault() async {
-    final locked = cosmeticCatalog
-        .where(
-          (cosmetic) =>
-              !cosmetic.isDefault &&
-              !account.cosmeticsOwned.contains(cosmetic.id),
-        )
-        .toList(growable: false);
-    if (account.coins < cosmeticVaultPrice || locked.isEmpty) return null;
-    final random = math.Random.secure();
-    final reward = rollCosmeticVault(
-      locked,
-      themeRoll: random.nextDouble(),
-      itemRoll: random.nextDouble(),
-    );
-    if (reward == null) return null;
-    account.coins -= cosmeticVaultPrice;
-    account.cosmeticsOwned.add(reward.id);
-    await persistAccount();
-    return reward;
+  void _recordVaultClaim(
+    String claimId, {
+    required String kind,
+    required String tier,
+    required String rewardId,
+    required int price,
+  }) {
+    final rawLedger = account.unknownFields[_vaultClaimLedgerField];
+    final ledger = <String, Object?>{};
+    if (rawLedger is Map) {
+      for (final entry in rawLedger.entries) {
+        final key = entry.key?.toString();
+        if (key != null && key.isNotEmpty) ledger[key] = entry.value;
+      }
+    }
+    ledger[claimId] = <String, Object?>{
+      'kind': kind,
+      'tier': tier,
+      'rewardId': rewardId,
+      'price': price,
+      'claimedAt': DateTime.now().millisecondsSinceEpoch,
+    };
+    account.unknownFields[_vaultClaimLedgerField] = ledger;
   }
 
   Future<int> claimWeeklyMission(String id) async {
+    await ensureWeeklyMissionsCurrent();
     if (!account.missionSet.contains(id) ||
         account.missionClaimed[id] == true) {
       return 0;
@@ -500,35 +628,85 @@ class AppController extends ChangeNotifier {
     }
     account.missionClaimed[id] = true;
     account.coins += mission.reward;
+    _bumpProgress(ProgressCounterKey.weeklyMissionsClaimed, 1);
     await persistAccount();
     return mission.reward;
   }
 
   Future<bool> refreshWeeklyMissionsWithRewardedAd() async {
-    final today = _todayString();
-    if (account.missionRefreshDate == today ||
-        weeklyMissionsNeedAttention ||
+    await ensureWeeklyMissionsCurrent();
+    if (_weeklyRefreshInFlight ||
+        weeklyMissionRefreshUsed ||
         rewardedViewsLeftToday <= 0) {
       return false;
     }
-    if (!await _completeRewardedPlacement()) return false;
-    final previousMissionIds = List<String>.from(account.missionSet);
-    account.missionRotation += 1;
-    account.missionRefreshDate = today;
-    account.missionSet
-      ..clear()
-      ..addAll(
-        chooseWeeklyContracts(
-          weekKey: account.missionWeek,
-          rotation: account.missionRotation,
-          currentIds: previousMissionIds,
-          claimedIds: account.missionClaimed.entries
-              .where((entry) => entry.value)
-              .map((entry) => entry.key),
-        ),
-      );
+    final beforeAdIds = List<String>.from(account.missionSet);
+    final protectedBeforeAd = beforeAdIds
+        .where((id) {
+          final mission = weeklyContractCatalog
+              .where((candidate) => candidate.id == id)
+              .firstOrNull;
+          return mission != null &&
+              account.missionClaimed[id] != true &&
+              (account.missionStats[mission.stat] ?? 0) >= mission.target;
+        })
+        .toList(growable: false);
+    if (protectedBeforeAd.length >= visibleWeeklyContractCount) return false;
+    _weeklyRefreshInFlight = true;
+    try {
+      if (!await _completeRewardedPlacement() || weeklyMissionRefreshUsed) {
+        return false;
+      }
+      final previousMissionIds = List<String>.from(account.missionSet);
+      final protected = previousMissionIds
+          .where((id) {
+            final mission = weeklyContractCatalog
+                .where((candidate) => candidate.id == id)
+                .firstOrNull;
+            return mission != null &&
+                account.missionClaimed[id] != true &&
+                (account.missionStats[mission.stat] ?? 0) >= mission.target;
+          })
+          .toList(growable: false);
+      account.missionRotation += 1;
+      account.missionRefreshDate = account.missionWeek;
+      account.missionSet
+        ..clear()
+        ..addAll(
+          refreshedWeeklyContracts(
+            weekKey: account.missionWeek,
+            rotation: account.missionRotation,
+            currentIds: previousMissionIds,
+            claimedIds: account.missionClaimed.entries
+                .where((entry) => entry.value)
+                .map((entry) => entry.key),
+            protectedIds: protected,
+          ),
+        );
+      await persistAccount();
+      return true;
+    } finally {
+      _weeklyRefreshInFlight = false;
+    }
+  }
+
+  Future<int> claimTieredAchievement(String id) async {
+    final definition = tieredAchievementCatalog
+        .where((candidate) => candidate.id == id)
+        .firstOrNull;
+    if (definition == null ||
+        !longTermAchievementClaimable(
+          definition,
+          longTermProgress,
+          account.achievementClaimed,
+        )) {
+      return 0;
+    }
+    account.achievements[id] = 1;
+    account.achievementClaimed[id] = true;
+    account.coins += definition.rewardCoins;
     await persistAccount();
-    return true;
+    return definition.rewardCoins;
   }
 
   Future<int> claimAchievement(String id, ProgressionSnapshot snapshot) async {
@@ -549,9 +727,16 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> equipTitle(String id, ProgressionSnapshot snapshot) async {
-    if (!titleIsUnlocked(id, snapshot)) return;
+    if (!titleUnlocked(id, snapshot)) return;
     account.title = id;
     await persistAccount();
+  }
+
+  bool titleUnlocked(String id, ProgressionSnapshot snapshot) {
+    if (titleIsUnlocked(id, snapshot)) return true;
+    final achievementId = titleRewardAchievementId(id);
+    return achievementId != null &&
+        account.achievementClaimed[achievementId] == true;
   }
 
   String get equippedTitleName {
@@ -668,9 +853,11 @@ class AppController extends ChangeNotifier {
     AccountMutation mutation, {
     required String launchDailyDate,
   }) async {
+    final weeklyChanged = _normalizeWeeklyMissions(account);
     final claim = mutation.claimId.trim();
     if (claim.isEmpty || claim.length > 96) return false;
     if (account.rewardClaims.contains(claim)) {
+      if (weeklyChanged) await persistAccount(syncCloud: false);
       await _queueDailyScoreIfEligible(mutation);
       unawaited(_retryPendingDailyScores());
       return true;
@@ -755,6 +942,7 @@ class AppController extends ChangeNotifier {
       if (account.dailyBest.date != date || score > account.dailyBest.score) {
         account.dailyBest = DailyBestRecord(date: date, score: score);
       }
+      _bumpMission('daily', 1);
       return;
     }
 
@@ -772,22 +960,48 @@ class AppController extends ChangeNotifier {
           (won && mode == RunMode.gauntlet ? 1 : 0),
       hands: account.stats.hands + math.max(0, mutation.handsPlayed),
     );
+    if (mode == RunMode.normal && recordedWin) {
+      _bumpProgress(ProgressCounterKey.runsWon, 1);
+    }
+    if (mode == RunMode.normal && mutation.enteredEndless) {
+      _bumpProgress(ProgressCounterKey.endlessEntries, 1);
+    }
+    _setProgressMax(ProgressCounterKey.bestSingleHand, mutation.bestPlay);
 
     for (final entry in mutation.handTypeCounts.entries) {
       final key = 'hand:${entry.key.legacyName}';
       account.unknownFields[key] =
           _asInt(account.unknownFields[key]) + math.max(0, entry.value);
     }
+    _bumpProgress(
+      ProgressCounterKey.royalFlushes,
+      mutation.handTypeCounts[HandType.royalFlush] ?? 0,
+    );
 
     _bumpMission('hands', mutation.handsPlayed);
+    _bumpMission('runs', 1);
+    final pairs = mutation.handTypeCounts.entries
+        .where((entry) => entry.key.index >= HandType.pair.index)
+        .fold<int>(0, (sum, entry) => sum + entry.value);
+    _bumpMission('pair', pairs);
     final flushes = mutation.handTypeCounts.entries
         .where((entry) => entry.key.legacyName.contains('Flush'))
         .fold<int>(0, (sum, entry) => sum + entry.value);
     _bumpMission('flush', flushes);
+    final straights = mutation.handTypeCounts.entries
+        .where(
+          (entry) =>
+              entry.key == HandType.straight ||
+              entry.key == HandType.straightFlush ||
+              entry.key == HandType.royalFlush,
+        )
+        .fold<int>(0, (sum, entry) => sum + entry.value);
+    _bumpMission('straight', straights);
     final bigHands = mutation.handTypeCounts.entries
         .where((entry) => entry.key.index >= HandType.fullHouse.index)
         .fold<int>(0, (sum, entry) => sum + entry.value);
     _bumpMission('bighand', bigHands);
+    _bumpMission('modifiers', mutation.modifiersSurvived.length);
     if (recordedWin) {
       _bumpMission('wins', 1);
       _bumpMission('bosskill', 1);
@@ -827,6 +1041,17 @@ class AppController extends ChangeNotifier {
   void _bumpMission(String stat, int amount) {
     if (amount <= 0) return;
     account.missionStats[stat] = (account.missionStats[stat] ?? 0) + amount;
+  }
+
+  void _bumpProgress(String key, int amount) {
+    if (amount <= 0) return;
+    account.progressCounters[key] =
+        (account.progressCounters[key] ?? 0) + amount;
+  }
+
+  void _setProgressMax(String key, int value) {
+    if (value <= (account.progressCounters[key] ?? 0)) return;
+    account.progressCounters[key] = value;
   }
 
   void _unlockReachedAchievements(AccountMutation mutation) {
@@ -1344,7 +1569,7 @@ class AppController extends ChangeNotifier {
 
   Future<bool> _completeRewardedPlacement() async {
     if (rewardedViewsLeftToday <= 0) return false;
-    if (!effectiveNoAds && await ads.showRewarded() == null) return false;
+    if (await ads.showRewarded() == null) return false;
     final today = _todayString();
     if (account.adDate != today) {
       account.adDate = today;
@@ -1412,13 +1637,17 @@ class AppController extends ChangeNotifier {
     final paidNoAds = account.noAds;
     final paidClaims = Map<String, PurchaseClaim>.from(account.purchaseClaims);
     final installed = AccountState.decode(accountRaw);
+    // Starter discovery is an account invariant in v8.5, including an older
+    // cloud save created before the tutorial was completed.
+    installed.unlockedJokerIds.addAll(tutorialStarterJokerIds);
     if (retainLocalPaidState) {
       installed.noAds = paidNoAds;
       installed.purchaseClaims.addAll(paidClaims);
     }
     _normalizeDailyUtcDates(installed);
     account = installed;
-    await _local.writeAccountJson(installed.encode());
+    await _normalizeProgression();
+    await _local.writeAccountJson(account.encode());
     if (runRaw.isEmpty) {
       activeRunJson = null;
       await _local.clearRun();
@@ -1433,11 +1662,10 @@ class AppController extends ChangeNotifier {
 
   Future<void> _normalizeProgression() async {
     var changed = _normalizeDailyUtcDates(account);
-    if (account.tutorialDone) {
-      final before = account.unlockedJokerIds.length;
-      account.unlockedJokerIds.addAll(tutorialStarterJokerIds);
-      changed = changed || account.unlockedJokerIds.length != before;
-    }
+    changed = _migrateLongTermProgress(account) || changed;
+    final before = account.unlockedJokerIds.length;
+    account.unlockedJokerIds.addAll(tutorialStarterJokerIds);
+    changed = changed || account.unlockedJokerIds.length != before;
     final validCosmetics = cosmeticCatalog.map((item) => item.id).toSet();
     final invalidOwned = account.cosmeticsOwned
         .where((id) => !validCosmetics.contains(id))
@@ -1476,19 +1704,51 @@ class AppController extends ChangeNotifier {
         changed = true;
       }
     }
-    final week = isoWeekKey(DateTime.now());
-    if (account.missionWeek != week || account.missionSet.length != 3) {
-      account.missionWeek = week;
-      account.missionStats.clear();
-      account.missionClaimed.clear();
-      account.missionRotation = 0;
-      account.missionRefreshDate = '';
-      account.missionSet
+    changed = _normalizeWeeklyMissions(account) || changed;
+    if (changed) await persistAccount(syncCloud: false);
+  }
+
+  Future<void> ensureWeeklyMissionsCurrent() async {
+    if (_normalizeWeeklyMissions(account)) {
+      await persistAccount(syncCloud: false);
+    }
+  }
+
+  static bool _normalizeWeeklyMissions(AccountState target, {DateTime? now}) {
+    final week = isoWeekKey((now ?? DateTime.now()).toUtc());
+    final missionIds = weeklyContractCatalog
+        .map((mission) => mission.id)
+        .toSet();
+    final weekChanged = target.missionWeek != week;
+    final missionSetNeedsRepair =
+        target.missionSet.length != visibleWeeklyContractCount ||
+        target.missionSet.any((id) => !missionIds.contains(id));
+    if (weekChanged) {
+      target.missionWeek = week;
+      target.missionStats.clear();
+      target.missionClaimed.clear();
+      target.missionRotation = 0;
+      target.missionRefreshDate = '';
+      target.missionSet
         ..clear()
         ..addAll(chooseWeeklyContracts(weekKey: week, rotation: 0));
-      changed = true;
+      return true;
     }
-    if (changed) await persistAccount(syncCloud: false);
+    if (!missionSetNeedsRepair) return false;
+    final previousIds = List<String>.from(target.missionSet);
+    target.missionSet
+      ..clear()
+      ..addAll(
+        chooseWeeklyContracts(
+          weekKey: week,
+          rotation: target.missionRotation,
+          currentIds: previousIds.where(missionIds.contains),
+          claimedIds: target.missionClaimed.entries
+              .where((entry) => entry.value)
+              .map((entry) => entry.key),
+        ),
+      );
+    return true;
   }
 
   static bool _normalizeDailyUtcDates(
@@ -1496,30 +1756,95 @@ class AppController extends ChangeNotifier {
     DateTime? now,
     String? localTodayOverride,
   }) {
-    final alreadyUtc = target.unknownFields[dailyRunDateUtcMarkerKey] == true;
-    if (alreadyUtc) return false;
     final current = now ?? DateTime.now();
     final utcToday = dailyUtcDateKey(current);
     final localToday = localTodayOverride ?? localCalendarDateKey(current);
-    final runMigration = migrateLegacyDailyDate(
-      storedDate: target.dailyRunDate,
-      alreadyUtc: false,
-      utcToday: utcToday,
-      localToday: localToday,
+    var changed = false;
+    if (target.unknownFields[dailyRunDateUtcMarkerKey] != true) {
+      final runMigration = migrateLegacyDailyDate(
+        storedDate: target.dailyRunDate,
+        alreadyUtc: false,
+        utcToday: utcToday,
+        localToday: localToday,
+      );
+      final bestMigration = migrateLegacyDailyDate(
+        storedDate: target.dailyBest.date,
+        alreadyUtc: false,
+        utcToday: utcToday,
+        localToday: localToday,
+      );
+      target.dailyRunDate = runMigration.date;
+      target.dailyBest = DailyBestRecord(
+        date: bestMigration.date,
+        score: target.dailyBest.score,
+      );
+      target.unknownFields[dailyRunDateUtcMarkerKey] = true;
+      changed = true;
+    }
+    if (target.unknownFields[dailyLoginDateUtcMarkerKey] != true) {
+      final loginMigration = migrateLegacyDailyDate(
+        storedDate: target.lastDaily,
+        alreadyUtc: false,
+        utcToday: utcToday,
+        localToday: localToday,
+      );
+      target.lastDaily = loginMigration.date;
+      target.unknownFields[dailyLoginDateUtcMarkerKey] = true;
+      changed = true;
+    }
+    return changed;
+  }
+
+  static bool _migrateLongTermProgress(AccountState target) {
+    var changed = false;
+    void setMax(String key, int value) {
+      if (value <= (target.progressCounters[key] ?? 0)) return;
+      target.progressCounters[key] = value;
+      changed = true;
+    }
+
+    setMax(
+      ProgressCounterKey.runsWon,
+      math.max(0, target.stats.wins - target.stats.gauntletWins),
     );
-    final bestMigration = migrateLegacyDailyDate(
-      storedDate: target.dailyBest.date,
-      alreadyUtc: false,
-      utcToday: utcToday,
-      localToday: localToday,
+    setMax(
+      ProgressCounterKey.royalFlushes,
+      _asInt(target.unknownFields['hand:Royal Flush']),
     );
-    target.dailyRunDate = runMigration.date;
-    target.dailyBest = DailyBestRecord(
-      date: bestMigration.date,
-      score: target.dailyBest.score,
+    setMax(ProgressCounterKey.bestDailyStreak, target.dailyStreak);
+    setMax(
+      ProgressCounterKey.weeklyMissionsClaimed,
+      target.missionClaimed.values.where((claimed) => claimed).length,
     );
-    target.unknownFields[dailyRunDateUtcMarkerKey] = true;
-    return true;
+    final vaultLedger = target.unknownFields[_vaultClaimLedgerField];
+    if (vaultLedger is Map) {
+      setMax(ProgressCounterKey.vaultsOpened, vaultLedger.length);
+    }
+    if (target.bestHeat >= 13) {
+      setMax(ProgressCounterKey.endlessEntries, 1);
+    }
+    final inferredBestHand = target.achievements.containsKey('monster_hand')
+        ? 3000
+        : target.achievements.containsKey('score_1500_hand')
+        ? 1500
+        : target.achievements.containsKey('score_500_hand')
+        ? 500
+        : 0;
+    setMax(ProgressCounterKey.bestSingleHand, inferredBestHand);
+    return changed;
+  }
+
+  Future<void> _refreshTrustedDailyDate() async {
+    try {
+      final snapshot = await pi.fetchDailyBoard();
+      final date = snapshot.date;
+      if (date == null || !isCalendarDateKey(date)) return;
+      _trustedDailyDateKey = date;
+      notifyListeners();
+    } catch (_) {
+      // The UTC device date remains a fail-soft guest fallback. A network
+      // failure must never block a daily reward.
+    }
   }
 
   bool _ownsCosmetic(String id) =>

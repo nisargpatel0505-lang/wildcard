@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../app/app_controller.dart';
 import '../../domain/account_state.dart';
 import '../../domain/joker_catalog.dart';
+import '../../domain/long_term_progression.dart';
 import '../../domain/progression_catalog.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
@@ -32,6 +33,7 @@ class _CabinetScreenState extends State<CabinetScreen> {
         return WildcardPageFrame(
           title: 'Cabinet',
           subtitle: 'Lifetime stats, badges, achievements and titles',
+          surface: WildcardUiSurface.cabinet,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 30),
             children: [
@@ -43,7 +45,7 @@ class _CabinetScreenState extends State<CabinetScreen> {
                   _StatValue('Account coins', _format(account.coins)),
                   _StatValue(
                     'Achievements',
-                    '${summary.achievementsEarned} / ${achievementCatalog.length}',
+                    '${summary.achievementsEarned} / ${achievementCatalog.length + tieredAchievementCatalog.length}',
                   ),
                   _StatValue('Runs played', _format(account.stats.runs)),
                   _StatValue('Wins', _format(account.stats.wins)),
@@ -106,7 +108,10 @@ class _CabinetScreenState extends State<CabinetScreen> {
               ),
               const ScreenSectionTitle('Player title · tap to wear'),
               for (final title in titleCatalog)
-                _titleRow(title, titleIsUnlocked(title.id, snapshot)),
+                _titleRow(
+                  title,
+                  widget.controller.titleUnlocked(title.id, snapshot),
+                ),
               const ScreenSectionTitle('Lifetime'),
               _StatsGrid(
                 entries: [
@@ -125,6 +130,11 @@ class _CabinetScreenState extends State<CabinetScreen> {
                 const ScreenSectionTitle('Recent runs'),
                 for (final run in account.runLog.take(5)) _recentRun(run),
               ],
+              const ScreenSectionTitle('Long-term badge tracks'),
+              for (final family in LongTermFamily.values)
+                if (visibleLongTermTier(family, account.achievementClaimed)
+                    case final tier?)
+                  _longTermTierRow(tier, widget.controller.longTermProgress),
               const ScreenSectionTitle('Achievements'),
               for (final achievement in achievementCatalog)
                 _achievementRow(achievement, snapshot),
@@ -194,7 +204,11 @@ class _CabinetScreenState extends State<CabinetScreen> {
         constraints: const BoxConstraints(minHeight: 76),
         padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
-          color: earned ? const Color(0xD51B1535) : const Color(0xD20A1010),
+          color: Color.alphaBlend(
+            (earned ? context.wildcard.gold : context.wildcard.creamDim)
+                .withValues(alpha: earned ? .12 : .035),
+            context.wildcard.surfaceStrong,
+          ),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: earned ? context.wildcard.gold : context.wildcard.line,
@@ -254,6 +268,124 @@ class _CabinetScreenState extends State<CabinetScreen> {
               child: Text(equipped ? 'ON' : (unlocked ? 'WEAR' : 'LOCKED')),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _longTermTierRow(
+    TieredAchievementDefinition definition,
+    LongTermProgressSnapshot progress,
+  ) {
+    final account = widget.controller.account;
+    final value = progress.valueFor(definition.family);
+    final complete = longTermAchievementDone(definition, progress);
+    final claimed = account.achievementClaimed[definition.id] == true;
+    final claimable = longTermAchievementClaimable(
+      definition,
+      progress,
+      account.achievementClaimed,
+    );
+    final titleReward = definition.rewardTitleId == null
+        ? null
+        : titleCatalog
+              .where((title) => title.id == definition.rewardTitleId)
+              .firstOrNull;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: WildcardCard(
+        accent: complete ? WildcardCardAccent.gold : WildcardCardAccent.neutral,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _tierMedallion(definition.tier, complete),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    definition.name.toUpperCase(),
+                    style: const TextStyle(fontFamily: 'Bungee', fontSize: 11),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    definition.description,
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(
+                    value: (value / definition.threshold).clamp(0, 1),
+                    minHeight: 7,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${value.clamp(0, definition.threshold)} / ${definition.threshold} · ${definition.tier.name.toUpperCase()}',
+                    style: TextStyle(
+                      color: context.wildcard.creamDim,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(62, 48)),
+              onPressed: busy || !claimable
+                  ? null
+                  : () => _claimTier(definition.id),
+              child: Text(
+                claimed
+                    ? '✓'
+                    : titleReward != null
+                    ? 'TITLE'
+                    : '+${definition.rewardCoins}',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tierMedallion(LongTermTier tier, bool complete) {
+    final colors = switch (tier) {
+      LongTermTier.bronze => const [Color(0xFFB87945), Color(0xFF6D351C)],
+      LongTermTier.silver => const [Color(0xFFE2E8F0), Color(0xFF64748B)],
+      LongTermTier.gold => const [Color(0xFFFFD166), Color(0xFFB06D00)],
+      LongTermTier.diamond => const [Color(0xFF8EF7FF), Color(0xFF376EAA)],
+      LongTermTier.wild => const [Color(0xFFFF5FC8), Color(0xFF6A38D8)],
+      LongTermTier.legend => const [Color(0xFFFFD166), Color(0xFF7C3AED)],
+    };
+    return AnimatedOpacity(
+      opacity: complete ? 1 : .42,
+      duration: const Duration(milliseconds: 180),
+      child: Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(colors: colors),
+          border: Border.all(color: Colors.white70, width: 1.5),
+          boxShadow: complete
+              ? [
+                  BoxShadow(
+                    color: colors.first.withValues(alpha: .35),
+                    blurRadius: 8,
+                  ),
+                ]
+              : const [],
+        ),
+        child: const Text(
+          '♠',
+          style: TextStyle(
+            color: Color(0xFF100B24),
+            fontFamily: 'Bungee',
+            fontSize: 22,
+          ),
         ),
       ),
     );
@@ -365,6 +497,12 @@ class _CabinetScreenState extends State<CabinetScreen> {
       id,
       widget.controller.progressionSnapshot,
     );
+    if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> _claimTier(String id) async {
+    setState(() => busy = true);
+    await widget.controller.claimTieredAchievement(id);
     if (mounted) setState(() => busy = false);
   }
 

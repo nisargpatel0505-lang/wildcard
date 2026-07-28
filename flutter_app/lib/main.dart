@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app/app_controller.dart';
 import 'app/wildcard_app.dart';
 import 'ui/screens/boot_loading_screen.dart';
+import 'ui/wildcard_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,6 +124,7 @@ class _BootstrapGateState extends State<_BootstrapGate>
     if (controller != null) return WildcardApp(controller: controller);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: WildcardTheme.build(),
       home: BootLoadingScreen(
         failed: _failed,
         onRetry: _failed ? _boot : null,

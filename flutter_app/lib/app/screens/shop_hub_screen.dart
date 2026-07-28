@@ -38,6 +38,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
         title: 'Shop',
         subtitle: 'Coins, table style and Sly looks.',
         room: WildcardRoom.shop,
+        surface: WildcardUiSurface.accountShop,
         actions: [
           RunCoinBadge(
             coins: widget.controller.account.coins,
@@ -166,15 +167,10 @@ class _ShopHubScreenState extends State<ShopHubScreen>
 
   Widget _rewardCoinsButton() {
     final left = widget.controller.rewardedViewsLeftToday;
-    final adFree = widget.controller.effectiveNoAds;
     return WildcardButton(
       key: const Key('shop-reward-coins'),
-      label: adFree
-          ? 'Claim +25 Coins ($left left today)'
-          : 'Watch Ad · +25 Coins ($left left today)',
-      icon: adFree
-          ? const WildcardCoinIcon(size: 20)
-          : const Icon(Icons.smart_display_outlined),
+      label: 'Watch Ad · +25 Coins ($left left today)',
+      icon: const Icon(Icons.smart_display_outlined),
       onPressed: !busy && left > 0 ? _rewardedCoins : null,
       variant: WildcardButtonVariant.ghost,
     );
@@ -221,7 +217,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
                 children: [
                   if (isNoAds)
                     Text(
-                      ownedNoAds ? 'ADS REMOVED' : 'REMOVE ADS',
+                      ownedNoAds ? 'FORCED ADS REMOVED' : 'REMOVE FORCED ADS',
                       style: TextStyle(
                         color: context.wildcard.violet,
                         fontFamily: 'Bungee',
@@ -233,7 +229,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
                   const SizedBox(height: 3),
                   Text(
                     isNoAds
-                        ? 'Keep the daily reward, revive and double as instant claims.'
+                        ? 'Stops forced interstitials. Optional rewarded ads remain available.'
                         : 'Delivered to your permanent account wallet.',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

@@ -19,6 +19,7 @@ class MoreScreen extends StatelessWidget {
     return WildcardPageFrame(
       title: 'More',
       subtitle: 'Rules, rankings and credits',
+      surface: WildcardUiSurface.more,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 30),
         children: [
@@ -128,6 +129,7 @@ class HowToPlayScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => WildcardPageFrame(
     title: 'How To Play',
+    surface: WildcardUiSurface.more,
     child: ListView(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 30),
       children: [
@@ -185,6 +187,7 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
   Widget build(BuildContext context) => WildcardPageFrame(
     title: 'Daily Board',
     subtitle: 'Custom in-game daily scores',
+    surface: WildcardUiSurface.leaderboard,
     child: FutureBuilder<DailyBoardSnapshot>(
       future: board,
       builder: (context, snapshot) {
@@ -308,6 +311,7 @@ class _OfficialRankingsScreenState extends State<OfficialRankingsScreen> {
   Widget build(BuildContext context) => WildcardPageFrame(
     title: 'Official Rankings',
     subtitle: 'Google Play Games · legitimate scores only',
+    surface: WildcardUiSurface.leaderboard,
     child: Column(
       children: [
         Padding(

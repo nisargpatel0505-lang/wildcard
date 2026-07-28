@@ -27,7 +27,8 @@ class WildcardPrivacyGate extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: Material(
-        color: const Color(0xFC03050E),
+        key: const ValueKey('wildcard-surface-privacyConsent'),
+        color: tokens.overlayScrim,
         child: Semantics(
           container: true,
           explicitChildNodes: true,

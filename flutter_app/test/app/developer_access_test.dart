@@ -10,6 +10,7 @@ import 'package:wildcard/app/screens/mode_picker_screen.dart';
 import 'package:wildcard/core/app_constants.dart';
 import 'package:wildcard/domain/account_state.dart';
 import 'package:wildcard/domain/game_rules.dart';
+import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
@@ -141,7 +142,7 @@ void main() {
       expect(app.activeRunJson, isNull);
       expect(preferences.getString(AppConstants.legacyRunKey), isNull);
       expect(persisted.coins, 2318);
-      expect(persisted.unlockedJokerIds, <String>{'copper', 'polish'});
+      expect(persisted.unlockedJokerIds, starterJokerIds.toSet());
       for (final key in <String>[
         developerUnlockedField,
         developerGauntletField,

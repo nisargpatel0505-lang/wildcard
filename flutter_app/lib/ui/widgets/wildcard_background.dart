@@ -20,6 +20,7 @@ class WildcardBackground extends StatelessWidget {
   const WildcardBackground({
     required this.child,
     this.room = WildcardRoom.themedHome,
+    this.surface,
     this.asset,
     this.alignment = Alignment.topCenter,
     this.tintStrength = 1,
@@ -33,6 +34,7 @@ class WildcardBackground extends StatelessWidget {
 
   final Widget child;
   final WildcardRoom room;
+  final WildcardUiSurface? surface;
   final String? asset;
   final Alignment alignment;
   final double tintStrength;
@@ -51,14 +53,16 @@ class WildcardBackground extends StatelessWidget {
 
   String? _assetFor(WildcardThemeTokens tokens) {
     if (asset != null) return asset!;
+    if (surface case final themedSurface?) {
+      return tokens.backgroundAssetFor(themedSurface);
+    }
     return switch (room) {
       WildcardRoom.themedHome => tokens.homeBackgroundAsset,
       WildcardRoom.runSetup => null,
       WildcardRoom.palace => WildcardThemeTokens.palaceBackground,
       WildcardRoom.shop =>
         'assets/art/backgrounds/wildcard-sly-shop-backroom.webp',
-      WildcardRoom.vault =>
-        'assets/art/backgrounds/wildcard-royal-vault-chest-room.webp',
+      WildcardRoom.vault => 'assets/art/chests/wildcard-sly-vault-room.webp',
       WildcardRoom.endless => WildcardThemeTokens.cosmicBackground,
       WildcardRoom.house =>
         'assets/art/backgrounds/wildcard-the-house-boss-room.webp',
@@ -72,13 +76,19 @@ class WildcardBackground extends StatelessWidget {
     final strength = tintStrength.clamp(0.0, 1.5).toDouble();
     final atmosphereEnergy = energy.clamp(0.0, 1.25).toDouble();
     final backgroundAsset = _assetFor(tokens);
-    final quietRunSetup = room == WildcardRoom.runSetup;
+    final quietRunSetup = surface != null
+        ? WildcardThemeCoverage.forSurface(surface!).backdrop ==
+              WildcardBackdropRole.runSetup
+        : room == WildcardRoom.runSetup;
     Color tint(Color color) => color.withValues(
       alpha: (color.a * strength).clamp(0.0, 1.0).toDouble(),
     );
 
     return ColoredBox(
-      color: const Color(0xFF080414),
+      key: ValueKey(
+        'wildcard-surface-${surface?.name ?? 'legacy-${room.name}'}',
+      ),
+      color: tokens.pageBackground,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -89,7 +99,7 @@ class WildcardBackground extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (backgroundAsset == null)
-                    const _RunSetupBackdrop()
+                    _RunSetupBackdrop(tokens: tokens)
                   else
                     Builder(
                       builder: (context) {
@@ -121,10 +131,10 @@ class WildcardBackground extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: quietRunSetup
-                            ? const [
-                                Color(0x8A020504),
-                                Color(0x54030907),
-                                Color(0xD9020303),
+                            ? [
+                                tokens.ink.withValues(alpha: .54),
+                                tokens.felt.withValues(alpha: .34),
+                                tokens.ink.withValues(alpha: .86),
                               ]
                             : [
                                 tint(tokens.artTintTop),
@@ -204,24 +214,40 @@ class WildcardBackground extends StatelessWidget {
 /// A restrained poker-room surface for setup screens. It is intentionally
 /// asset-free, static and almost black so controls remain the visual priority.
 class _RunSetupBackdrop extends StatelessWidget {
-  const _RunSetupBackdrop();
+  const _RunSetupBackdrop({required this.tokens});
+
+  final WildcardThemeTokens tokens;
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: RadialGradient(
-        center: Alignment(0, -0.08),
+        center: const Alignment(0, -0.08),
         radius: 1.02,
-        colors: [Color(0xFF16231E), Color(0xFF090E0C), Color(0xFF030505)],
-        stops: [0, .58, 1],
+        colors: [tokens.feltHighlight, tokens.ink, tokens.panelStrong],
+        stops: const [0, .58, 1],
       ),
     ),
-    child: CustomPaint(painter: _RunSetupPokerPainter()),
+    child: CustomPaint(
+      painter: _RunSetupPokerPainter(
+        line: tokens.line,
+        accent: tokens.mint,
+        felt: tokens.felt,
+      ),
+    ),
   );
 }
 
 class _RunSetupPokerPainter extends CustomPainter {
-  const _RunSetupPokerPainter();
+  const _RunSetupPokerPainter({
+    required this.line,
+    required this.accent,
+    required this.felt,
+  });
+
+  final Color line;
+  final Color accent;
+  final Color felt;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -233,9 +259,9 @@ class _RunSetupPokerPainter extends CustomPainter {
     canvas.drawOval(
       table,
       Paint()
-        ..shader = const RadialGradient(
-          colors: [Color(0x331E5B46), Color(0x071E5B46)],
-          stops: [0, 1],
+        ..shader = RadialGradient(
+          colors: [felt.withValues(alpha: .30), felt.withValues(alpha: .04)],
+          stops: const [0, 1],
         ).createShader(table),
     );
     canvas.drawOval(
@@ -243,19 +269,19 @@ class _RunSetupPokerPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = const Color(0x2459B995),
+        ..color = line.withValues(alpha: .30),
     );
     canvas.drawOval(
       table.deflate(9),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
-        ..color = const Color(0x1559B995),
+        ..color = accent.withValues(alpha: .18),
     );
 
     // Four tiny card pips give the room a poker identity without becoming a
     // patterned or animated backdrop.
-    final pip = Paint()..color = const Color(0x1559B995);
+    final pip = Paint()..color = accent.withValues(alpha: .18);
     final pipSize = math.min(size.width, size.height) * .022;
     for (final point in <Offset>[
       Offset(size.width * .18, size.height * .29),
@@ -274,7 +300,10 @@ class _RunSetupPokerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RunSetupPokerPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _RunSetupPokerPainter oldDelegate) =>
+      oldDelegate.line != line ||
+      oldDelegate.accent != accent ||
+      oldDelegate.felt != felt;
 }
 
 /// Lightweight native atmosphere for the Choose Run screen.

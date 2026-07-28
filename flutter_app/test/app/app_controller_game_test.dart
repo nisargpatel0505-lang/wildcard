@@ -228,40 +228,33 @@ void main() {
     expect(app.account.missionStats['wins'], 1);
   });
 
-  test('run coin double is durable and idempotent', () async {
-    final app = await AppController.bootstrap();
-    addTearDown(app.dispose);
-    await app.mutateAccount((account) {
-      account.coins = 100;
-      account.noAds = true;
-    }, syncCloud: false);
+  test(
+    'paid forced-ad entitlement cannot claim a phantom run double',
+    () async {
+      final app = await AppController.bootstrap();
+      addTearDown(app.dispose);
+      await app.mutateAccount((account) {
+        account.coins = 100;
+        account.noAds = true;
+      }, syncCloud: false);
 
-    expect(
-      await app.claimRunCoinDouble(
-        runId: 'double-test-123456',
-        baseCoins: 75,
-        mode: RunMode.normal,
-      ),
-      isTrue,
-    );
-    expect(
-      await app.claimRunCoinDouble(
-        runId: 'double-test-123456',
-        baseCoins: 75,
-        mode: RunMode.normal,
-      ),
-      isTrue,
-    );
+      expect(
+        await app.claimRunCoinDouble(
+          runId: 'double-test-123456',
+          baseCoins: 75,
+          mode: RunMode.normal,
+        ),
+        isFalse,
+      );
 
-    expect(app.account.coins, 175);
-    expect(app.account.adViews, 1);
-    expect(
-      app.account.rewardClaims.where(
-        (claim) => claim == 'double-test-123456:double',
-      ),
-      hasLength(1),
-    );
-  });
+      expect(app.account.coins, 100);
+      expect(app.account.adViews, 0);
+      expect(
+        app.account.rewardClaims,
+        isNot(contains('double-test-123456:double')),
+      );
+    },
+  );
 
   test('scoring checkpoints defer cloud work but remain locally durable', () async {
     final app = await AppController.bootstrap();

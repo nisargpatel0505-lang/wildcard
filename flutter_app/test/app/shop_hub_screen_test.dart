@@ -6,7 +6,7 @@ import 'package:wildcard/app/screens/shop_hub_screen.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
-  testWidgets('shop uses coin visuals and an ad-free entitlement label', (
+  testWidgets('shop explains forced-ad entitlement and optional rewards', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -44,8 +44,10 @@ void main() {
           .where((badge) => badge.coins == 420 && badge.account),
       isNotEmpty,
     );
-    expect(find.textContaining('CLAIM +25 COINS'), findsOneWidget);
-    expect(find.textContaining('WATCH AD'), findsNothing);
+    expect(find.textContaining('WATCH AD'), findsOneWidget);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1600));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('FORCED ADS REMOVED'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('WARDROBE'));

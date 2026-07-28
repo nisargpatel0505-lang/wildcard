@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
@@ -19,6 +21,12 @@ class _MissionsScreenState extends State<MissionsScreen> {
   bool busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(widget.controller.ensureWeeklyMissionsCurrent());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.controller,
@@ -27,6 +35,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
         return WildcardPageFrame(
           title: 'Weekly Missions',
           subtitle: account.missionWeek,
+          surface: WildcardUiSurface.missions,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 30),
             children: [
@@ -34,16 +43,13 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 if (_mission(id) case final mission?) _missionCard(mission),
               const SizedBox(height: 6),
               WildcardButton(
-                label: account.missionRefreshDate == _today()
-                    ? 'Refresh Available Tomorrow'
-                    : widget.controller.weeklyMissionsNeedAttention
-                    ? 'Claim Ready Reward First'
-                    : 'Watch Ad & Refresh All Three',
+                label: widget.controller.weeklyMissionRefreshUsed
+                    ? 'Refresh Used This Week'
+                    : 'Watch Ad & Refresh Missions',
                 icon: const Icon(Icons.refresh_rounded),
                 onPressed:
                     !busy &&
-                        account.missionRefreshDate != _today() &&
-                        !widget.controller.weeklyMissionsNeedAttention &&
+                        !widget.controller.weeklyMissionRefreshUsed &&
                         widget.controller.rewardedViewsLeftToday > 0
                     ? _refresh
                     : null,
@@ -51,7 +57,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'One refresh per day · uses the shared rewarded-ad daily limit · existing progress and claimed rewards remain safe.',
+                'One optional rewarded refresh per week. It gives no coins; completed rewards, claimed rewards and all progress remain safe.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: context.wildcard.creamDim,
@@ -129,10 +135,5 @@ class _MissionsScreenState extends State<MissionsScreen> {
       context,
       ok ? 'Weekly contracts refreshed.' : 'Refresh unavailable.',
     );
-  }
-
-  static String _today() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 }

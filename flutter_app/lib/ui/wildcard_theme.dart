@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// The visual themes recovered from the v7.1.0 phone build.
@@ -19,6 +21,144 @@ enum WildcardThemeId {
   blockDropArcade,
   abyssalJackpot,
   desertMirage,
+}
+
+/// Every player-facing surface that must inherit the equipped UI theme.
+///
+/// This list is deliberately exhaustive rather than a loose collection of
+/// screen names. New screens must be registered in [WildcardThemeCoverage] so
+/// they cannot silently fall back to an unrelated hard-coded palette.
+enum WildcardUiSurface {
+  loading,
+  privacyConsent,
+  home,
+  modePicker,
+  normalGameplay,
+  arcadeModePicker,
+  arcadeGameplay,
+  tutorial,
+  chestVault,
+  betweenHeatShop,
+  accountShop,
+  collection,
+  wardrobe,
+  settings,
+  cabinet,
+  achievements,
+  missions,
+  adBreak,
+  overlay,
+  dialog,
+  gameOver,
+  results,
+  leaderboard,
+  more,
+}
+
+enum WildcardBackdropRole {
+  equippedTheme,
+  runSetup,
+  shopRoom,
+  vaultRoom,
+  endlessRoom,
+  houseRoom,
+  none,
+}
+
+@immutable
+class WildcardSurfaceThemeSpec {
+  const WildcardSurfaceThemeSpec({
+    required this.backdrop,
+    this.usesThemePalette = true,
+  });
+
+  final WildcardBackdropRole backdrop;
+  final bool usesThemePalette;
+}
+
+/// Theme-coverage contract shared by the screen frame and full-screen artwork.
+///
+/// Bespoke rooms (the shop, vault and boss room) retain their authored art,
+/// but their tint, panels, typography, controls and overlays still come from
+/// the equipped theme. Sly skins and table felts remain separate cosmetics.
+abstract final class WildcardThemeCoverage {
+  static const Map<WildcardUiSurface, WildcardSurfaceThemeSpec> surfaces = {
+    WildcardUiSurface.loading: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.privacyConsent: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.home: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.modePicker: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.runSetup,
+    ),
+    WildcardUiSurface.normalGameplay: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.arcadeModePicker: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.arcadeGameplay: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.tutorial: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.chestVault: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.vaultRoom,
+    ),
+    WildcardUiSurface.betweenHeatShop: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.shopRoom,
+    ),
+    WildcardUiSurface.accountShop: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.shopRoom,
+    ),
+    WildcardUiSurface.collection: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.wardrobe: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.settings: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.cabinet: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.achievements: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.missions: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.adBreak: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.overlay: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.none,
+    ),
+    WildcardUiSurface.dialog: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.none,
+    ),
+    WildcardUiSurface.gameOver: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.results: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.leaderboard: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+    WildcardUiSurface.more: WildcardSurfaceThemeSpec(
+      backdrop: WildcardBackdropRole.equippedTheme,
+    ),
+  };
+
+  static WildcardSurfaceThemeSpec forSurface(WildcardUiSurface surface) =>
+      surfaces[surface]!;
 }
 
 /// WILDCARD-specific colour and artwork tokens.
@@ -71,6 +211,12 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
       'assets/art/backgrounds/wildcard-main-menu-palace.webp';
   static const String cosmicBackground =
       'assets/art/backgrounds/wildcard-endless-victory-cosmos.webp';
+  static const String shopBackground =
+      'assets/art/backgrounds/wildcard-sly-shop-backroom.webp';
+  static const String vaultBackground =
+      'assets/art/chests/wildcard-sly-vault-room.webp';
+  static const String houseBackground =
+      'assets/art/backgrounds/wildcard-the-house-boss-room.webp';
 
   static const classic = WildcardThemeTokens(
     ink: Color(0xFF0D1A15),
@@ -402,6 +548,54 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
           : other.homeBackgroundAsset,
     );
   }
+
+  /// Shared semantic colours for controls and overlays.
+  ///
+  /// They are derived from the authored palette so adding a new theme does not
+  /// require another set of hard-coded Material component colours.
+  Color get pageBackground => ink;
+  Color get surface => panel;
+  Color get surfaceStrong => panelStrong;
+  Color get surfaceMuted =>
+      Color.alphaBlend(cream.withValues(alpha: .045), panelStrong);
+  Color get fieldFill =>
+      Color.alphaBlend(feltHighlight.withValues(alpha: .34), panelStrong);
+  Color get overlayScrim =>
+      Color.alphaBlend(ink.withValues(alpha: .94), Colors.black);
+  Color get shadow => Colors.black.withValues(alpha: .58);
+  Color get disabledFill =>
+      Color.alphaBlend(creamDim.withValues(alpha: .08), panelStrong);
+  Color get disabledContent => creamDim.withValues(alpha: .58);
+  Color get onPrimaryAccent =>
+      _highestContrastText(mint, const Color(0xFF04120E));
+  Color get onSecondaryAccent =>
+      _highestContrastText(gold, const Color(0xFF251505));
+  Color get onDangerAccent =>
+      _highestContrastText(coral, const Color(0xFF3D0F08));
+
+  Color _highestContrastText(Color background, Color dark) {
+    double contrast(Color foreground) {
+      final foregroundLuminance = foreground.computeLuminance();
+      final backgroundLuminance = background.computeLuminance();
+      final lighter = math.max(foregroundLuminance, backgroundLuminance);
+      final darker = math.min(foregroundLuminance, backgroundLuminance);
+      return (lighter + .05) / (darker + .05);
+    }
+
+    return contrast(dark) >= contrast(cream) ? dark : cream;
+  }
+
+  String? backgroundAssetFor(WildcardUiSurface surface) {
+    return switch (WildcardThemeCoverage.forSurface(surface).backdrop) {
+      WildcardBackdropRole.equippedTheme => homeBackgroundAsset,
+      WildcardBackdropRole.runSetup => null,
+      WildcardBackdropRole.shopRoom => shopBackground,
+      WildcardBackdropRole.vaultRoom => vaultBackground,
+      WildcardBackdropRole.endlessRoom => cosmicBackground,
+      WildcardBackdropRole.houseRoom => houseBackground,
+      WildcardBackdropRole.none => null,
+    };
+  }
 }
 
 abstract final class WildcardTheme {
@@ -412,11 +606,11 @@ abstract final class WildcardTheme {
       scaffoldBackgroundColor: tokens.ink,
       colorScheme: ColorScheme.dark(
         primary: tokens.mint,
-        onPrimary: const Color(0xFF04120E),
+        onPrimary: tokens.onPrimaryAccent,
         secondary: tokens.gold,
-        onSecondary: const Color(0xFF251505),
+        onSecondary: tokens.onSecondaryAccent,
         error: tokens.coral,
-        onError: const Color(0xFF3D0F08),
+        onError: tokens.onDangerAccent,
         surface: tokens.panelStrong,
         onSurface: tokens.cream,
       ),
@@ -426,6 +620,155 @@ abstract final class WildcardTheme {
         displayColor: tokens.cream,
       ),
       iconTheme: IconThemeData(color: tokens.cream),
+      canvasColor: tokens.pageBackground,
+      cardColor: tokens.surface,
+      dividerColor: tokens.line,
+      disabledColor: tokens.disabledContent,
+      dialogTheme: DialogThemeData(
+        backgroundColor: tokens.surfaceStrong,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: tokens.shadow,
+        titleTextStyle: TextStyle(
+          color: tokens.gold,
+          fontFamily: 'Bungee',
+          fontSize: 19,
+          height: 1.1,
+        ),
+        contentTextStyle: TextStyle(
+          color: tokens.cream,
+          fontFamily: 'SpaceGrotesk',
+          fontSize: 14,
+          height: 1.35,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: tokens.line, width: 1.5),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: tokens.surfaceStrong,
+        modalBackgroundColor: tokens.surfaceStrong,
+        surfaceTintColor: Colors.transparent,
+        modalBarrierColor: tokens.overlayScrim.withValues(alpha: .78),
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          side: BorderSide(color: tokens.line),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: tokens.fieldFill,
+        labelStyle: TextStyle(color: tokens.creamDim),
+        hintStyle: TextStyle(color: tokens.disabledContent),
+        prefixIconColor: tokens.mint,
+        suffixIconColor: tokens.creamDim,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(color: tokens.line),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(color: tokens.mint, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(color: tokens.disabledFill),
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: tokens.mint,
+        linearTrackColor: tokens.disabledFill,
+        circularTrackColor: tokens.disabledFill,
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: tokens.gold,
+        unselectedLabelColor: tokens.creamDim,
+        indicatorColor: tokens.mint,
+        dividerColor: tokens.line,
+        labelStyle: const TextStyle(fontFamily: 'Bungee', fontSize: 11),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        backgroundColor: tokens.surfaceMuted,
+        selectedColor: tokens.feltHighlight,
+        disabledColor: tokens.disabledFill,
+        side: BorderSide(color: tokens.line),
+        labelStyle: TextStyle(color: tokens.cream),
+        secondaryLabelStyle: TextStyle(color: tokens.cream),
+        checkmarkColor: tokens.mint,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: tokens.surfaceStrong,
+        surfaceTintColor: Colors.transparent,
+        textStyle: TextStyle(color: tokens.cream),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: tokens.line),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: tokens.surfaceStrong,
+        contentTextStyle: TextStyle(color: tokens.cream),
+        actionTextColor: tokens.gold,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: tokens.line),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: tokens.surfaceStrong,
+          border: Border.all(color: tokens.line),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        textStyle: TextStyle(color: tokens.cream),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: tokens.mint,
+          foregroundColor: tokens.onPrimaryAccent,
+          disabledBackgroundColor: tokens.disabledFill,
+          disabledForegroundColor: tokens.disabledContent,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: tokens.cream,
+          disabledForegroundColor: tokens.disabledContent,
+          side: BorderSide(color: tokens.line),
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: tokens.mint,
+          disabledForegroundColor: tokens.disabledContent,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? tokens.mint
+              : tokens.creamDim,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? tokens.mint.withValues(alpha: .34)
+              : tokens.disabledFill,
+        ),
+        trackOutlineColor: WidgetStatePropertyAll(tokens.line),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? tokens.mint
+              : tokens.fieldFill,
+        ),
+        checkColor: WidgetStatePropertyAll(tokens.onPrimaryAccent),
+        side: BorderSide(color: tokens.line),
+      ),
       splashFactory: InkRipple.splashFactory,
       extensions: <ThemeExtension<dynamic>>[tokens],
     );

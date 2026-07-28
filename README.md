@@ -1,8 +1,21 @@
 # WILDCARD
 
-WILDCARD is a mobile-first arcade roguelike poker game. The Android app is a Capacitor wrapper around the web game in `www/`.
+WILDCARD is a mobile-first arcade roguelike poker game.
 
-## Current release
+## v8 source of truth
+
+The native game in [`flutter_app/`](flutter_app/) is authoritative for v8 and
+all current development. Gameplay, scoring, progression, rendering, Android
+services and tests run natively in Dart/Flutter; the v8 app does not embed a
+WebView.
+
+Current candidate: **v8.5.0** (`versionCode 64`) on
+`agent/flutter-v8.5.0-chests-progression-arcade`, stacked on the reviewed
+Flutter branch history. The `www/` game and legacy Capacitor `android/` wrapper
+remain in this repository only as the released v6 reference, migration input
+and presentation comparison. Do not implement v8 gameplay changes there.
+
+## Legacy WebView release
 
 - Game version: **6.9.14**
 - Android package: `com.nisarg.wildcard`

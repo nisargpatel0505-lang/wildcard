@@ -8,6 +8,7 @@ import '../../app/developer_access.dart';
 import '../../core/app_constants.dart';
 import '../../domain/account_state.dart';
 import '../../domain/joker_catalog.dart';
+import '../../domain/progression_catalog.dart';
 import '../../services/haptics_service.dart';
 import '../../services/ad_service.dart';
 import '../../services/billing_service.dart';
@@ -45,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return WildcardPageFrame(
           title: 'Settings',
           subtitle: 'Phone, account and online services',
+          surface: WildcardUiSurface.settings,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 34),
             children: [
@@ -545,7 +547,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         rarity: 'COMMON',
         rarityColor: context.wildcard.gold,
         categoryLabel: 'VAULT ANIMATION PREVIEW',
-        icon: Icons.style_rounded,
+        artwork: RoyalVaultRewardArtwork.forJoker(jokersById['copper']!),
       ),
       RoyalVaultVisualTier.golden => RoyalVaultRewardViewModel(
         name: 'Frequency Meter',
@@ -554,7 +556,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         rarity: 'RARE',
         rarityColor: context.wildcard.rare,
         categoryLabel: 'VAULT ANIMATION PREVIEW',
-        icon: Icons.style_rounded,
+        artwork: RoyalVaultRewardArtwork.forJoker(jokersById['safe_cracker']!),
       ),
       RoyalVaultVisualTier.cosmetic => RoyalVaultRewardViewModel(
         name: 'Moonlit Masquerade',
@@ -563,7 +565,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         rarity: 'COSMETIC',
         rarityColor: context.wildcard.violet,
         categoryLabel: 'VAULT ANIMATION PREVIEW',
-        icon: Icons.palette_rounded,
+        artwork: RoyalVaultRewardArtwork.forCosmetic(
+          cosmeticById('theme_moonlit_mask')!,
+        ),
       ),
     };
     await showRoyalVaultAnimation(

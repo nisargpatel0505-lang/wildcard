@@ -132,17 +132,6 @@ class JokerDefinition {
   final bool starter;
   final String? stateKey;
 
-  int get collectionUnlockCost {
-    if (unlock == 0) return 0;
-    final multiplier = switch (rarity) {
-      JokerRarity.common => 1.5,
-      JokerRarity.uncommon => 2.2,
-      JokerRarity.rare => 2.7,
-      JokerRarity.wild => 3.0,
-    };
-    return ((unlock * multiplier) / 5).round() * 5;
-  }
-
   int get startBoostPrice => switch (rarity) {
     JokerRarity.common => 6,
     JokerRarity.uncommon => 10,
@@ -1150,11 +1139,7 @@ const List<String> starterJokerIds = <String>[
   'face_value',
 ];
 
-const Map<JokerRarity, double> jokerShopRarityWeights = <JokerRarity, double>{
-  JokerRarity.common: 4,
-  JokerRarity.uncommon: 3.2,
-  JokerRarity.rare: 3,
-  JokerRarity.wild: 1.8,
-};
-
-const int wildPityAfterShops = 6;
+// Deep-Endless drought protection. Standard runs expose only six eligible
+// natural shops, so WILD remains rare instead of becoming a guaranteed offer
+// immediately after entering Endless.
+const int wildPityAfterShops = 24;

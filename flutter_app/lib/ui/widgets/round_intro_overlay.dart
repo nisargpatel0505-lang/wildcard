@@ -79,7 +79,8 @@ class _RoundIntroOverlayState extends State<RoundIntroOverlay>
           return Opacity(
             opacity: opacity.clamp(0.0, 1.0),
             child: Container(
-              color: Colors.black.withValues(alpha: 0.58 * opacity),
+              key: const ValueKey('wildcard-surface-overlay'),
+              color: tokens.overlayScrim.withValues(alpha: 0.58 * opacity),
               alignment: Alignment.center,
               child: Transform.translate(offset: Offset(0, rise), child: child),
             ),
@@ -98,20 +99,20 @@ class _RoundIntroOverlayState extends State<RoundIntroOverlay>
                 color: accent.withValues(alpha: 0.76),
                 width: 2,
               ),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xF5140830), Color(0xF5050C18)],
+                colors: [tokens.surface, tokens.surfaceStrong],
               ),
               boxShadow: [
                 BoxShadow(
                   color: accent.withValues(alpha: 0.22),
                   blurRadius: 46,
                 ),
-                const BoxShadow(
-                  color: Color(0xBF000000),
+                BoxShadow(
+                  color: tokens.shadow,
                   blurRadius: 70,
-                  offset: Offset(0, 24),
+                  offset: const Offset(0, 24),
                 ),
               ],
             ),

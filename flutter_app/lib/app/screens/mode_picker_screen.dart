@@ -72,6 +72,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
       title: 'Choose Run',
       subtitle: 'Pick a table, then set your risk.',
       room: WildcardRoom.runSetup,
+      surface: WildcardUiSurface.modePicker,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
         children: [

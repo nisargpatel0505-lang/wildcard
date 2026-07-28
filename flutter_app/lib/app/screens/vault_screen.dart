@@ -23,6 +23,7 @@ class VaultScreen extends StatefulWidget {
 
 class _VaultScreenState extends State<VaultScreen> {
   bool _actionInFlight = false;
+  int _claimSequence = 0;
   _VaultSection _section = _VaultSection.collection;
 
   @override
@@ -38,6 +39,7 @@ class _VaultScreenState extends State<VaultScreen> {
           title: 'Joker Unlocks',
           subtitle: '$publicUnlocked / ${jokerCatalog.length} Jokers unlocked',
           room: WildcardRoom.vault,
+          surface: WildcardUiSurface.chestVault,
           actions: [_coinBadge(account.coins)],
           child: Column(
             children: [
@@ -77,10 +79,7 @@ class _VaultScreenState extends State<VaultScreen> {
                             _tutorialComebackCard(),
                             const SizedBox(height: 10),
                           ],
-                          JokerCollectionSection(
-                            account: account,
-                            onUnlock: widget.controller.unlockJoker,
-                          ),
+                          JokerCollectionSection(account: account),
                         ]
                       : <Widget>[
                           if (widget
@@ -96,12 +95,9 @@ class _VaultScreenState extends State<VaultScreen> {
                           _cosmeticVaultCard(),
                           const SizedBox(height: 10),
                           WildcardButton(
-                            label: widget.controller.effectiveNoAds
-                                ? 'Claim +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)'
-                                : 'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',
-                            icon: widget.controller.effectiveNoAds
-                                ? const WildcardCoinIcon(size: 20)
-                                : const Icon(Icons.smart_display_outlined),
+                            label:
+                                'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',
+                            icon: const Icon(Icons.smart_display_outlined),
                             onPressed:
                                 !_actionInFlight &&
                                     widget.controller.rewardedViewsLeftToday > 0
@@ -241,6 +237,14 @@ class _VaultScreenState extends State<VaultScreen> {
             style: TextStyle(color: context.wildcard.creamDim, fontSize: 12),
           ),
           if (available) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Duplicate protected · always awards an unowned eligible Joker',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.wildcard.mint, fontSize: 10.5),
+            ),
+          ],
+          if (available) ...[
             const SizedBox(height: 9),
             CoinPrice(price, label: 'ACCOUNT COINS'),
           ],
@@ -261,12 +265,15 @@ class _VaultScreenState extends State<VaultScreen> {
 
   Widget _cosmeticVaultCard() {
     final account = widget.controller.account;
-    final left = cosmeticCatalog
+    final locked = cosmeticCatalog
         .where(
           (item) =>
               !item.isDefault && !account.cosmeticsOwned.contains(item.id),
         )
-        .length;
+        .toList(growable: false);
+    final left = locked.length;
+    final odds = cosmeticVaultEffectiveOdds(locked);
+    final kindOdds = cosmeticVaultKindOdds(locked);
     return WildcardCard(
       accent: WildcardCardAccent.violet,
       padding: const EdgeInsets.all(15),
@@ -286,10 +293,34 @@ class _VaultScreenState extends State<VaultScreen> {
           Text(
             left == 0
                 ? 'Every cosmetic is owned'
-                : '$left rewards remain · UI theme chance 0.8% while both pools remain',
+                : odds.entries
+                      .map(
+                        (entry) =>
+                            '${_rarityName(entry.key)} ${(entry.value * 100).toStringAsFixed(entry.value * 100 % 1 == 0 ? 0 : 1)}%',
+                      )
+                      .join(' · '),
             textAlign: TextAlign.center,
             style: TextStyle(color: context.wildcard.creamDim, fontSize: 12),
           ),
+          if (left > 0) ...[
+            const SizedBox(height: 5),
+            Text(
+              kindOdds.entries
+                  .map(
+                    (entry) =>
+                        '${_cosmeticKindName(entry.key)} ${(entry.value * 100).toStringAsFixed(entry.value * 100 < 1 ? 1 : 0)}%',
+                  )
+                  .join(' · '),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.wildcard.mint, fontSize: 10.5),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Cosmetics only · duplicate protected',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.wildcard.creamDim, fontSize: 10),
+            ),
+          ],
           if (left > 0) ...[
             const SizedBox(height: 9),
             const CoinPrice(cosmeticVaultPrice, label: 'ACCOUNT COINS'),
@@ -309,12 +340,21 @@ class _VaultScreenState extends State<VaultScreen> {
     );
   }
 
+  String _cosmeticKindName(CosmeticKind kind) => switch (kind) {
+    CosmeticKind.table => 'Table',
+    CosmeticKind.theme => 'UI theme',
+    CosmeticKind.sly => 'Sly look',
+  };
+
   Future<void> _openJokerVault(JokerChestTier tier) async {
     if (_actionInFlight) return;
     setState(() => _actionInFlight = true);
     try {
       // The controller persists both the spend and unlock before returning.
-      final reward = await widget.controller.openJokerVault(tier);
+      final reward = await widget.controller.openJokerVault(
+        tier,
+        claimId: _nextVaultClaimId(tier.name),
+      );
       if (!mounted) return;
       if (reward == null) {
         _message('This Vault is not available right now.');
@@ -334,7 +374,7 @@ class _VaultScreenState extends State<VaultScreen> {
           rarity: _rarityName(reward.rarity).toUpperCase(),
           rarityColor: _rarityColor(context, reward.rarity),
           categoryLabel: 'NEW JOKER UNLOCKED',
-          icon: Icons.style_rounded,
+          artwork: RoyalVaultRewardArtwork.forJoker(reward),
         ),
         fast: widget.controller.account.speed == ScoringPace.fast,
       );
@@ -369,7 +409,7 @@ class _VaultScreenState extends State<VaultScreen> {
           rarity: _rarityName(reward.rarity).toUpperCase(),
           rarityColor: _rarityColor(context, reward.rarity),
           categoryLabel: 'COMEBACK JOKER UNLOCKED',
-          icon: Icons.style_rounded,
+          artwork: RoyalVaultRewardArtwork.forJoker(reward),
         ),
         fast: widget.controller.account.speed == ScoringPace.fast,
       );
@@ -387,7 +427,9 @@ class _VaultScreenState extends State<VaultScreen> {
     setState(() => _actionInFlight = true);
     try {
       // Ownership is durable before the first frame of the reveal.
-      final reward = await widget.controller.openCosmeticVault();
+      final reward = await widget.controller.openCosmeticVault(
+        claimId: _nextVaultClaimId('cosmetic'),
+      );
       if (!mounted) return;
       if (reward == null) {
         _message('The Cosmetic Vault is complete or unavailable.');
@@ -405,11 +447,7 @@ class _VaultScreenState extends State<VaultScreen> {
           rarity: _rarityName(reward.rarity).toUpperCase(),
           rarityColor: _rarityColor(context, reward.rarity),
           categoryLabel: 'NEW COSMETIC UNLOCKED',
-          icon: switch (reward.kind) {
-            CosmeticKind.table => Icons.table_restaurant_rounded,
-            CosmeticKind.theme => Icons.palette_rounded,
-            CosmeticKind.sly => Icons.theater_comedy_rounded,
-          },
+          artwork: RoyalVaultRewardArtwork.forCosmetic(reward),
         ),
         fast: widget.controller.account.speed == ScoringPace.fast,
       );
@@ -420,6 +458,12 @@ class _VaultScreenState extends State<VaultScreen> {
     } finally {
       if (mounted) setState(() => _actionInFlight = false);
     }
+  }
+
+  String _nextVaultClaimId(String tier) {
+    _claimSequence++;
+    return 'vault-ui:$tier:${DateTime.now().microsecondsSinceEpoch}:'
+        '$_claimSequence';
   }
 
   Future<void> _rewardedCoins() async {

@@ -4,11 +4,10 @@ import '../../domain/account_state.dart';
 import '../../domain/joker_catalog.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
-import '../../ui/widgets/wildcard_toast.dart';
 
 enum JokerCollectionFilter { all, locked, owned, common, uncommon, rare, wild }
 
-enum JokerCollectionSort { rarity, cost, name, status }
+enum JokerCollectionSort { rarity, name, status }
 
 const int jokerCollectionPageSize = 24;
 
@@ -42,30 +41,16 @@ List<JokerDefinition> filteredJokerCollection({
     final rarity = _rarityOrder(
       left.rarity,
     ).compareTo(_rarityOrder(right.rarity));
-    final cost = left.collectionUnlockCost.compareTo(
-      right.collectionUnlockCost,
-    );
     final name = left.name.compareTo(right.name);
     return switch (sort) {
       JokerCollectionSort.name => name,
-      JokerCollectionSort.cost =>
-        cost != 0
-            ? cost
-            : rarity != 0
-            ? rarity
-            : name,
       JokerCollectionSort.status =>
         ownedIds.contains(left.id) != ownedIds.contains(right.id)
             ? (ownedIds.contains(left.id) ? -1 : 1)
             : rarity != 0
             ? rarity
             : name,
-      JokerCollectionSort.rarity =>
-        rarity != 0
-            ? rarity
-            : cost != 0
-            ? cost
-            : name,
+      JokerCollectionSort.rarity => rarity != 0 ? rarity : name,
     };
   }
 
@@ -88,14 +73,9 @@ String jokerCollectionTagline(JokerDefinition joker) {
 }
 
 class JokerCollectionSection extends StatefulWidget {
-  const JokerCollectionSection({
-    required this.account,
-    required this.onUnlock,
-    super.key,
-  });
+  const JokerCollectionSection({required this.account, super.key});
 
   final AccountState account;
-  final Future<bool> Function(String id) onUnlock;
 
   @override
   State<JokerCollectionSection> createState() => _JokerCollectionSectionState();
@@ -106,7 +86,6 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
   JokerCollectionFilter _filter = JokerCollectionFilter.all;
   JokerCollectionSort _sort = JokerCollectionSort.rarity;
   int _visible = jokerCollectionPageSize;
-  final Set<String> _unlocking = <String>{};
 
   @override
   void dispose() {
@@ -258,8 +237,6 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
 
   Widget _jokerCard(JokerDefinition joker) {
     final owned = widget.account.unlockedJokerIds.contains(joker.id);
-    final busy = _unlocking.contains(joker.id);
-    final canAfford = widget.account.coins >= joker.collectionUnlockCost;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: WildcardCard(
@@ -305,7 +282,7 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
             ),
             const SizedBox(height: 7),
             Text(
-              owned ? joker.description : 'Unlock to reveal this Joker effect.',
+              joker.description,
               style: TextStyle(
                 color: owned
                     ? context.wildcard.cream
@@ -315,28 +292,14 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
               ),
             ),
             if (!owned) ...[
-              const SizedBox(height: 10),
-              Semantics(
-                button: true,
-                enabled: canAfford && !busy,
-                label:
-                    'Unlock ${joker.name} for ${joker.collectionUnlockCost} coins',
-                child: SizedBox(
-                  height: 48,
-                  child: FilledButton.tonal(
-                    key: Key('collection-unlock-${joker.id}'),
-                    onPressed: !busy && canAfford ? () => _unlock(joker) : null,
-                    child: Text(
-                      busy
-                          ? 'SAVING…'
-                          : 'UNLOCK · ${joker.collectionUnlockCost} COINS',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Bungee',
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 7),
+              Text(
+                'Discover through Joker Vaults',
+                key: Key('collection-discover-${joker.id}'),
+                style: TextStyle(
+                  color: context.wildcard.gold,
+                  fontFamily: 'Bungee',
+                  fontSize: 10,
                 ),
               ),
             ],
@@ -346,111 +309,70 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
     );
   }
 
-  Future<bool> _unlock(JokerDefinition joker) async {
-    if (_unlocking.contains(joker.id)) return false;
-    setState(() => _unlocking.add(joker.id));
-    var unlocked = false;
-    try {
-      unlocked = await widget.onUnlock(joker.id);
-    } catch (_) {
-      unlocked = false;
-    } finally {
-      if (mounted) setState(() => _unlocking.remove(joker.id));
-    }
-    if (!mounted) return unlocked;
-    showWildcardToast(
-      context,
-      unlocked
-          ? '${joker.name} permanently unlocked.'
-          : 'Could not unlock ${joker.name}. Please try again.',
-    );
-    return unlocked;
-  }
-
   Future<void> _inspectJoker(JokerDefinition joker) async {
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, updateDialog) {
-          final owned = widget.account.unlockedJokerIds.contains(joker.id);
-          final busy = _unlocking.contains(joker.id);
-          final canAfford = widget.account.coins >= joker.collectionUnlockCost;
-          return AlertDialog(
-            key: Key('collection-inspect-${joker.id}'),
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 20,
+      builder: (dialogContext) {
+        final owned = widget.account.unlockedJokerIds.contains(joker.id);
+        return AlertDialog(
+          key: Key('collection-inspect-${joker.id}'),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 20,
+          ),
+          backgroundColor: context.wildcard.panelStrong,
+          title: Text(
+            joker.name.toUpperCase(),
+            style: TextStyle(
+              color: _rarityColor(context, joker.rarity),
+              fontFamily: 'Bungee',
+              fontSize: 18,
             ),
-            backgroundColor: context.wildcard.panelStrong,
-            title: Text(
-              joker.name.toUpperCase(),
-              style: TextStyle(
-                color: _rarityColor(context, joker.rarity),
-                fontFamily: 'Bungee',
-                fontSize: 18,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${_rarityName(joker.rarity)} · ${jokerCollectionTagline(joker)}',
-                    style: TextStyle(color: context.wildcard.creamDim),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'EFFECT',
-                    style: TextStyle(
-                      color: context.wildcard.gold,
-                      fontFamily: 'Bungee',
-                      fontSize: 11,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(joker.description),
-                  const SizedBox(height: 14),
-                  Text(
-                    owned
-                        ? (joker.starter ? 'STARTER SET' : 'IN COLLECTION')
-                        : 'LOCKED',
-                    style: TextStyle(
-                      color: owned
-                          ? context.wildcard.mint
-                          : context.wildcard.creamDim,
-                      fontFamily: 'Bungee',
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              if (!owned)
-                TextButton(
-                  key: Key('collection-inspect-unlock-${joker.id}'),
-                  onPressed: !busy && canAfford
-                      ? () async {
-                          final unlocked = await _unlock(joker);
-                          if (dialogContext.mounted) updateDialog(() {});
-                          if (unlocked && mounted) setState(() {});
-                        }
-                      : null,
-                  child: Text(
-                    busy
-                        ? 'SAVING…'
-                        : 'UNLOCK · ${joker.collectionUnlockCost} COINS',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${_rarityName(joker.rarity)} · ${jokerCollectionTagline(joker)}',
+                  style: TextStyle(color: context.wildcard.creamDim),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'EFFECT',
+                  style: TextStyle(
+                    color: context.wildcard.gold,
+                    fontFamily: 'Bungee',
+                    fontSize: 11,
                   ),
                 ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('CLOSE'),
-              ),
-            ],
-          );
-        },
-      ),
+                const SizedBox(height: 4),
+                Text(joker.description),
+                const SizedBox(height: 14),
+                Text(
+                  owned
+                      ? (joker.starter ? 'STARTER SET' : 'IN COLLECTION')
+                      : 'LOCKED · DISCOVER THROUGH JOKER VAULTS',
+                  style: TextStyle(
+                    color: owned
+                        ? context.wildcard.mint
+                        : context.wildcard.creamDim,
+                    fontFamily: 'Bungee',
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CLOSE'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -644,7 +566,6 @@ String _filterLabel(JokerCollectionFilter filter) => switch (filter) {
 
 String _sortLabel(JokerCollectionSort sort) => switch (sort) {
   JokerCollectionSort.rarity => 'Rarity',
-  JokerCollectionSort.cost => 'Cost',
   JokerCollectionSort.name => 'Name',
   JokerCollectionSort.status => 'Status',
 };

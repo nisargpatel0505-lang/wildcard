@@ -8,6 +8,7 @@ class WildcardPageFrame extends StatelessWidget {
     required this.child,
     this.subtitle,
     this.room = WildcardRoom.themedHome,
+    this.surface,
     this.actions = const <Widget>[],
     super.key,
   });
@@ -16,6 +17,7 @@ class WildcardPageFrame extends StatelessWidget {
   final String? subtitle;
   final Widget child;
   final WildcardRoom room;
+  final WildcardUiSurface? surface;
   final List<Widget> actions;
 
   @override
@@ -25,6 +27,7 @@ class WildcardPageFrame extends StatelessWidget {
       backgroundColor: tokens.ink,
       body: WildcardBackground(
         room: room,
+        surface: surface,
         child: SafeArea(
           child: Column(
             children: [

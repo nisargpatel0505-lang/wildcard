@@ -44,9 +44,9 @@ void main() {
         expect(RunDifficulty.easy.targetMultiplier, 0.60);
         expect(RunDifficulty.medium.targetMultiplier, 1.00);
         expect(RunDifficulty.hard.targetMultiplier, 1.30);
-        expect(RunDifficulty.easy.stakeMultiplier, 0.60);
-        expect(RunDifficulty.medium.stakeMultiplier, 1.00);
-        expect(RunDifficulty.hard.stakeMultiplier, 1.60);
+        expect(RunDifficulty.easy.stakeMultiplier, 0.80);
+        expect(RunDifficulty.medium.stakeMultiplier, 0.92);
+        expect(RunDifficulty.hard.stakeMultiplier, 1.00);
 
         expect(
           ScoringState(

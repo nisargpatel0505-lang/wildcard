@@ -14,6 +14,7 @@ void main() {
         'rewardClaims',
         'noAds',
         'missionSet',
+        'progressCounters',
       }),
     );
     expect(

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/app_constants.dart';
+import 'forced_ad_policy.dart';
 
 enum AdServiceState {
   idle,
@@ -14,6 +15,13 @@ enum AdServiceState {
 }
 
 class AdService extends ChangeNotifier {
+  AdService({
+    ForcedInterstitialPolicy? forcedInterstitialPolicy,
+    @visibleForTesting this.rewardedPresenter,
+    @visibleForTesting this.interstitialPresenter,
+  }) : forcedInterstitialPolicy =
+           forcedInterstitialPolicy ?? ForcedInterstitialPolicy();
+
   static const bool _forceTestAds = bool.fromEnvironment(
     'WILDCARD_ADS_TESTING',
     defaultValue: false,
@@ -24,7 +32,13 @@ class AdService extends ChangeNotifier {
   InterstitialAd? _interstitial;
   Object? _lastError;
   bool _privacyOptionsRequired = false;
-  bool _noAds = false;
+  bool _forcedAdsRemoved = false;
+  @visibleForTesting
+  final Future<RewardItem?> Function()? rewardedPresenter;
+
+  @visibleForTesting
+  final Future<bool> Function()? interstitialPresenter;
+  final ForcedInterstitialPolicy forcedInterstitialPolicy;
 
   AdServiceState get state => _state;
   Object? get lastError => _lastError;
@@ -32,7 +46,11 @@ class AdService extends ChangeNotifier {
   bool get rewardedReady => _rewarded != null;
   bool get interstitialReady => _interstitial != null;
   bool get privacyOptionsRequired => _privacyOptionsRequired;
-  bool get noAds => _noAds;
+  bool get forcedAdsRemoved => _forcedAdsRemoved;
+
+  /// Legacy name retained for callers while the persisted `noAds` field keeps
+  /// save and purchase compatibility. It now means forced ads only.
+  bool get noAds => forcedAdsRemoved;
   bool get testing => !kReleaseMode || _forceTestAds;
 
   String get rewardedAdUnitId => testing
@@ -43,32 +61,23 @@ class AdService extends ChangeNotifier {
       ? AppConstants.testInterstitialAdId
       : AppConstants.productionInterstitialAdId;
 
-  void setNoAds(bool value) {
-    if (_noAds == value) return;
-    _noAds = value;
+  void setForcedAdsRemoved(bool value) {
+    if (_forcedAdsRemoved == value) return;
+    _forcedAdsRemoved = value;
     if (value) {
-      _rewarded?.dispose();
-      _rewarded = null;
       _interstitial?.dispose();
       _interstitial = null;
     } else if (ready) {
-      unawaited(_loadRewarded());
       unawaited(_loadInterstitial());
     }
     notifyListeners();
   }
 
+  void setNoAds(bool value) => setForcedAdsRemoved(value);
+
   /// Must only be called after WILDCARD's first-launch privacy gate is accepted.
   Future<bool> initializeAfterPrivacyAcceptance() async {
     if (ready) return true;
-    if (_noAds) {
-      // Profile builds and paid ad-free accounts resolve the service without
-      // initializing UMP or Mobile Ads. The profile override lives only in
-      // memory, so this cannot create a release entitlement.
-      _state = AdServiceState.ready;
-      notifyListeners();
-      return true;
-    }
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       _state = AdServiceState.unavailable;
       notifyListeners();
@@ -108,8 +117,8 @@ class AdService extends ChangeNotifier {
       await MobileAds.instance.initialize();
       _state = AdServiceState.ready;
       await Future.wait<void>([
-        if (!_noAds) _loadRewarded(),
-        if (!_noAds) _loadInterstitial(),
+        _loadRewarded(),
+        if (!_forcedAdsRemoved) _loadInterstitial(),
       ]);
       notifyListeners();
       return true;
@@ -185,7 +194,8 @@ class AdService extends ChangeNotifier {
   }
 
   Future<RewardItem?> showRewarded() async {
-    if (_noAds) return RewardItem(0, 'ad_free');
+    final testPresenter = rewardedPresenter;
+    if (testPresenter != null) return testPresenter();
     if (!ready) return null;
     if (_rewarded == null) await _loadRewarded();
     final ad = _rewarded;
@@ -213,7 +223,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<void> _loadInterstitial() async {
-    if (!ready || _noAds || _interstitial != null) return;
+    if (!ready || _forcedAdsRemoved || _interstitial != null) return;
     final completer = Completer<void>();
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,
@@ -235,7 +245,10 @@ class AdService extends ChangeNotifier {
   }
 
   Future<bool> showInterstitial() async {
-    if (!ready || _noAds) return false;
+    if (_forcedAdsRemoved) return false;
+    final testPresenter = interstitialPresenter;
+    if (testPresenter != null) return testPresenter();
+    if (!ready) return false;
     if (_interstitial == null) await _loadInterstitial();
     final ad = _interstitial;
     if (ad == null) return false;
@@ -258,6 +271,24 @@ class AdService extends ChangeNotifier {
     );
     ad.show();
     return completer.future;
+  }
+
+  /// The only public gameplay path for a forced interstitial.
+  ///
+  /// Rewarded placements intentionally do not consult this entitlement or
+  /// policy: they remain optional and only return a reward after Google's
+  /// completion callback.
+  Future<bool> showTerminalInterstitial(
+    TerminalInterstitialContext context,
+  ) async {
+    final decision = forcedInterstitialPolicy.beginAttempt(
+      context,
+      forcedAdsRemoved: _forcedAdsRemoved,
+    );
+    if (decision != ForcedInterstitialDecision.allowed) return false;
+    final shown = await showInterstitial();
+    if (shown) forcedInterstitialPolicy.recordShown();
+    return shown;
   }
 
   @override
