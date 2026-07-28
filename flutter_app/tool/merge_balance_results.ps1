@@ -18,7 +18,7 @@ $header = @(
     'joker',
     'rarity',
     'winDelta',
-    'heatDelta',
+    'progressDelta',
     'runs',
     'wins',
     'winRate',
@@ -28,7 +28,18 @@ $header = @(
     'avgScore',
     'avgJokerTriggersPerHand',
     'jokerActiveHandRate',
-    'over70'
+    'over70',
+    'progressDeltaExact',
+    'avgProgress',
+    'terminalHeatDelta',
+    'controlRuns',
+    'controlWins',
+    'controlWinRate',
+    'controlAvgProgress',
+    'controlAvgTerminalHeat',
+    'controlAvgHeatsCleared',
+    'controlAvgScore',
+    'difficulty'
 )
 
 $stdoutFiles = Get-ChildItem -LiteralPath $InputDirectory -File |
@@ -55,7 +66,7 @@ if ($rows.Count -ne $expected -or $unique.Count -ne $expected) {
 
 $ranked = $rows | Sort-Object `
     @{ Expression = { [double]$_.winDelta }; Descending = $true }, `
-    @{ Expression = { [double]$_.heatDelta }; Descending = $true }, `
+    @{ Expression = { [double]$_.progressDelta }; Descending = $true }, `
     @{ Expression = { [double]$_.heatsClearedDelta }; Descending = $true }, `
     @{ Expression = { [double]$_.avgScore }; Descending = $true }, `
     @{ Expression = { $_.joker }; Descending = $false }
@@ -67,12 +78,8 @@ if ($parent) {
 $ranked | Export-Csv -LiteralPath $OutputCsv -NoTypeInformation
 
 if ($Phase -eq 'singles') {
-    # copper and presser are already present in the fixed two-starter baseline;
-    # their forced arms intentionally deduplicate to baseline and cannot be
-    # ranked as independent contributions.
     $top12 = @(
         $ranked |
-            Where-Object { $_.joker -notin @('copper', 'presser') } |
             Select-Object -First 12 -ExpandProperty joker
     )
     Write-Output "TOP12=$($top12 -join ',')"

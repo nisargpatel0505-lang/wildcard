@@ -67,6 +67,8 @@ class SimulatedRunResult {
     required this.terminalHeat,
     required this.won,
     required this.totalScore,
+    required this.terminalStageScore,
+    required this.terminalTarget,
     required this.handsPlayed,
     required this.discardsUsed,
     required this.finalRunCoins,
@@ -90,6 +92,8 @@ class SimulatedRunResult {
   final int terminalHeat;
   final bool won;
   final int totalScore;
+  final int terminalStageScore;
+  final int terminalTarget;
   final int handsPlayed;
   final int discardsUsed;
   final int finalRunCoins;
@@ -113,6 +117,8 @@ class SimulatedRunResult {
     'terminalHeat': terminalHeat,
     'won': won,
     'totalScore': totalScore,
+    'terminalStageScore': terminalStageScore,
+    'terminalTarget': terminalTarget,
     'handsPlayed': handsPlayed,
     'discardsUsed': discardsUsed,
     'finalRunCoins': finalRunCoins,
@@ -361,6 +367,8 @@ class _RunSimulation {
       terminalHeat: state.stage,
       won: won,
       totalScore: totalScore,
+      terminalStageScore: state.stageScore,
+      terminalTarget: _target,
       handsPlayed: totalHands,
       discardsUsed: totalDiscards,
       finalRunCoins: state.runCoins,

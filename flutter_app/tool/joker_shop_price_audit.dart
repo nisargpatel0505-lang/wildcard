@@ -7,9 +7,9 @@ const int _expectedPublicJokerCount = 102;
 const String _devJokerId = 'devx20';
 
 const Map<JokerRarity, PriceBand> _runShopBands = <JokerRarity, PriceBand>{
-  JokerRarity.common: PriceBand(4, 5),
-  JokerRarity.uncommon: PriceBand(6, 7),
-  JokerRarity.rare: PriceBand(8, 9),
+  JokerRarity.common: PriceBand(4, 6),
+  JokerRarity.uncommon: PriceBand(5, 7),
+  JokerRarity.rare: PriceBand(6, 8),
   JokerRarity.wild: PriceBand(10, 12),
 };
 
@@ -400,7 +400,7 @@ void _printHumanReport(JokerPriceAuditReport report) {
     'Starters/free unlocks: ${report.starterCount}/'
     '${report.freeUnlockCount}',
   );
-  stdout.writeln('Bands: Common 4-5, Uncommon 6-7, Rare 8-9, Wild 10-12 coins');
+  stdout.writeln('Bands: Common 4-6, Uncommon 5-7, Rare 6-8, Wild 10-12 coins');
   stdout.writeln('');
 
   if (report.validationErrors.isEmpty) {

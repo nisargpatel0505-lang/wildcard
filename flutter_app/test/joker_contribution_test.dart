@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_balance_audit.dart';
 import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/simulation.dart';
@@ -18,6 +19,13 @@ final _shardIndex = _environmentInt(
   'WILDCARD_JOKER_BALANCE_SHARD_INDEX',
   fallback: 0,
 );
+final _runs = _positiveEnvironmentInt(
+  'WILDCARD_JOKER_BALANCE_RUNS',
+  fallback: jokerBalanceDefaultRuns,
+);
+final _difficulties = _parseDifficulties(
+  Platform.environment['WILDCARD_JOKER_BALANCE_DIFFICULTY'] ?? 'medium,easy',
+);
 final _providedTop12 =
     Platform.environment['WILDCARD_JOKER_TOP12']
         ?.split(',')
@@ -28,79 +36,59 @@ final _providedTop12 =
 
 void main() {
   test(
-    'matched-seed Joker contribution and top-12 pair audit',
+    'matched random-five Joker contribution and top-12 pair audit',
     () {
-      _validateShard();
-      final baseline = _runMetrics(const <String>[]);
-      expect(baseline.invariantFailures, 0);
-
-      // Prefixes and the first four reader fields are a stable parsing
-      // contract; the remaining raw metrics are intentionally additive.
+      _validateOptions();
       // ignore: avoid_print
       print('JOKERCSV_HEADER,$jokerContributionCsvHeader');
-      // ignore: avoid_print
-      print(
-        JokerContributionRow(
-          joker: 'BASELINE',
-          rarity: 'baseline',
-          metrics: baseline,
-          baseline: baseline,
-        ).toCsv('JOKERCSV'),
-      );
 
-      final singles = <JokerContributionRow>[];
-      if (_auditPhase != 'pairs') {
-        for (var index = 0; index < jokerCatalog.length; index++) {
-          if (!_belongsToShard(index)) continue;
-          final joker = jokerCatalog[index];
-          final metrics = _runMetrics(<String>[joker.id]);
-          expect(
-            metrics.invariantFailures,
-            0,
-            reason: '${joker.id} must preserve simulator invariants',
-          );
-          final row = JokerContributionRow(
-            joker: joker.id,
-            rarity: joker.rarity.name,
-            metrics: metrics,
-            baseline: baseline,
-          );
-          singles.add(row);
-          // ignore: avoid_print
-          print(row.toCsv('JOKERCSV'));
+      for (final difficulty in _difficulties) {
+        final singles = <JokerContributionRow>[];
+        if (_auditPhase != 'pairs') {
+          for (var index = 0; index < jokerCatalog.length; index++) {
+            if (!_belongsToShard(index)) continue;
+            final joker = jokerCatalog[index];
+            final row = _runRow(
+              joker: joker.id,
+              rarity: joker.rarity.name,
+              forcedJokers: <String>[joker.id],
+              difficulty: difficulty,
+            );
+            singles.add(row);
+            // ignore: avoid_print
+            print(row.toCsv('JOKERCSV'));
+          }
         }
-      }
 
-      if (_auditPhase == 'singles') return;
-      final pairIds = _resolveTop12(singles);
-      // ignore: avoid_print
-      print('PAIRCSV_HEADER,$jokerContributionCsvHeader');
-      final pairs = <List<String>>[
-        for (var left = 0; left < pairIds.length; left++)
-          for (var right = left + 1; right < pairIds.length; right++)
-            <String>[pairIds[left], pairIds[right]],
-      ];
-      for (var index = 0; index < pairs.length; index++) {
-        if (!_belongsToShard(index)) continue;
-        final ids = pairs[index];
-        final metrics = _runMetrics(ids);
-        expect(
-          metrics.invariantFailures,
-          0,
-          reason: '${ids.join('+')} must preserve simulator invariants',
-        );
-        final rarity = ids.map((id) => jokersById[id]!.rarity.name).join('+');
-        // Every pair arm is the same two-starter baseline plus the two forced
-        // Jokers, with the same seeded shop randomness as the baseline.
+        if (_auditPhase == 'singles') continue;
+        final pairIds = _resolveTop12(singles);
         // ignore: avoid_print
-        print(
-          JokerContributionRow(
+        print('PAIRCSV_HEADER,$jokerContributionCsvHeader');
+        final pairs = <List<String>>[
+          for (var left = 0; left < pairIds.length; left++)
+            for (var right = left + 1; right < pairIds.length; right++)
+              <String>[pairIds[left], pairIds[right]],
+        ];
+        for (var index = 0; index < pairs.length; index++) {
+          if (!_belongsToShard(index)) continue;
+          final ids = pairs[index];
+          final rarity = ids.map((id) => jokersById[id]!.rarity.name).join('+');
+          final row = _runRow(
             joker: ids.join('+'),
             rarity: rarity,
-            metrics: metrics,
-            baseline: baseline,
-          ).toCsv('PAIRCSV'),
-        );
+            forcedJokers: ids,
+            difficulty: difficulty,
+          );
+          // ignore: avoid_print
+          print(row.toCsv('PAIRCSV'));
+          if (row.pairOver70) {
+            // ignore: avoid_print
+            print(
+              'PAIR_OVER_70,${row.joker},'
+              '${row.metrics.winRate.toStringAsFixed(6)},${difficulty.name}',
+            );
+          }
+        }
       }
     },
     skip: _balanceAuditEnabled
@@ -110,15 +98,37 @@ void main() {
   );
 }
 
-JokerBalanceMetrics _runMetrics(List<String> forcedJokers) =>
-    JokerBalanceMetrics.fromReport(
-      _harness.runBatch(
-        jokerBalanceConfig(
-          runs: jokerBalanceDefaultRuns,
-          forcedJokers: forcedJokers,
-        ),
-      ),
-    );
+JokerContributionRow _runRow({
+  required String joker,
+  required String rarity,
+  required List<String> forcedJokers,
+  required RunDifficulty difficulty,
+}) {
+  final cohort = runJokerBalanceMatchedCohort(
+    harness: _harness,
+    runs: _runs,
+    firstSeed: jokerBalanceFirstSeed,
+    forcedJokers: forcedJokers,
+    difficulty: difficulty,
+  );
+  expect(
+    cohort.treatment.invariantFailures,
+    0,
+    reason: '$joker treatment must preserve simulator invariants',
+  );
+  expect(
+    cohort.control.invariantFailures,
+    0,
+    reason: '$joker matched control must preserve simulator invariants',
+  );
+  return JokerContributionRow(
+    joker: joker,
+    rarity: rarity,
+    difficulty: difficulty,
+    metrics: cohort.treatment,
+    control: cohort.control,
+  );
+}
 
 List<String> _resolveTop12(List<JokerContributionRow> singles) {
   final result = _providedTop12.isNotEmpty
@@ -130,7 +140,7 @@ List<String> _resolveTop12(List<JokerContributionRow> singles) {
             .toList(growable: false)
       : throw StateError(
           'Sharded pair runs require WILDCARD_JOKER_TOP12=id1,...,id12 '
-          'from the merged JOKERCSV contribution ranking.',
+          'from the merged matched-control JOKERCSV ranking.',
         );
   if (result.length != 12 ||
       result.toSet().length != 12 ||
@@ -144,7 +154,7 @@ List<String> _resolveTop12(List<JokerContributionRow> singles) {
   return result;
 }
 
-void _validateShard() {
+void _validateOptions() {
   if (_shardIndex < 0 || _shardIndex >= _shardCount) {
     throw ArgumentError.value(
       _shardIndex,
@@ -155,6 +165,28 @@ void _validateShard() {
   if (!const <String>{'both', 'singles', 'pairs'}.contains(_auditPhase)) {
     throw ArgumentError.value(_auditPhase, 'WILDCARD_JOKER_BALANCE_PHASE');
   }
+}
+
+List<RunDifficulty> _parseDifficulties(String source) {
+  final result = source
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .where((value) => value.isNotEmpty)
+      .map(
+        (value) => switch (value) {
+          'medium' || 'normal' => RunDifficulty.medium,
+          'easy' => RunDifficulty.easy,
+          _ => throw FormatException(
+            'Invalid WILDCARD_JOKER_BALANCE_DIFFICULTY=$value',
+          ),
+        },
+      )
+      .toSet()
+      .toList(growable: false);
+  if (result.isEmpty) {
+    throw const FormatException('Choose Medium and/or Easy');
+  }
+  return result;
 }
 
 bool _belongsToShard(int cohortIndex) =>

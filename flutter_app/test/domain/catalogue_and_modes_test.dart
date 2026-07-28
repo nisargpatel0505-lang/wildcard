@@ -15,28 +15,28 @@ void main() {
     final starters = jokerCatalog.where((joker) => joker.starter).toList();
     expect(starters, hasLength(10));
     expect(
-      starters.where((joker) => joker.rarity == JokerRarity.common),
-      hasLength(8),
+      <JokerRarity, int>{
+        for (final rarity in JokerRarity.values)
+          rarity: jokerCatalog.where((joker) => joker.rarity == rarity).length,
+      },
+      const <JokerRarity, int>{
+        JokerRarity.common: 36,
+        JokerRarity.uncommon: 36,
+        JokerRarity.rare: 23,
+        JokerRarity.wild: 7,
+      },
     );
     expect(
-      starters.where((joker) => joker.rarity == JokerRarity.uncommon),
-      hasLength(2),
-    );
-    expect(
-      jokerCatalog.where((joker) => joker.rarity == JokerRarity.common),
-      hasLength(42),
-    );
-    expect(
-      jokerCatalog.where((joker) => joker.rarity == JokerRarity.uncommon),
-      hasLength(32),
-    );
-    expect(
-      jokerCatalog.where((joker) => joker.rarity == JokerRarity.rare),
-      hasLength(20),
-    );
-    expect(
-      jokerCatalog.where((joker) => joker.rarity == JokerRarity.wild),
-      hasLength(8),
+      <JokerRarity, int>{
+        for (final rarity in JokerRarity.values)
+          rarity: starters.where((joker) => joker.rarity == rarity).length,
+      },
+      const <JokerRarity, int>{
+        JokerRarity.common: 8,
+        JokerRarity.uncommon: 0,
+        JokerRarity.rare: 2,
+        JokerRarity.wild: 0,
+      },
     );
     expect(
       jokerCatalog.every((joker) => joker.price >= 0 && joker.unlock >= 0),
@@ -44,8 +44,8 @@ void main() {
     );
     expect(jokersById['copper']!.rarity, JokerRarity.common);
     expect(jokersById['presser']!.rarity, JokerRarity.common);
-    expect(jokersById['polish']!.rarity, JokerRarity.uncommon);
-    expect(jokersById['roller']!.rarity, JokerRarity.uncommon);
+    expect(jokersById['polish']!.rarity, JokerRarity.rare);
+    expect(jokersById['roller']!.rarity, JokerRarity.rare);
     expect(
       jokersById['warm_up']!.rarity.index,
       greaterThanOrEqualTo(JokerRarity.uncommon.index),
@@ -56,9 +56,9 @@ void main() {
     );
     for (final joker in jokerCatalog) {
       final (minimum, maximum) = switch (joker.rarity) {
-        JokerRarity.common => (4, 5),
-        JokerRarity.uncommon => (6, 7),
-        JokerRarity.rare => (8, 9),
+        JokerRarity.common => (4, 6),
+        JokerRarity.uncommon => (5, 7),
+        JokerRarity.rare => (6, 8),
         JokerRarity.wild => (10, 12),
       };
       expect(
@@ -74,7 +74,7 @@ void main() {
     expect(paid, hasLength(92));
     expect(
       paid.fold<int>(0, (total, joker) => total + joker.collectionUnlockCost),
-      17075,
+      18035,
     );
   });
 
@@ -158,7 +158,7 @@ void main() {
         difficulty: RunDifficulty.easy,
         modifier: HeatModifier.theHouse,
       ).target,
-      1692,
+      1353,
     );
     expect(
       ScoringState(

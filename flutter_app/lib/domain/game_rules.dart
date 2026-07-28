@@ -146,7 +146,7 @@ enum HeatModifier {
 enum RunMode { normal, daily, gauntlet }
 
 enum RunDifficulty {
-  easy('easy', 'Easy', 0.75, 0.60),
+  easy('easy', 'Easy', 0.60, 0.60),
   medium('normal', 'Medium', 1.00, 1.00),
   hard('hard', 'Hard', 1.30, 1.60);
 
