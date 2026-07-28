@@ -47,6 +47,16 @@ void main() {
       expect(result.perCard, <int>[16, 10]);
     });
 
+    test('Leadoff advances past a rank-suppressed scoring card', () {
+      final result = _engine(
+        jokers: const <String>['leadoff'],
+        modifiers: const <HeatModifier>[HeatModifier.frostbite],
+      ).scoreHand(_cards('10S 10H'));
+      expect(result.scoringFlags, <bool>[true, true]);
+      expect(result.rankSum, 16);
+      expect(result.perCard, <int>[0, 16]);
+    });
+
     test('Closer triples only the last scoring card rank', () {
       final result = _engine(
         jokers: const <String>['closer'],
@@ -63,7 +73,7 @@ void main() {
       (joker: 'quartet', cards: '9S 9H 2D 3C', factor: 1.6),
       (joker: 'face_value', cards: 'KS', factor: 1.5),
       (joker: 'ace_in_the_hole', cards: 'AS', factor: 1.6),
-      (joker: 'rainbow', cards: '2S 4H 7D', factor: 2),
+      (joker: 'rainbow', cards: '2S 4H 7D', factor: 1.8),
     ];
 
     for (final testCase in shapeCases) {
@@ -256,7 +266,7 @@ void main() {
       expect(_jokerXFactor(result), 1.7);
     });
 
-    test('Twin Study requires at least four matching rank pairs', () {
+    test('Twin Study requires four ranks with at least two copies', () {
       final fourPairs = _engine(
         jokers: const <String>['twin_study'],
         deck: _cards('2S 2H 3S 3H 4S 4H 5S 5H'),
@@ -273,11 +283,7 @@ void main() {
         jokers: const <String>['twin_study'],
         deck: baseCardSet(),
       ).scoreHand(_cards('8S'));
-      expect(
-        _jokerXEvents(untouchedDeck),
-        isEmpty,
-        reason: 'four-of-a-rank in a normal deck is not a sculpted pair',
-      );
+      expect(_jokerXFactor(untouchedDeck), 1.4);
     });
 
     test('Ensemble includes itself in held-Joker count', () {
@@ -327,10 +333,10 @@ void main() {
   });
 
   group('risk and modifier Jokers', () {
-    test('Overclock is x3 and removes exactly one play per Heat', () {
+    test('Overclock is x2.4 and removes exactly one play per Heat', () {
       final state = _state(jokers: const <String>['overclock']);
       final result = WildcardScoringEngine(state).scoreHand(_cards('8S'));
-      expect(_jokerXFactor(result), 3);
+      expect(_jokerXFactor(result), 2.4);
       expect(state.effectiveHandsPerHeat, handsPerHeat - 1);
     });
 
@@ -372,7 +378,7 @@ void main() {
 
       state.runCoins = 0;
       final broke = engine.scoreHand(_cards('7S'));
-      expect(_jokerXEvents(broke), isEmpty);
+      expect(_jokerXFactor(broke), 1.8);
       engine.applyOnScored(broke);
       expect(state.runCoins, 0);
     });
@@ -451,6 +457,22 @@ void main() {
       );
     });
 
+    test('Gap Filler does not extend short Straight rule-benders', () {
+      expect(
+        _engine(
+          jokers: const <String>['gap_filler', 'shortcut'],
+        ).evaluateHand(_cards('2S 4D 5C')),
+        HandType.highCard,
+      );
+      expect(
+        _engine(
+          jokers: const <String>['gap_filler'],
+          modifiers: const <HeatModifier>[HeatModifier.lowCeiling],
+        ).evaluateHand(_cards('2S 3D 5C 6H')),
+        HandType.highCard,
+      );
+    });
+
     test('Two-Faced gives Two Pair the Full House base', () {
       final result = _engine(
         jokers: const <String>['two_faced'],
@@ -465,8 +487,8 @@ void main() {
         jokers: const <String>['understudy'],
       ).scoreHand(cards);
       expect(result.handType, HandType.pair);
-      expect(result.scoringFlags, <bool>[true, false, false]);
-      expect(result.rankSum, 15);
+      expect(result.scoringFlags, <bool>[false, false, false]);
+      expect(result.rankSum, 0);
     });
 
     test('Understudy synthetic Full House excludes the unused kicker', () {
@@ -478,14 +500,17 @@ void main() {
       expect(result.rankSum, 56);
     });
 
-    test('Understudy preserves Four of a Kind at a synthetic count of five', () {
-      final result = _engine(
-        jokers: const <String>['understudy'],
-      ).scoreHand(_cards('AS AH AD AC KS'));
-      expect(result.handType, HandType.fourOfAKind);
-      expect(result.scoringFlags, <bool>[true, true, true, true, false]);
-      expect(result.rankSum, 60);
-    });
+    test(
+      'Understudy preserves Four of a Kind at a synthetic count of five',
+      () {
+        final result = _engine(
+          jokers: const <String>['understudy'],
+        ).scoreHand(_cards('AS AH AD AC KS'));
+        expect(result.handType, HandType.fourOfAKind);
+        expect(result.scoringFlags, <bool>[true, true, true, true, false]);
+        expect(result.rankSum, 60);
+      },
+    );
 
     test('Suit Swap turns four matching suits plus one card into a Flush', () {
       final cards = _cards('2S 5S 8S 10S KH');

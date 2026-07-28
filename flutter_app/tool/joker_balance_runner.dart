@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_balance_audit.dart';
 import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/simulation.dart';
@@ -13,43 +13,33 @@ void main(List<String> arguments) {
 
   stdout.writeln(
     '# WILDCARD Joker balance '
-    'phase=${options.phase} runs=${options.runs} '
-    'shard=${options.shardIndex + 1}/${options.shardCount} '
-    'baseline=${options.baseline == null ? 'computed' : 'precomputed'}',
+    'method=matched-random-five '
+    'phase=${options.phase} difficulty=${options.difficulty.name} '
+    'runs=${options.runs} '
+    'shard=${options.shardIndex + 1}/${options.shardCount}',
   );
+  if (options.runs < 200) {
+    stdout.writeln(
+      '# WARNING runs=${options.runs} is a smoke test; use 200+ for evidence.',
+    );
+  }
   stdout.writeln('JOKERCSV_HEADER,$jokerContributionCsvHeader');
-
-  final baseline =
-      options.baseline ??
-      _runMetrics(
-        runs: options.runs,
-        firstSeed: options.firstSeed,
-        forcedJokers: const <String>[],
-      );
-  stdout.writeln(
-    JokerContributionRow(
-      joker: 'BASELINE',
-      rarity: 'baseline',
-      metrics: baseline,
-      baseline: baseline,
-    ).toCsv('JOKERCSV'),
-  );
 
   final singles = <JokerContributionRow>[];
   if (options.phase != 'pairs') {
     for (var index = 0; index < jokerCatalog.length; index++) {
       if (!options.includes(index)) continue;
       final joker = jokerCatalog[index];
-      final metrics = _runMetrics(
-        runs: options.runs,
-        firstSeed: options.firstSeed,
+      final cohort = _runCohort(
+        options: options,
         forcedJokers: <String>[joker.id],
       );
       final row = JokerContributionRow(
         joker: joker.id,
         rarity: joker.rarity.name,
-        metrics: metrics,
-        baseline: baseline,
+        difficulty: options.difficulty,
+        metrics: cohort.treatment,
+        control: cohort.control,
       );
       singles.add(row);
       stdout.writeln(row.toCsv('JOKERCSV'));
@@ -67,44 +57,48 @@ void main(List<String> arguments) {
   for (var index = 0; index < pairs.length; index++) {
     if (!options.includes(index)) continue;
     final ids = pairs[index];
-    final metrics = _runMetrics(
-      runs: options.runs,
-      firstSeed: options.firstSeed,
-      forcedJokers: ids,
-    );
+    final cohort = _runCohort(options: options, forcedJokers: ids);
     final rarity = ids.map((id) => jokersById[id]!.rarity.name).join('+');
-    stdout.writeln(
-      JokerContributionRow(
-        joker: ids.join('+'),
-        rarity: rarity,
-        metrics: metrics,
-        baseline: baseline,
-      ).toCsv('PAIRCSV'),
+    final row = JokerContributionRow(
+      joker: ids.join('+'),
+      rarity: rarity,
+      difficulty: options.difficulty,
+      metrics: cohort.treatment,
+      control: cohort.control,
     );
+    stdout.writeln(row.toCsv('PAIRCSV'));
+    if (row.pairOver70) {
+      stdout.writeln(
+        'PAIR_OVER_70,${row.joker},${row.metrics.winRate.toStringAsFixed(6)},'
+        '${options.difficulty.name}',
+      );
+    }
   }
 }
 
-JokerBalanceMetrics _runMetrics({
-  required int runs,
-  required int firstSeed,
+JokerBalanceMatchedCohort _runCohort({
+  required _RunnerOptions options,
   required List<String> forcedJokers,
 }) {
-  final metrics = JokerBalanceMetrics.fromReport(
-    _harness.runBatch(
-      jokerBalanceConfig(
-        runs: runs,
-        firstSeed: firstSeed,
-        forcedJokers: forcedJokers,
-      ),
-    ),
+  final cohort = runJokerBalanceMatchedCohort(
+    harness: _harness,
+    runs: options.runs,
+    firstSeed: options.firstSeed,
+    forcedJokers: forcedJokers,
+    difficulty: options.difficulty,
   );
-  if (metrics.invariantFailures != 0) {
-    throw StateError(
-      '${forcedJokers.isEmpty ? 'baseline' : forcedJokers.join('+')} '
-      'produced ${metrics.invariantFailures} invariant failures',
-    );
+  for (final arm in <MapEntry<String, JokerBalanceMetrics>>[
+    MapEntry<String, JokerBalanceMetrics>('treatment', cohort.treatment),
+    MapEntry<String, JokerBalanceMetrics>('control', cohort.control),
+  ]) {
+    if (arm.value.invariantFailures != 0) {
+      throw StateError(
+        '${forcedJokers.join('+')} ${arm.key} produced '
+        '${arm.value.invariantFailures} invariant failures',
+      );
+    }
   }
-  return metrics;
+  return cohort;
 }
 
 List<String> _resolveTop12(
@@ -120,7 +114,7 @@ List<String> _resolveTop12(
             .toList(growable: false)
       : throw StateError(
           'Pair shards need --top12=id1,...,id12 after merging and ranking '
-          'the singles JOKERCSV output.',
+          'the matched JOKERCSV contribution rows.',
         );
   if (result.length != 12 ||
       result.toSet().length != 12 ||
@@ -139,10 +133,10 @@ class _RunnerOptions {
     required this.runs,
     required this.firstSeed,
     required this.phase,
+    required this.difficulty,
     required this.shardIndex,
     required this.shardCount,
     required this.top12,
-    required this.baseline,
   });
 
   factory _RunnerOptions.parse(
@@ -166,24 +160,6 @@ class _RunnerOptions {
         .map((id) => id.trim())
         .where((id) => id.isNotEmpty)
         .toList(growable: false);
-    final baselineValue = option(
-      'baseline',
-      'WILDCARD_JOKER_BALANCE_BASELINE',
-      '',
-    );
-    final baselineFile = option(
-      'baseline-file',
-      'WILDCARD_JOKER_BALANCE_BASELINE_FILE',
-      '',
-    );
-    if (baselineValue.isNotEmpty && baselineFile.isNotEmpty) {
-      throw const FormatException(
-        'Use only one of --baseline or --baseline-file',
-      );
-    }
-    final baselineSource = baselineFile.isNotEmpty
-        ? File(baselineFile).readAsStringSync()
-        : baselineValue;
     return _RunnerOptions(
       runs: _parseInteger(
         option(
@@ -202,6 +178,9 @@ class _RunnerOptions {
         'first-seed',
       ),
       phase: option('phase', 'WILDCARD_JOKER_BALANCE_PHASE', 'both'),
+      difficulty: _parseDifficulty(
+        option('difficulty', 'WILDCARD_JOKER_BALANCE_DIFFICULTY', 'medium'),
+      ),
       shardIndex: _parseInteger(
         option('shard-index', 'WILDCARD_JOKER_BALANCE_SHARD_INDEX', '0'),
         'shard-index',
@@ -211,19 +190,16 @@ class _RunnerOptions {
         'shard-count',
       ),
       top12: top12,
-      baseline: baselineSource.trim().isEmpty
-          ? null
-          : _parseBaselineMetrics(baselineSource),
     );
   }
 
   final int runs;
   final int firstSeed;
   final String phase;
+  final RunDifficulty difficulty;
   final int shardIndex;
   final int shardCount;
   final List<String> top12;
-  final JokerBalanceMetrics? baseline;
 
   bool includes(int cohortIndex) => cohortIndex % shardCount == shardIndex;
 
@@ -231,6 +207,14 @@ class _RunnerOptions {
     if (runs < 1) throw ArgumentError.value(runs, 'runs');
     if (!const <String>{'both', 'singles', 'pairs'}.contains(phase)) {
       throw ArgumentError.value(phase, 'phase');
+    }
+    if (difficulty != RunDifficulty.medium &&
+        difficulty != RunDifficulty.easy) {
+      throw ArgumentError.value(
+        difficulty,
+        'difficulty',
+        'The balance audit supports Medium and Easy',
+      );
     }
     if (shardCount < 1) {
       throw ArgumentError.value(shardCount, 'shard-count');
@@ -242,152 +226,16 @@ class _RunnerOptions {
         'Must be in [0, ${shardCount - 1}]',
       );
     }
-    if (baseline case final metrics?) {
-      if (metrics.runs != runs) {
-        throw ArgumentError(
-          'Precomputed baseline has ${metrics.runs} runs, but --runs=$runs.',
-        );
-      }
-      if (metrics.wins < 0 || metrics.wins > metrics.runs) {
-        throw ArgumentError.value(metrics.wins, 'baseline wins');
-      }
-      if ((metrics.winRate - metrics.wins / metrics.runs).abs() > 0.000001) {
-        throw ArgumentError(
-          'Precomputed baseline winRate does not match wins/runs.',
-        );
-      }
-      if (!<double>[
-            metrics.winRate,
-            metrics.averageTerminalHeat,
-            metrics.averageHeatsCleared,
-            metrics.averageScore,
-            metrics.averageJokerTriggersPerHand,
-            metrics.jokerActiveHandRate,
-          ].every((value) => value.isFinite && value >= 0) ||
-          metrics.winRate > 1 ||
-          metrics.jokerActiveHandRate > 1 ||
-          metrics.averageTerminalHeat < 1 ||
-          metrics.invariantFailures != 0) {
-        throw ArgumentError('Precomputed baseline metrics are invalid.');
-      }
-    }
   }
 }
 
-JokerBalanceMetrics _parseBaselineMetrics(String source) {
-  final trimmed = source.trim();
-  final baselineLine = const LineSplitter()
-      .convert(trimmed)
-      .where((line) => line.startsWith('JOKERCSV,BASELINE,'))
-      .firstOrNull;
-  if (baselineLine != null) return _parseBaselineCsvRow(baselineLine);
-  if (trimmed.startsWith('{')) {
-    final decoded = jsonDecode(trimmed);
-    if (decoded is! Map) {
-      throw const FormatException('Baseline JSON must be an object.');
-    }
-    return _baselineFromFields(
-      decoded.map((key, value) => MapEntry('$key', value)),
-    );
-  }
-  if (trimmed.contains('=')) {
-    final fields = <String, Object?>{};
-    for (final part in trimmed.split(RegExp(r'[,;]'))) {
-      final separator = part.indexOf('=');
-      if (separator <= 0) {
-        throw FormatException('Invalid baseline field "$part".');
-      }
-      fields[part.substring(0, separator).trim()] = part
-          .substring(separator + 1)
-          .trim();
-    }
-    return _baselineFromFields(fields);
-  }
-  final values = trimmed.split(',').map((value) => value.trim()).toList();
-  if (values.length != 8) {
-    throw const FormatException(
-      'Compact baseline must contain '
-      'runs,wins,winRate,avgTerminalHeat,avgHeatsCleared,avgScore,'
-      'avgJokerTriggersPerHand,jokerActiveHandRate.',
-    );
-  }
-  return _baselineFromFields(<String, Object?>{
-    'runs': values[0],
-    'wins': values[1],
-    'winRate': values[2],
-    'avgTerminalHeat': values[3],
-    'avgHeatsCleared': values[4],
-    'avgScore': values[5],
-    'avgJokerTriggersPerHand': values[6],
-    'jokerActiveHandRate': values[7],
-  });
-}
-
-JokerBalanceMetrics _parseBaselineCsvRow(String row) {
-  final values = row.split(',');
-  if (values.length < 14 ||
-      values[0] != 'JOKERCSV' ||
-      values[1] != 'BASELINE') {
-    throw const FormatException('Invalid baseline JOKERCSV row.');
-  }
-  return _baselineFromFields(<String, Object?>{
-    'runs': values[5],
-    'wins': values[6],
-    'winRate': values[7],
-    'avgTerminalHeat': values[8],
-    'avgHeatsCleared': values[9],
-    'avgScore': values[11],
-    'avgJokerTriggersPerHand': values[12],
-    'jokerActiveHandRate': values[13],
-  });
-}
-
-JokerBalanceMetrics _baselineFromFields(Map<String, Object?> fields) {
-  Object? read(String primary, [String? alternate]) =>
-      fields[primary] ?? (alternate == null ? null : fields[alternate]);
-  final runs = _requiredInt(read('runs'), 'runs');
-  final wins = _requiredInt(read('wins'), 'wins');
-  final winRate = _requiredDouble(read('winRate'), 'winRate');
-  final terminal = _requiredDouble(
-    read('avgTerminalHeat', 'averageTerminalHeat'),
-    'avgTerminalHeat',
-  );
-  final heats = _requiredDouble(
-    read('avgHeatsCleared', 'averageHeatsCleared'),
-    'avgHeatsCleared',
-  );
-  final score = _requiredDouble(read('avgScore', 'averageScore'), 'avgScore');
-  final triggers = _requiredDouble(
-    read('avgJokerTriggersPerHand', 'averageJokerTriggersPerHand'),
-    'avgJokerTriggersPerHand',
-  );
-  final activeRate = _requiredDouble(
-    read('jokerActiveHandRate'),
-    'jokerActiveHandRate',
-  );
-  return JokerBalanceMetrics(
-    runs: runs,
-    wins: wins,
-    winRate: winRate,
-    averageTerminalHeat: terminal,
-    averageHeatsCleared: heats,
-    averageScore: score,
-    averageJokerTriggersPerHand: triggers,
-    jokerActiveHandRate: activeRate,
-    invariantFailures: 0,
-  );
-}
-
-int _requiredInt(Object? value, String name) {
-  final parsed = value is num ? value.toInt() : int.tryParse('$value');
-  if (parsed == null) throw FormatException('Invalid baseline $name=$value');
-  return parsed;
-}
-
-double _requiredDouble(Object? value, String name) {
-  final parsed = value is num ? value.toDouble() : double.tryParse('$value');
-  if (parsed == null) throw FormatException('Invalid baseline $name=$value');
-  return parsed;
+RunDifficulty _parseDifficulty(String value) {
+  final normalized = value.trim().toLowerCase();
+  return switch (normalized) {
+    'medium' || 'normal' => RunDifficulty.medium,
+    'easy' => RunDifficulty.easy,
+    _ => throw FormatException('Invalid --difficulty=$value'),
+  };
 }
 
 int _parseInteger(String value, String name) {

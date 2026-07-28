@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_balance_audit.dart';
-import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/simulation.dart';
 
 void main() {
@@ -92,31 +91,34 @@ void main() {
     );
   });
 
-  test('contribution cohorts preserve the matched two-starter baseline', () {
-    final baseline = starterJokerIds.take(2).toList(growable: false);
-    expect(jokerBalanceKit(const <String>[]), baseline);
-    expect(
-      jokerBalanceKit(<String>[baseline.first]),
-      baseline,
-      reason: 'forcing a baseline starter must deduplicate the kit',
-    );
-
-    final solo = jokerBalanceConfig(
-      runs: 3,
+  test('contribution cohorts use matched random five-Joker builds', () {
+    final solo = jokerBalanceKitsForSeed(
+      seed: 0x71070001,
       forcedJokers: const <String>['glass_joystick'],
     );
-    final pair = jokerBalanceConfig(
-      runs: 3,
+    final pair = jokerBalanceKitsForSeed(
+      seed: 0x71070001,
       forcedJokers: const <String>['glass_joystick', 'roller'],
     );
-    expect(solo.initialJokers, <String>[...baseline, 'glass_joystick']);
-    expect(pair.initialJokers, <String>[
-      ...baseline,
-      'glass_joystick',
-      'roller',
-    ]);
-    expect(solo.strategy, SimulationStrategy.adaptive);
-    expect(solo.difficulty, RunDifficulty.medium);
-    expect(solo.allJokersUnlocked, isFalse);
+
+    expect(solo.treatment, hasLength(maxJokers));
+    expect(solo.control, hasLength(maxJokers));
+    expect(solo.treatment.first, 'glass_joystick');
+    expect(solo.treatment.skip(1), solo.control.skip(1));
+    expect(pair.treatment.take(2), <String>['glass_joystick', 'roller']);
+    expect(pair.treatment.skip(2), pair.control.skip(2));
+    expect(solo.treatment.toSet(), hasLength(maxJokers));
+    expect(solo.control.toSet(), hasLength(maxJokers));
+    expect(solo.control, isNot(contains('devx20')));
+
+    final config = jokerBalanceSingleRunConfig(
+      seed: 0x71070001,
+      initialJokers: solo.treatment,
+      difficulty: RunDifficulty.easy,
+    );
+    expect(config.runs, 1);
+    expect(config.strategy, SimulationStrategy.adaptive);
+    expect(config.difficulty, RunDifficulty.easy);
+    expect(config.allJokersUnlocked, isFalse);
   });
 }

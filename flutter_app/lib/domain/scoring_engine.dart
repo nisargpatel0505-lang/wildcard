@@ -308,7 +308,7 @@ class WildcardScoringEngine {
         straightLength > 0 &&
         unique.length == straightLength &&
         (_isConsecutiveStraight(unique) ||
-            (hasJoker('gap_filler') && _isSingleGapStraight(unique)));
+            (five && hasJoker('gap_filler') && _isSingleGapStraight(unique)));
     final royal = five && _sameInts(unique, const <int>[10, 11, 12, 13, 15]);
 
     if (straight && flush) {
@@ -391,10 +391,6 @@ class WildcardScoringEngine {
         final value = _evaluationValue(card);
         counts[value] = (counts[value] ?? 0) + 1;
       }
-      if (hasJoker('understudy') && cards.isNotEmpty) {
-        final highest = cards.map(_evaluationValue).reduce(math.max);
-        counts[highest] = (counts[highest] ?? 0) + 1;
-      }
       return cards
           .where((card) => counts[_evaluationValue(card)]! >= 2)
           .toSet();
@@ -437,9 +433,10 @@ class WildcardScoringEngine {
       for (var index = 0; index < cards.length; index++)
         if (analyzed.scoringCards.contains(cards[index])) index,
     ];
-    final firstScoringIndex = scoringIndices.isEmpty
-        ? -1
-        : scoringIndices.first;
+    final firstScoringIndex = scoringIndices.firstWhere(
+      (index) => !state.cardRankSuppressed(cards[index]),
+      orElse: () => -1,
+    );
     final lastScoringIndex = scoringIndices.isEmpty ? -1 : scoringIndices.last;
 
     for (var cardIndex = 0; cardIndex < cards.length; cardIndex++) {
@@ -845,10 +842,10 @@ class WildcardScoringEngine {
     JokerEffect.fullTable => played.length == 5 ? 0.40 : 0,
     JokerEffect.deckMiser => 0.02 * state.deckCardsLeft,
     JokerEffect.overtime => 0.15 * math.max(0, state.stage - 9),
-    JokerEffect.butcher => 0.50 * state.destroyedCount,
+    JokerEffect.butcher => 0.30 * state.destroyedCount,
     JokerEffect.collector => 0.04 * state.copiedCount,
     JokerEffect.piggyBank => 0.05 * (state.runCoins ~/ 5),
-    JokerEffect.heatSurge => 0.20 * state.stagesCleared,
+    JokerEffect.heatSurge => 0.12 * state.stagesCleared,
     JokerEffect.cleaner => state.cards.length < 45 ? 0.25 : 0,
     JokerEffect.printer => 0.10 * state.copiedCount,
     JokerEffect.practiceMode =>
@@ -936,7 +933,7 @@ class WildcardScoringEngine {
     JokerEffect.aceInTheHole =>
       played.any((card) => card.rank == CardRank.ace) ? 1.6 : 1,
     JokerEffect.rainbow =>
-      played.map((card) => card.suit).toSet().length >= 3 ? 2 : 1,
+      played.map((card) => card.suit).toSet().length >= 3 ? 1.8 : 1,
     JokerEffect.underdog => state.stageScore < state.target * .40 ? 2 : 1,
     JokerEffect.frontrunner => state.stageScore > state.target * .80 ? 1.6 : 1,
     JokerEffect.perfectionist =>
@@ -959,7 +956,8 @@ class WildcardScoringEngine {
     JokerEffect.purist =>
       played.every((card) => card.enhancement == null) ? 1.6 : 1,
     JokerEffect.monochrome => _deckHasColorShare(state.cards, .60) ? 1.7 : 1,
-    JokerEffect.twinStudy => _matchingRankPairs(state.cards) >= 4 ? 1.4 : 1,
+    JokerEffect.twinStudy =>
+      _ranksWithAtLeastTwoCopies(state.cards) >= 4 ? 1.4 : 1,
     JokerEffect.rarityHunter =>
       math
           .pow(
@@ -970,10 +968,10 @@ class WildcardScoringEngine {
             }).length,
           )
           .toDouble(),
-    JokerEffect.overclock => 3,
+    JokerEffect.overclock => 2.4,
     JokerEffect.roulette =>
       commit ? (state.nextRandom(RandomStream.luck) < .5 ? 2.5 : .6) : 1.55,
-    JokerEffect.bloodMoney => state.runCoins > 0 ? 1.8 : 1,
+    JokerEffect.bloodMoney => 1.8,
     JokerEffect.fragileGenius => 4,
     JokerEffect.highWire =>
       state.discardsLeft == 0 && state.handsLeft == 1 ? 2.2 : 1,
@@ -1092,15 +1090,12 @@ bool _deckHasColorShare(List<PlayingCard> cards, double threshold) {
   return dominantCount / cards.length >= threshold;
 }
 
-int _matchingRankPairs(List<PlayingCard> cards) {
+int _ranksWithAtLeastTwoCopies(List<PlayingCard> cards) {
   final counts = <CardRank, int>{};
   for (final card in cards) {
     counts[card.rank] = (counts[card.rank] ?? 0) + 1;
   }
-  // A "pair" here is a sculpted rank with exactly two cards remaining.
-  // Counting every possible pair would make an untouched 52-card deck trigger
-  // automatically (four cards of every rank contains 26 combinations).
-  return counts.values.where((count) => count == 2).length;
+  return counts.values.where((count) => count >= 2).length;
 }
 
 int _maxRankCount(List<PlayingCard> cards) {

@@ -11,10 +11,10 @@ import 'dart:io';
 /// `dart run tool/apply_joker_rarities.dart --input=path --apply`
 const int _expectedPublicJokers = 102;
 const Map<String, int> _expectedTierCounts = <String, int>{
-  'common': 42,
-  'uncommon': 32,
-  'rare': 20,
-  'wild': 8,
+  'common': 36,
+  'uncommon': 36,
+  'rare': 23,
+  'wild': 7,
 };
 const Set<String> _validRarities = <String>{
   'common',
@@ -667,9 +667,9 @@ void _runSelfTest() {
   for (var index = 0; index < _expectedPublicJokers; index++) {
     final id = 'joker_$index';
     final rarity = switch (index) {
-      < 42 => 'common',
-      < 74 => 'uncommon',
-      < 94 => 'rare',
+      < 36 => 'common',
+      < 72 => 'uncommon',
+      < 95 => 'rare',
       _ => 'wild',
     };
     assignments[id] = rarity;
@@ -777,9 +777,9 @@ const JokerDefinition devTwentyXJoker = JokerDefinition(
     ) {
       liveAssignments[liveCatalogue.publicDefinitions[index].id] =
           switch (index) {
-            < 42 => 'common',
-            < 74 => 'uncommon',
-            < 94 => 'rare',
+            < 36 => 'common',
+            < 72 => 'uncommon',
+            < 95 => 'rare',
             _ => 'wild',
           };
     }

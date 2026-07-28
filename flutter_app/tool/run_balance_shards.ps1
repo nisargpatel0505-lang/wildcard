@@ -11,10 +11,10 @@ param(
     [ValidateRange(1, 1000000)]
     [int]$Runs,
 
-    [Parameter(Mandatory = $true)]
-    [string]$BaselineFile,
-
     [string]$Top12 = '',
+
+    [ValidateSet('medium', 'easy')]
+    [string]$Difficulty = 'medium',
 
     [ValidateRange(1, 32)]
     [int]$MaxParallel = 10
@@ -24,8 +24,7 @@ $ErrorActionPreference = 'Stop'
 
 $flutterRoot = Split-Path -Parent $PSScriptRoot
 $runner = Join-Path $flutterRoot 'build\balance\joker_balance_runner.exe'
-$baselinePath = (Resolve-Path -LiteralPath $BaselineFile).Path
-$outputDirectory = Join-Path $flutterRoot "build\balance\$Phase"
+$outputDirectory = Join-Path $flutterRoot "build\balance\$Difficulty\$Phase"
 
 if (-not (Test-Path -LiteralPath $runner)) {
     throw "Balance runner not found: $runner"
@@ -37,22 +36,9 @@ if ($Phase -eq 'pairs' -and [string]::IsNullOrWhiteSpace($Top12)) {
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 Get-ChildItem -LiteralPath $outputDirectory -File -ErrorAction SilentlyContinue |
     Where-Object {
-        $_.Name -match '^shard-\d{3}\.(err\.)?log$' -or
-        $_.Name -eq '_baseline-utf8.log'
+        $_.Name -match '^shard-\d{3}\.(err\.)?log$'
     } |
     Remove-Item -Force
-
-# Windows PowerShell's Tee-Object can leave the baseline log as UTF-16.
-# Normalise it once so the compiled Dart runner always receives UTF-8.
-$normalisedBaselinePath = Join-Path $outputDirectory '_baseline-utf8.log'
-$baselineText = Get-Content -LiteralPath $baselinePath -Raw
-$utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
-[System.IO.File]::WriteAllText(
-    $normalisedBaselinePath,
-    $baselineText,
-    $utf8WithoutBom
-)
-$baselinePath = $normalisedBaselinePath
 
 $pending = [System.Collections.Generic.Queue[int]]::new()
 for ($index = 0; $index -lt $ShardCount; $index++) {
@@ -69,9 +55,9 @@ while ($pending.Count -gt 0 -or $running.Count -gt 0) {
         $arguments = @(
             "--runs=$Runs",
             "--phase=$Phase",
+            "--difficulty=$Difficulty",
             "--shard-count=$ShardCount",
-            "--shard-index=$index",
-            "--baseline-file=`"$baselinePath`""
+            "--shard-index=$index"
         )
         if ($Phase -eq 'pairs') {
             $arguments += "--top12=$Top12"
@@ -132,4 +118,4 @@ if ($failures.Count -gt 0) {
     throw ($failures -join [Environment]::NewLine)
 }
 
-Write-Output "BALANCE_SHARDS_COMPLETE phase=$Phase shards=$ShardCount runs=$Runs"
+Write-Output "BALANCE_SHARDS_COMPLETE phase=$Phase difficulty=$Difficulty shards=$ShardCount runs=$Runs"

@@ -4,17 +4,16 @@ import 'dart:io';
 import 'package:wildcard/domain/joker_catalog.dart';
 
 const _expectedCounts = <String, int>{
-  'common': 42,
-  'uncommon': 32,
-  'rare': 20,
-  'wild': 8,
+  'common': 36,
+  'uncommon': 36,
+  'rare': 23,
+  'wild': 7,
 };
-const _baselineAnchorIds = <String>{'copper', 'presser'};
 const _forcedRarityById = <String, String>{
   'copper': 'common',
   'presser': 'common',
-  'polish': 'uncommon',
-  'roller': 'uncommon',
+  'polish': 'rare',
+  'roller': 'rare',
 };
 const _minimumRarityById = <String, String>{
   'warm_up': 'uncommon',
@@ -60,8 +59,7 @@ void main(List<String> arguments) {
       'wild:${counts['wild']}',
     );
     stdout.writeln(
-      'BASELINE_ANCHORS=copper,presser; forced Common because their solo '
-      'arms dedupe to the baseline starter pair',
+      'DESIGN_ANCHORS=copper:common,presser:common,polish:rare,roller:rare',
     );
     stdout.writeln(
       'MINIMUM_RARITIES=warm_up:uncommon,marathoner:uncommon; measured '
@@ -87,7 +85,12 @@ List<_RankingRow> _readRankings(File input) {
     for (var index = 0; index < records.first.length; index++)
       records.first[index].trim().toLowerCase(): index,
   };
-  for (final required in const ['joker', 'windelta', 'heatdelta', 'avgscore']) {
+  for (final required in const [
+    'joker',
+    'windelta',
+    'progressdelta',
+    'avgscore',
+  ]) {
     if (!headers.containsKey(required)) {
       throw FormatException('Input CSV is missing "$required".');
     }
@@ -121,7 +124,7 @@ List<_RankingRow> _readRankings(File input) {
       _RankingRow(
         id: id,
         winDelta: metric(record, 'windelta', id),
-        heatDelta: metric(record, 'heatdelta', id),
+        progressDelta: metric(record, 'progressdelta', id),
         avgScore: metric(record, 'avgscore', id),
       ),
     );
@@ -173,7 +176,7 @@ List<_Assignment> _assignRarities(List<_RankingRow> sourceRows) {
     ..sort((left, right) {
       var result = right.winDelta.compareTo(left.winDelta);
       if (result != 0) return result;
-      result = right.heatDelta.compareTo(left.heatDelta);
+      result = right.progressDelta.compareTo(left.progressDelta);
       if (result != 0) return result;
       result = right.avgScore.compareTo(left.avgScore);
       if (result != 0) return result;
@@ -284,9 +287,6 @@ int _rarityStrength(String rarity) => switch (rarity) {
 };
 
 String _constraintFor(String id) {
-  if (_baselineAnchorIds.contains(id)) {
-    return 'baseline anchor: solo arm dedupes to baseline; fixed Common';
-  }
   if (id == 'warm_up') {
     return 'semantic floor: +0.60 strictly dominates Common Opening Act '
         '+0.50; minimum Uncommon';
@@ -295,13 +295,13 @@ String _constraintFor(String id) {
     return 'semantic floor: +0.20 per displayed remaining play strictly '
         'dominates Common Copper/Opening Act; minimum Uncommon';
   }
-  return 'design anchor: fixed Uncommon';
+  return 'design anchor: fixed ${_forcedRarityById[id]}';
 }
 
 String _rarityForRank(int zeroBasedRank) {
-  if (zeroBasedRank < 8) return 'wild';
-  if (zeroBasedRank < 28) return 'rare';
-  if (zeroBasedRank < 60) return 'uncommon';
+  if (zeroBasedRank < 7) return 'wild';
+  if (zeroBasedRank < 30) return 'rare';
+  if (zeroBasedRank < 66) return 'uncommon';
   return 'common';
 }
 
@@ -330,7 +330,7 @@ void _writeOutputs({
     'joker',
     'name',
     'winDelta',
-    'heatDelta',
+    'progressDelta',
     'avgScore',
     'initialRarity',
     'assignedRarity',
@@ -338,7 +338,7 @@ void _writeOutputs({
     'adjustmentReason',
     'forcedUncommon',
     'minimumRarity',
-    'baselineAnchor',
+    'designAnchor',
     'swappedWith',
   ];
   final catalogById = <String, JokerDefinition>{
@@ -352,7 +352,7 @@ void _writeOutputs({
       assignment.row.id,
       catalogById[assignment.row.id]!.name,
       assignment.row.winDelta,
-      assignment.row.heatDelta,
+      assignment.row.progressDelta,
       assignment.row.avgScore,
       assignment.initialRarity,
       assignment.assignedRarity,
@@ -360,7 +360,7 @@ void _writeOutputs({
       assignment.adjustmentReason,
       _forcedRarityById[assignment.row.id] == 'uncommon',
       _minimumRarityById[assignment.row.id],
-      _baselineAnchorIds.contains(assignment.row.id),
+      _forcedRarityById.containsKey(assignment.row.id),
       assignment.swappedWith,
     ];
     csv.writeln(
@@ -380,7 +380,7 @@ void _writeOutputs({
     'publicJokerCount': assignments.length,
     'ranking': <String>[
       'winDelta descending',
-      'heatDelta descending',
+      'progressDelta descending',
       'avgScore descending',
       'joker id ascending',
     ],
@@ -397,13 +397,11 @@ void _writeOutputs({
           'Common Copper Chip/Opening Act, so it cannot be Common. '
           'A measured Rare or Wild result is preserved.',
     },
-    'baselineAnchors': <String, Object>{
-      'ids': _baselineAnchorIds.toList()..sort(),
+    'designAnchors': <String, Object>{
+      'rarityById': _forcedRarityById,
       'reason':
-          'Copper Chip and Suit Presser are already present in the baseline '
-          'starter pair. Their forced solo simulation arms dedupe back to the '
-          'baseline, so their measured zero deltas are not independent '
-          'contribution estimates. Both remain Common by design.',
+          'These identity-defining tiers remain fixed while the matched '
+          'five-Joker harness ranks the rest of the pool.',
     },
     'rarityById': <String, String>{
       for (final assignment in assignments)
@@ -473,7 +471,7 @@ void _runSelfTest() {
       _RankingRow(
         id: jokerCatalog[index].id,
         winDelta: (jokerCatalog.length - index).toDouble(),
-        heatDelta: 0,
+        progressDelta: 0,
         avgScore: 0,
       ),
   ];
@@ -559,24 +557,24 @@ class _RankingRow {
   const _RankingRow({
     required this.id,
     required this.winDelta,
-    required this.heatDelta,
+    required this.progressDelta,
     required this.avgScore,
   });
 
   final String id;
   final double winDelta;
-  final double heatDelta;
+  final double progressDelta;
   final double avgScore;
 
   _RankingRow copyWith({
     double? winDelta,
-    double? heatDelta,
+    double? progressDelta,
     double? avgScore,
   }) {
     return _RankingRow(
       id: id,
       winDelta: winDelta ?? this.winDelta,
-      heatDelta: heatDelta ?? this.heatDelta,
+      progressDelta: progressDelta ?? this.progressDelta,
       avgScore: avgScore ?? this.avgScore,
     );
   }

@@ -6,7 +6,7 @@ does not load the old HTML game in a WebView.
 
 ## Current release candidate
 
-- Version: `8.3.0` (`versionCode 61`)
+- Version: `8.4.1` (`versionCode 63`)
 - Android package: `com.nisarg.wildcard`
 - Minimum Android API: 24
 - Phone target: portrait-first, tested down to 320 x 568 logical pixels
@@ -24,7 +24,7 @@ manifest app ID and Dart ad-unit IDs remain consistent.
 
 ## Architecture
 
-- `lib/domain/` - cards, scoring, all 57 public Jokers, modes, economy,
+- `lib/domain/` - cards, scoring, all 102 public Jokers, modes, economy,
   progression catalogues, deterministic RNG and simulations
 - `lib/game/` - resumable run state machine, shops, supplies, scoring event
   presentation and terminal account mutations
@@ -79,7 +79,9 @@ C:\Users\nisar\development\flutter\bin\flutter.bat build appbundle --release `
 The public candidate must omit both test flags. Never promote the test-ad
 bundle to production.
 
-The full test command includes deterministic complete-run simulations. Firebase
+The full test command includes deterministic complete-run simulations and the
+matched random-five Joker audit contract. The heavyweight 102-Joker contribution
+sweep is opt-in through `WILDCARD_RUN_JOKER_BALANCE=1`. Firebase
 purchase and Daily Board backend tests live in the repository-level
 `functions/test/` directory and run with `npm test` from `functions/`.
 
