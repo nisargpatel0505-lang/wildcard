@@ -230,14 +230,10 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   /// the Joker actually does, and the current pick is previewed underneath.
   Widget _starterPicker() {
     final tokens = context.wildcard;
-    // selectableJokers adds the owner test Joker on non-release builds only;
-    // it is otherwise identical to the public catalogue.
     final unlocked =
         selectableJokers
             .where(
-              (joker) =>
-                  widget.account.unlockedJokerIds.contains(joker.id) ||
-                  (devJokerAvailable && joker.effect == JokerEffect.devTwentyX),
+              (joker) => widget.account.unlockedJokerIds.contains(joker.id),
             )
             .toList()
           ..sort((a, b) {

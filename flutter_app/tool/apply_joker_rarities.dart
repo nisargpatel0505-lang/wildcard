@@ -22,8 +22,6 @@ const Set<String> _validRarities = <String>{
   'rare',
   'wild',
 };
-const String _devJokerId = 'devx20';
-
 void main(List<String> arguments) {
   try {
     final options = _Options.parse(arguments);
@@ -127,12 +125,6 @@ Map<String, String> _readAssignments(String input) {
       'found ${rows.length} rows / ${assignments.length} unique.',
     );
   }
-  if (assignments.containsKey(_devJokerId)) {
-    throw StateError(
-      'Owner-only $_devJokerId must not appear in public rarity assignments.',
-    );
-  }
-
   final rarityMap = decoded['rarityById'];
   if (rarityMap is! Map<String, dynamic>) {
     throw const FormatException('Assignment JSON has no rarityById object.');
@@ -242,10 +234,6 @@ _UpdatePlan _buildPlan(
     actual: updatedAssignments,
     label: 'updated catalogue',
   );
-  if (catalogue.devDefinition.sourceText !=
-      updatedCatalogue.devDefinition.sourceText) {
-    throw StateError('Owner-only DEV ×20 definition would be modified.');
-  }
   if (_redactPublicRarities(catalogue) !=
       _redactPublicRarities(updatedCatalogue)) {
     throw StateError('Planned update changes content beyond rarity values.');
@@ -293,7 +281,6 @@ void _printSummary({
   );
   stdout.writeln('RARITY_FIELDS_CHANGED=${plan.changed}');
   stdout.writeln('RARITY_FIELDS_UNCHANGED=${plan.unchanged}');
-  stdout.writeln('DEV_X20=UNCHANGED');
 }
 
 Map<String, int> _countTiers(Iterable<String> rarities) {
@@ -395,7 +382,6 @@ class _CatalogueSource {
   const _CatalogueSource({
     required this.source,
     required this.publicDefinitions,
-    required this.devDefinition,
   });
 
   factory _CatalogueSource.parse(String source) {
@@ -430,37 +416,11 @@ class _CatalogueSource {
         'duplicates=${sortedDuplicates.join(',')}.',
       );
     }
-    if (ids.contains(_devJokerId)) {
-      throw StateError('Owner-only $_devJokerId appears in jokerCatalog.');
-    }
-
-    const devMarker = 'const JokerDefinition devTwentyXJoker = JokerDefinition';
-    final devStart = source.indexOf(devMarker, listClose);
-    if (devStart < 0 ||
-        source.indexOf(devMarker, devStart + devMarker.length) >= 0) {
-      throw StateError('Expected exactly one DEV ×20 definition.');
-    }
-    final devOpen = source.indexOf('(', devStart + devMarker.length);
-    if (devOpen < 0) throw StateError('DEV ×20 definition has no body.');
-    final devClose = _matchingDelimiter(source, devOpen, '(', ')');
-    final devDefinition = _parseDefinition(source, devStart, devClose + 1);
-    if (devDefinition.id != _devJokerId || devDefinition.rarity != 'wild') {
-      throw StateError(
-        'DEV ×20 identity changed: id=${devDefinition.id}, '
-        'rarity=${devDefinition.rarity}.',
-      );
-    }
-
-    return _CatalogueSource(
-      source: source,
-      publicDefinitions: definitions,
-      devDefinition: devDefinition,
-    );
+    return _CatalogueSource(source: source, publicDefinitions: definitions);
   }
 
   final String source;
   final List<_JokerSourceDefinition> publicDefinitions;
-  final _JokerSourceDefinition devDefinition;
 }
 
 List<_JokerSourceDefinition> _parseDefinitions(
@@ -699,22 +659,12 @@ class JokerDefinition {}
 const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
 $definitions
 ];
-const JokerDefinition devTwentyXJoker = JokerDefinition(
-  id: 'devx20',
-  name: 'DEV ×20',
-  rarity: JokerRarity.wild,
-  description: 'Owner-only.',
-  price: 0,
-  unlock: 0,
-  effect: JokerEffect.devTwentyX,
-);
 ''';
 
   final parsedAssignments = _readAssignments(json);
   final catalogue = _CatalogueSource.parse(source);
   final plan = _buildPlan(catalogue, parsedAssignments);
   if (plan.changed == 0 ||
-      !plan.updatedSource.contains('id: \'devx20\'') ||
       !plan.updatedSource.contains('rarity: JokerRarity.wild')) {
     throw StateError('Happy-path self-test did not produce a guarded plan.');
   }
@@ -759,12 +709,7 @@ const JokerDefinition devTwentyXJoker = JokerDefinition(
     () => _buildPlan(catalogue, unknownAssignments),
     'unknown assignment',
   );
-  final devAssignments = Map<String, String>.of(assignments)
-    ..remove('joker_101')
-    ..[_devJokerId] = 'wild';
-  _expectFailure(() => _buildPlan(catalogue, devAssignments), 'DEV assignment');
-
-  // Also exercise the parser and DEV guard against the live catalogue when
+  // Also exercise the parser against the live catalogue when
   // the self-test is launched from the Flutter project root.
   final liveFile = File('lib/domain/joker_catalog.dart');
   if (liveFile.existsSync()) {

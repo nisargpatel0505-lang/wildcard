@@ -174,19 +174,11 @@ void main() {
     });
   });
 
-  group('public catalogue and owner DEV isolation', () {
-    test('102 public Jokers remain unique and DEV x20 stays outside them', () {
+  group('public catalogue isolation', () {
+    test('102 public Jokers remain unique', () {
       expect(jokerCatalog, hasLength(102));
       expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(102));
       expect(jokerCatalog.map((joker) => joker.effect).toSet(), hasLength(102));
-      expect(
-        jokerCatalog.map((joker) => joker.id),
-        isNot(contains(devTwentyXJoker.id)),
-      );
-      expect(
-        jokerCatalog.map((joker) => joker.effect),
-        isNot(contains(devTwentyXJoker.effect)),
-      );
       expect(
         <JokerRarity, int>{
           for (final rarity in JokerRarity.values)
@@ -203,25 +195,18 @@ void main() {
       );
     });
 
-    test('DEV x20 exposure follows only the compile-mode gate', () {
-      expect(jokersById.containsKey(devTwentyXJoker.id), devJokerAvailable);
-      expect(
-        selectableJokers.where((joker) => joker.id == devTwentyXJoker.id),
-        hasLength(devJokerAvailable ? 1 : 0),
-      );
-      expect(
-        selectableJokers.length,
-        jokerCatalog.length + (devJokerAvailable ? 1 : 0),
-      );
+    test('runtime selection contains only the public catalogue', () {
+      expect(jokersById.keys, unorderedEquals(jokerCatalog.map((j) => j.id)));
+      expect(selectableJokers, orderedEquals(jokerCatalog));
     });
 
-    test('DEV and unknown ids never inflate public collection progress', () {
+    test('unknown ids never inflate public collection progress', () {
       final publicIds = jokerCatalog.map((joker) => joker.id).toSet();
       expect(
         publicUnlockedJokerCount(<String>{
           ...publicIds,
-          devTwentyXJoker.id,
           'legacy_developer_test_joker',
+          'unknown_joker',
         }),
         102,
       );

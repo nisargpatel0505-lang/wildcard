@@ -34,7 +34,7 @@ void main() {
         length: ArcadeRunLength.sprint8,
         rngSeed: 2,
         discoveredJokerIds: const <String>{'copper', 'presser'},
-        initialJokerIds: const <String>['devx20'],
+        initialJokerIds: _highPowerPublicJokers,
         initialDeck: _openingDeck(),
       ),
       wait: (_) async {},
@@ -102,7 +102,7 @@ void main() {
         length: ArcadeRunLength.endless,
         rngSeed: 22,
         discoveredJokerIds: jokerCatalog.map((joker) => joker.id).toSet(),
-        initialJokerIds: const <String>['devx20'],
+        initialJokerIds: _highPowerPublicJokers,
         initialDeck: _openingDeck(),
       ),
       wait: (_) async {},
@@ -146,7 +146,7 @@ void main() {
         length: ArcadeRunLength.endless,
         rngSeed: 0x85052402,
         discoveredJokerIds: discoveries,
-        initialJokerIds: const <String>['devx20'],
+        initialJokerIds: _highPowerPublicJokers,
         initialDeck: _openingDeck(),
       ),
       wait: (_) async {},
@@ -185,6 +185,14 @@ void main() {
     }
   });
 }
+
+const List<String> _highPowerPublicJokers = <String>[
+  'overclock',
+  'roller',
+  'trident',
+  'underdog',
+  'purist',
+];
 
 List<PlayingCard> _openingDeck() => <PlayingCard>[
   const PlayingCard(rank: CardRank.ace, suit: CardSuit.spades),
