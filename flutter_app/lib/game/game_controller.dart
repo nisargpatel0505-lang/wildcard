@@ -54,7 +54,9 @@ class GameController extends ChangeNotifier {
     String? acceptedStartBoostId;
     if (config.startBoostJokerId case final id?) {
       if (jokersById.containsKey(id) &&
-          config.unlockedJokerIds.contains(id) &&
+          (config.unlockedJokerIds.contains(id) ||
+              (devJokerAvailable &&
+                  jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
           !initialJokers.contains(id) &&
           initialJokers.length < maxJokers) {
         initialJokers.add(id);
@@ -494,7 +496,8 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('That Joker is not on offer.');
     }
     final joker = jokerOffers[offerIndex];
-    if (!unlockedJokerIds.contains(joker.id)) {
+    if (!unlockedJokerIds.contains(joker.id) &&
+        !(devJokerAvailable && joker.effect == JokerEffect.devTwentyX)) {
       jokerOffers.removeAt(offerIndex);
       await _save(RunCheckpoint.shopChanged);
       notifyListeners();

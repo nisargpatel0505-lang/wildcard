@@ -1712,6 +1712,7 @@ class _RunSimulation {
         .length;
 
     final effect = switch (joker.id) {
+      'devx20' => 500.0,
       'glass_joystick' => 52.0,
       'fragile_genius' => 43.0,
       'overclock' => 34.0,

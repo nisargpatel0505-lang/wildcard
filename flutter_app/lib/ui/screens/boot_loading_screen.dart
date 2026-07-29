@@ -335,8 +335,9 @@ class _BootProgressPanel extends StatelessWidget {
         textAlign: TextAlign.center,
         style: TextStyle(
           color: track,
-          fontFamily: 'Bungee',
-          fontSize: 9.5,
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
           letterSpacing: .85,
         ),
       ),
@@ -362,8 +363,9 @@ class _BootProgressPanel extends StatelessWidget {
                 text: 'SLY’S TIP  ',
                 style: TextStyle(
                   color: fill,
-                  fontFamily: 'Bungee',
-                  fontSize: 9,
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
                   letterSpacing: .45,
                 ),
               ),

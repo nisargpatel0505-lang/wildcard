@@ -1,6 +1,11 @@
+const bool _isReleaseMode = bool.fromEnvironment('dart.vm.product');
+const bool _isOwnerBuild = bool.fromEnvironment('WILDCARD_OWNER_BUILD');
+
 enum JokerRarity { common, uncommon, rare, wild }
 
 enum JokerEffect {
+  /// Owner-only test effect. Never reachable from a Play release build.
+  devTwentyX,
   copperChip,
   suitPresser,
   royalRetainer,
@@ -1091,12 +1096,29 @@ int publicUnlockedJokerCount(Iterable<String> ownedIds) {
   return jokerCatalog.where((joker) => owned.contains(joker.id)).length;
 }
 
+/// Owner-only test Joker. It remains outside [jokerCatalog], so public
+/// collection counts, chest odds and shop pools stay fixed at 102 Jokers.
+const JokerDefinition devTwentyXJoker = JokerDefinition(
+  id: 'devx20',
+  name: 'DEV ×20',
+  rarity: JokerRarity.wild,
+  description: 'DEV: ×20 Multiplier, always. Owner test build only.',
+  price: 0,
+  unlock: 0,
+  effect: JokerEffect.devTwentyX,
+);
+
+/// Enabled only for an explicitly marked non-release owner build.
+bool get devJokerAvailable => _isOwnerBuild && !_isReleaseMode;
+
 final Map<String, JokerDefinition> jokersById = <String, JokerDefinition>{
   for (final joker in jokerCatalog) joker.id: joker,
+  if (devJokerAvailable) devTwentyXJoker.id: devTwentyXJoker,
 };
 
-/// Jokers offerable as a start boost.
+/// Jokers offerable as a start boost, plus the owner's local test card.
 List<JokerDefinition> get selectableJokers => <JokerDefinition>[
+  if (devJokerAvailable) devTwentyXJoker,
   ...jokerCatalog,
 ];
 

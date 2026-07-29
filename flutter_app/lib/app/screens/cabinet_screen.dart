@@ -228,7 +228,11 @@ class _CabinetScreenState extends State<CabinetScreen> {
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontFamily: 'Bungee', fontSize: 9),
+              style: const TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+              ),
             ),
           ],
         ),

@@ -168,7 +168,11 @@ class _VaultScreenState extends State<VaultScreen> {
           label.toUpperCase(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontFamily: 'Bungee', fontSize: 10),
+          style: const TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+          ),
         ),
         style: FilledButton.styleFrom(
           backgroundColor: selected

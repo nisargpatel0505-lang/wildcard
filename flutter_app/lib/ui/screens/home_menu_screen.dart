@@ -385,10 +385,11 @@ class _StatusChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: tokens.gold,
-          fontFamily: 'Bungee',
-          fontSize: 9,
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
           height: 1,
-          letterSpacing: 0.55,
+          letterSpacing: 0.4,
         ),
       ),
     );

@@ -129,6 +129,7 @@ const Set<JokerEffect> _additiveMultiplierEffects = <JokerEffect>{
 };
 
 const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
+  JokerEffect.devTwentyX,
   JokerEffect.pairPolisher,
   JokerEffect.flushFund,
   JokerEffect.straightWire,
@@ -884,6 +885,7 @@ class WildcardScoringEngine {
     List<PlayingCard> played, {
     required bool commit,
   }) => switch (effect) {
+    JokerEffect.devTwentyX => 20,
     JokerEffect.pairPolisher => handType != HandType.highCard ? 1.4 : 1,
     JokerEffect.flushFund => handType.legacyName.contains('Flush') ? 1.8 : 1,
     JokerEffect.straightWire =>

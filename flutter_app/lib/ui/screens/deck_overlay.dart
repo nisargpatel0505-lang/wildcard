@@ -283,8 +283,9 @@ class _DeckMatrix extends StatelessWidget {
                           rank.label,
                           style: TextStyle(
                             color: context.wildcard.gold,
-                            fontFamily: 'Bungee',
-                            fontSize: 9,
+                            fontFamily: 'SpaceGrotesk',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
                             height: 1,
                           ),
                         ),
@@ -450,7 +451,9 @@ class _DeckCell extends StatelessWidget {
                       '$live/$total',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 6.5,
+                        fontFamily: 'SpaceGrotesk',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 9,
                         height: 1,
                       ),
                     ),

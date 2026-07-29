@@ -7,7 +7,6 @@ void main() {
   TerminalInterstitialContext terminal({
     String runId = 'run-2',
     bool tutorial = false,
-    bool arcade = false,
     bool firstRun = false,
     bool abandoned = false,
     int hands = 8,
@@ -15,7 +14,6 @@ void main() {
   }) => TerminalInterstitialContext(
     runId: runId,
     isTutorial: tutorial,
-    isArcade: arcade,
     isFirstRun: firstRun,
     abandoned: abandoned,
     handsPlayed: hands,
@@ -50,16 +48,12 @@ void main() {
     expect(await ads.showRewarded(), isNull);
   });
 
-  test('policy excludes tutorial, Arcade, first run and short abandon', () {
+  test('policy excludes tutorial, first run and short abandon', () {
     final policy = ForcedInterstitialPolicy();
 
     expect(
       policy.evaluate(terminal(tutorial: true), forcedAdsRemoved: false),
       ForcedInterstitialDecision.tutorial,
-    );
-    expect(
-      policy.evaluate(terminal(arcade: true), forcedAdsRemoved: false),
-      ForcedInterstitialDecision.arcade,
     );
     expect(
       policy.evaluate(terminal(firstRun: true), forcedAdsRemoved: false),

@@ -5,7 +5,6 @@ enum ForcedInterstitialDecision {
   allowed,
   forcedAdsRemoved,
   tutorial,
-  arcade,
   firstRun,
   shortAbandon,
   alreadyAttemptedForRun,
@@ -21,7 +20,6 @@ class TerminalInterstitialContext {
   const TerminalInterstitialContext({
     required this.runId,
     this.isTutorial = false,
-    this.isArcade = false,
     this.isFirstRun = false,
     this.abandoned = false,
     this.handsPlayed = 0,
@@ -30,7 +28,6 @@ class TerminalInterstitialContext {
 
   final String runId;
   final bool isTutorial;
-  final bool isArcade;
   final bool isFirstRun;
   final bool abandoned;
   final int handsPlayed;
@@ -67,7 +64,6 @@ class ForcedInterstitialPolicy {
       return ForcedInterstitialDecision.forcedAdsRemoved;
     }
     if (context.isTutorial) return ForcedInterstitialDecision.tutorial;
-    if (context.isArcade) return ForcedInterstitialDecision.arcade;
     if (context.isFirstRun) return ForcedInterstitialDecision.firstRun;
     if (context.isVeryShortAbandon) {
       return ForcedInterstitialDecision.shortAbandon;

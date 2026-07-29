@@ -233,7 +233,9 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
     final unlocked =
         selectableJokers
             .where(
-              (joker) => widget.account.unlockedJokerIds.contains(joker.id),
+              (joker) =>
+                  widget.account.unlockedJokerIds.contains(joker.id) ||
+                  (devJokerAvailable && joker.effect == JokerEffect.devTwentyX),
             )
             .toList()
           ..sort((a, b) {

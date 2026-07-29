@@ -433,9 +433,11 @@ class _GradeStampState extends State<_GradeStamp>
                 'GRADE',
                 style: TextStyle(
                   color: color.withValues(alpha: 0.75),
-                  fontSize: 6,
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 9,
                   height: 1.4,
-                  letterSpacing: 1.1,
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
@@ -660,7 +662,7 @@ class _ShopOfferHeader extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'SpaceGrotesk',
                     fontWeight: FontWeight.w700,
-                    fontSize: 8.5,
+                    fontSize: 9.5,
                   ),
                 ),
                 const SizedBox(width: 5),
@@ -978,7 +980,7 @@ class _SupplyTile extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: 'SpaceGrotesk',
                   fontWeight: FontWeight.w700,
-                  fontSize: 8.5,
+                  fontSize: 9.5,
                 ),
               ),
             ),

@@ -1151,8 +1151,9 @@ class _RewardToken extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: displayColor,
-                          fontFamily: 'Bungee',
-                          fontSize: 6.5,
+                          fontFamily: 'SpaceGrotesk',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
                           letterSpacing: .8,
                         ),
                       ),
@@ -1201,8 +1202,9 @@ class _RewardToken extends StatelessWidget {
                       'IDENTIFYING\u2026',
                       style: TextStyle(
                         color: displayColor.withValues(alpha: .74),
-                        fontFamily: 'Bungee',
-                        fontSize: 8,
+                        fontFamily: 'SpaceGrotesk',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
                         letterSpacing: .6,
                       ),
                     ),

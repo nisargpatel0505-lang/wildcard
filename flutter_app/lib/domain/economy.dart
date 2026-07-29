@@ -90,12 +90,15 @@ List<JokerDefinition> rollWeightedJokerOffers(
   return offers;
 }
 
-int starterJokerPrice(JokerDefinition joker) => switch (joker.rarity) {
-  JokerRarity.common => 6,
-  JokerRarity.uncommon => 10,
-  JokerRarity.rare => 16,
-  JokerRarity.wild => 30,
-};
+int starterJokerPrice(JokerDefinition joker) =>
+    joker.effect == JokerEffect.devTwentyX
+    ? 0
+    : switch (joker.rarity) {
+        JokerRarity.common => 6,
+        JokerRarity.uncommon => 10,
+        JokerRarity.rare => 16,
+        JokerRarity.wild => 30,
+      };
 
 bool isBossPreparationShop({
   required int stage,

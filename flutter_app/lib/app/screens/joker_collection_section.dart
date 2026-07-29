@@ -298,7 +298,8 @@ class _JokerCollectionSectionState extends State<JokerCollectionSection> {
                 key: Key('collection-discover-${joker.id}'),
                 style: TextStyle(
                   color: context.wildcard.gold,
-                  fontFamily: 'Bungee',
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.w700,
                   fontSize: 10,
                 ),
               ),
@@ -497,7 +498,8 @@ class _CollectionChoice extends StatelessWidget {
                     color: selected
                         ? context.wildcard.cream
                         : context.wildcard.creamDim,
-                    fontFamily: 'Bungee',
+                    fontFamily: 'SpaceGrotesk',
+                    fontWeight: FontWeight.w700,
                     fontSize: 10,
                   ),
                 ),
@@ -533,8 +535,9 @@ class _StatusPill extends StatelessWidget {
       owned ? (starter ? 'STARTER' : 'OWNED') : 'LOCKED',
       style: TextStyle(
         color: owned ? context.wildcard.mint : context.wildcard.creamDim,
-        fontFamily: 'Bungee',
-        fontSize: 9,
+        fontFamily: 'SpaceGrotesk',
+        fontWeight: FontWeight.w700,
+        fontSize: 10,
       ),
     ),
   );

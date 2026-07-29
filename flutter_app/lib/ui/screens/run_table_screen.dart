@@ -904,7 +904,8 @@ class _JokerSection extends StatelessWidget {
               'JOKERS',
               style: TextStyle(
                 color: tokens.mint,
-                fontFamily: 'Bungee',
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.w700,
                 fontSize: 10,
                 height: 1,
               ),

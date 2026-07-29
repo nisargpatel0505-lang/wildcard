@@ -34,8 +34,6 @@ enum WildcardUiSurface {
   home,
   modePicker,
   normalGameplay,
-  arcadeModePicker,
-  arcadeGameplay,
   tutorial,
   chestVault,
   betweenHeatShop,
@@ -96,12 +94,6 @@ abstract final class WildcardThemeCoverage {
       backdrop: WildcardBackdropRole.runSetup,
     ),
     WildcardUiSurface.normalGameplay: WildcardSurfaceThemeSpec(
-      backdrop: WildcardBackdropRole.equippedTheme,
-    ),
-    WildcardUiSurface.arcadeModePicker: WildcardSurfaceThemeSpec(
-      backdrop: WildcardBackdropRole.equippedTheme,
-    ),
-    WildcardUiSurface.arcadeGameplay: WildcardSurfaceThemeSpec(
       backdrop: WildcardBackdropRole.equippedTheme,
     ),
     WildcardUiSurface.tutorial: WildcardSurfaceThemeSpec(
