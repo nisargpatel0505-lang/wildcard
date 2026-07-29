@@ -152,9 +152,16 @@ void main() {
 
       await game.markFirstShopGuideShown();
       expect(game.shopGuideShown, isTrue);
-      final saved = game.encodeLegacySave();
+      final saved = jsonDecode(game.encodeLegacySave()) as Map<String, dynamic>
+        ..['shopOfferIds'] = <String>[
+          'flushfund',
+          'rarity_hunter',
+          'trainer',
+          'flushfund',
+        ]
+        ..['wildMissShops'] = wildPityAfterShops + 99;
       final resumed = await GameController.resume(
-        encoded: saved,
+        encoded: jsonEncode(saved),
         callbacks: _Harness().callbacks,
         unlockedJokerIds: jokersById.keys.toSet(),
         wait: noWait,
@@ -163,6 +170,13 @@ void main() {
       expect(resumed.phase, RunPhase.shop);
       expect(resumed.guideStep, 3);
       expect(resumed.shopGuideShown, isTrue);
+      expect(resumed.jokerOffers, hasLength(2));
+      expect(resumed.jokerOffers.where(isPremiumShopOffer), isEmpty);
+      expect(
+        resumed.jokerOffers.map((joker) => joker.id).toSet(),
+        hasLength(2),
+      );
+      expect(resumed.wildMissShops, wildPityAfterShops);
     },
   );
 
@@ -564,6 +578,39 @@ void main() {
       );
     },
   );
+
+  test('legacy shelves are normalized to current premium rules', () async {
+    final game = await _openFirstShop(noWait);
+    final raw = game.toLegacyJson()
+      ..['stage'] = 8
+      ..['shopOfferIds'] = <String>[
+        'flushfund',
+        'rarity_hunter',
+        'trainer',
+        'survivor',
+      ]
+      ..['wildMissShops'] = -500;
+    final resumed = await GameController.resume(
+      encoded: jsonEncode(raw),
+      callbacks: _Harness().callbacks,
+      unlockedJokerIds: jokersById.keys.toSet(),
+      wait: noWait,
+    );
+    addTearDown(resumed.dispose);
+
+    expect(resumed.jokerOffers, hasLength(2));
+    expect(
+      resumed.jokerOffers.where(isPremiumShopOffer),
+      hasLength(lessThanOrEqualTo(1)),
+    );
+    expect(
+      resumed.jokerOffers.every(
+        (joker) => jokerShopEligibleAtStage(joker, stage: 8),
+      ),
+      isTrue,
+    );
+    expect(resumed.wildMissShops, 0);
+  });
 
   test('new Flutter saves populate every v7.1 legacy run field', () async {
     final game = await GameController.startNew(

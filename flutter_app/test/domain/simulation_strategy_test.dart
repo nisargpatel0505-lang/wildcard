@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_balance_audit.dart';
+import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/simulation.dart';
 
 void main() {
@@ -109,7 +110,7 @@ void main() {
     expect(pair.treatment.skip(2), pair.control.skip(2));
     expect(solo.treatment.toSet(), hasLength(maxJokers));
     expect(solo.control.toSet(), hasLength(maxJokers));
-    expect(solo.control, isNot(contains('devx20')));
+    expect(solo.control.every(jokersById.containsKey), isTrue);
 
     final config = jokerBalanceSingleRunConfig(
       seed: 0x71070001,

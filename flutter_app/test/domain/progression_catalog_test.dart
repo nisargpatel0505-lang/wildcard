@@ -116,6 +116,9 @@ void main() {
         cosmeticById('theme_sunset')!,
         cosmeticById('felt_neon')!,
       ];
+      final kindOdds = cosmeticVaultKindOdds(pool);
+      expect(kindOdds[CosmeticKind.theme], closeTo(0.008, 0.0000001));
+      expect(kindOdds[CosmeticKind.table], closeTo(0.992, 0.0000001));
       expect(
         rollCosmeticVault(pool, themeRoll: 0.007999, itemRoll: 0)?.kind,
         CosmeticKind.theme,
@@ -124,7 +127,22 @@ void main() {
         rollCosmeticVault(pool, themeRoll: 0.008, itemRoll: 0)?.kind,
         CosmeticKind.table,
       );
-      expect(cosmeticVaultPrice, 750);
+      expect(cosmeticVaultPrice, 1000);
+    });
+
+    test('Cosmetic Vault kind odds collapse truthfully as pools complete', () {
+      final themeOnly = <CosmeticDefinition>[cosmeticById('theme_sunset')!];
+      expect(cosmeticVaultKindOdds(themeOnly), <CosmeticKind, double>{
+        CosmeticKind.theme: 1,
+      });
+
+      final nonThemeOnly = <CosmeticDefinition>[
+        cosmeticById('felt_neon')!,
+        cosmeticById('sly_shadow')!,
+      ];
+      final odds = cosmeticVaultKindOdds(nonThemeOnly);
+      expect(odds.values.fold<double>(0, (sum, value) => sum + value), 1);
+      expect(odds.containsKey(CosmeticKind.theme), isFalse);
     });
   });
 
@@ -193,7 +211,7 @@ void main() {
 
     test('badge and title catalogue gates remain exact', () {
       expect(badgeCatalog, hasLength(9));
-      expect(titleCatalog, hasLength(6));
+      expect(titleCatalog, hasLength(11));
       const locked = ProgressionSnapshot();
       expect(
         badgeCatalog.any((badge) => badgeIsEarned(badge.id, locked)),
@@ -216,36 +234,47 @@ void main() {
         isTrue,
       );
       expect(
-        titleCatalog.every((title) => titleIsUnlocked(title.id, earned)),
+        titleCatalog
+            .take(6)
+            .every((title) => titleIsUnlocked(title.id, earned)),
+        isTrue,
+      );
+      expect(
+        titleCatalog
+            .skip(6)
+            .every((title) => !titleIsUnlocked(title.id, earned)),
         isTrue,
       );
     });
   });
 
   group('weekly missions', () {
-    test('catalogue and deterministic shuffle match the JavaScript client', () {
-      expect(weeklyContractCatalog, hasLength(6));
+    test('catalogue has five deterministic, multi-run contracts', () {
+      expect(weeklyContractCatalog, hasLength(10));
+      expect(visibleWeeklyContractCount, 5);
       expect(
         weeklyContractCatalog.fold<int>(
           0,
           (sum, mission) => sum + mission.reward,
         ),
-        1400,
+        450,
       );
       expect(weeklySeed('2026-W30#0'), 574722015);
-      expect(shuffledWeeklyContractIds(574722015), <String>[
-        'm_heats',
-        'm_wins',
-        'm_boss',
-        'm_hands',
-        'm_big',
-        'm_flush',
-      ]);
-      expect(chooseWeeklyContracts(weekKey: '2026-W30', rotation: 0), <String>[
-        'm_heats',
-        'm_wins',
-        'm_boss',
-      ]);
+      final first = chooseWeeklyContracts(weekKey: '2026-W30', rotation: 0);
+      final retry = chooseWeeklyContracts(weekKey: '2026-W30', rotation: 0);
+      expect(first, retry);
+      expect(first, hasLength(5));
+      expect(first.toSet(), hasLength(5));
+      expect(
+        first
+            .map(
+              (id) => weeklyContractCatalog
+                  .firstWhere((mission) => mission.id == id)
+                  .reward,
+            )
+            .fold<int>(0, (sum, reward) => sum + reward),
+        lessThanOrEqualTo(250),
+      );
     });
 
     test('refresh avoids current and claimed missions when possible', () {
@@ -255,10 +284,46 @@ void main() {
         currentIds: const <String>['m_heats', 'm_wins', 'm_boss'],
         claimedIds: const <String>['m_big'],
       );
-      // Only two contracts are both new and unclaimed, so the shipped fallback
-      // fills slot three with the claimed contract before repeating a current one.
-      expect(next, <String>['m_flush', 'm_hands', 'm_big']);
+      expect(next, hasLength(5));
+      expect(next.toSet(), hasLength(5));
       expect(next, isNot(contains('m_heats')));
+    });
+
+    test('weekly refresh keys migrate from old daily dates', () {
+      expect(
+        weeklyRefreshUsedForWeek(
+          storedRefreshKey: '2026-W30',
+          weekKey: '2026-W30',
+        ),
+        isTrue,
+      );
+      expect(
+        weeklyRefreshUsedForWeek(
+          storedRefreshKey: '2026-07-22',
+          weekKey: '2026-W30',
+        ),
+        isTrue,
+      );
+      expect(
+        weeklyRefreshUsedForWeek(
+          storedRefreshKey: '2026-07-12',
+          weekKey: '2026-W30',
+        ),
+        isFalse,
+      );
+    });
+
+    test('refresh retains completed unclaimed missions', () {
+      final refreshed = refreshedWeeklyContracts(
+        weekKey: '2026-W30',
+        rotation: 2,
+        currentIds: const ['m_heats', 'm_wins', 'm_pair', 'm_hands', 'm_big'],
+        claimedIds: const ['m_wins'],
+        protectedIds: const ['m_heats', 'm_big'],
+      );
+      expect(refreshed, hasLength(5));
+      expect(refreshed, containsAll(const ['m_heats', 'm_big']));
+      expect(refreshed.toSet(), hasLength(5));
     });
 
     test('ISO week keys match the client around year boundaries', () {
@@ -282,7 +347,6 @@ void main() {
       expect(before.dailyChallengeUnlocked, isFalse);
       expect(before.stakeUnlocked, isFalse);
       expect(before.gauntletUnlocked, isFalse);
-      expect(before.newcomerWoodVaultPriceActive, isTrue);
 
       const after = ProgressionGates(
         tutorialDone: true,
@@ -292,15 +356,15 @@ void main() {
       expect(after.dailyChallengeUnlocked, isTrue);
       expect(after.stakeUnlocked, isTrue);
       expect(after.gauntletUnlocked, isTrue);
-      expect(after.newcomerWoodVaultPriceActive, isFalse);
-      expect(newcomerWoodVaultPrice, 60);
     });
 
-    test('daily streak uses 30 + 18 per day and caps at 192', () {
-      expect(dailyLoginRewardForStreak(1), 30);
-      expect(dailyLoginRewardForStreak(2), 48);
-      expect(dailyLoginRewardForStreak(10), 192);
-      expect(dailyLoginRewardForStreak(1000), 192);
+    test('daily streak uses 5/10/15/20 and caps at 25', () {
+      expect(dailyLoginRewardForStreak(1), 5);
+      expect(dailyLoginRewardForStreak(2), 10);
+      expect(dailyLoginRewardForStreak(3), 15);
+      expect(dailyLoginRewardForStreak(4), 20);
+      expect(dailyLoginRewardForStreak(5), 25);
+      expect(dailyLoginRewardForStreak(1000), 25);
 
       final continuing = nextDailyLoginOffer(
         now: DateTime(2026, 7, 21, 18),
@@ -309,7 +373,8 @@ void main() {
       );
       expect(continuing.available, isTrue);
       expect(continuing.streak, 5);
-      expect(continuing.reward, 102);
+      expect(continuing.reward, 25);
+      expect(continuing.tomorrowReward, 25);
 
       final alreadyClaimed = nextDailyLoginOffer(
         now: DateTime(2026, 7, 21, 18),
@@ -317,6 +382,22 @@ void main() {
         currentStreak: 5,
       );
       expect(alreadyClaimed.available, isFalse);
+
+      final missedDay = nextDailyLoginOffer(
+        now: DateTime(2026, 7, 21, 18),
+        lastClaim: DateTime(2026, 7, 19, 8),
+        currentStreak: 20,
+      );
+      expect(missedDay.streak, 1);
+      expect(missedDay.reward, 5);
+
+      final rollback = nextDailyLoginOffer(
+        now: DateTime(2026, 7, 20, 18),
+        lastClaim: DateTime(2026, 7, 21, 8),
+        currentStreak: 5,
+      );
+      expect(rollback.available, isFalse);
+      expect(rollback.streak, 5);
     });
 
     test('Daily Challenge progression and planned prizes remain disabled', () {

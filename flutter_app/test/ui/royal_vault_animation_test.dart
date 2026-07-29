@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wildcard/domain/joker_catalog.dart';
+import 'package:wildcard/domain/progression_catalog.dart';
 import 'package:wildcard/ui/widgets/royal_vault_animation.dart';
 import 'package:wildcard/ui/wildcard_theme.dart';
+
+final _copperArtwork = RoyalVaultRewardArtwork.forJoker(jokersById['copper']!);
+final _slyArtwork = RoyalVaultRewardArtwork.forCosmetic(
+  cosmeticById('sly_gold')!,
+);
 
 void main() {
   const phoneSizes = <Size>[
     Size(320, 568),
     Size(360, 640),
     Size(360, 800),
+    Size(390, 844),
     Size(393, 873),
     Size(412, 915),
     Size(600, 960),
@@ -27,14 +35,14 @@ void main() {
               tier: size.width == 320
                   ? RoyalVaultVisualTier.golden
                   : RoyalVaultVisualTier.cosmetic,
-              reward: const RoyalVaultRewardViewModel(
+              reward: RoyalVaultRewardViewModel(
                 name: 'Frequency Meter',
                 description:
                     '×1.4 Multiplier if your deck has one most common rank and you play it.',
                 rarity: 'UNCOMMON',
                 rarityColor: Color(0xFF45E0C6),
                 categoryLabel: 'NEW JOKER UNLOCKED',
-                icon: Icons.style_rounded,
+                artwork: _copperArtwork,
               ),
               fast: false,
               durationOverride: const Duration(milliseconds: 120),
@@ -61,6 +69,36 @@ void main() {
         expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
         expect(tester.takeException(), isNull);
 
+        final screen = Offset.zero & size;
+        final dialog = tester.getRect(
+          find.byKey(const Key('royal-vault-dialog')),
+        );
+        final stage = tester.getRect(
+          find.byKey(const Key('royal-vault-chest-base')),
+        );
+        final rewardName = tester.getRect(
+          find.byKey(const Key('royal-vault-reward-name')),
+        );
+        final claim = tester.getRect(
+          find.byKey(const Key('royal-vault-claim')),
+        );
+        expect(
+          screen.contains(dialog.topLeft) &&
+              screen.contains(dialog.bottomRight),
+          isTrue,
+          reason: 'The complete Vault must stay inside $size.',
+        );
+        expect(
+          screen.contains(stage.topLeft) && screen.contains(stage.bottomRight),
+          isTrue,
+          reason: 'The chest must stay inside $size.',
+        );
+        expect(
+          rewardName.bottom <= claim.top,
+          isTrue,
+          reason: 'Reward details must not overlap Claim at $size.',
+        );
+
         await tester.tap(find.byKey(const Key('royal-vault-claim')));
         await tester.tap(find.byKey(const Key('royal-vault-claim')));
         await tester.pump();
@@ -79,13 +117,13 @@ void main() {
       child: RoyalVaultAnimation(
         key: key,
         tier: RoyalVaultVisualTier.wooden,
-        reward: const RoyalVaultRewardViewModel(
+        reward: RoyalVaultRewardViewModel(
           name: 'Copper',
           description: '+12 value when a scoring card is a Diamond.',
           rarity: 'COMMON',
           rarityColor: Color(0xFFCFC6B2),
           categoryLabel: 'NEW JOKER UNLOCKED',
-          icon: Icons.style_rounded,
+          artwork: _copperArtwork,
         ),
         fast: fast,
         onClaim: () {},
@@ -116,14 +154,14 @@ void main() {
         disableAnimations: true,
         child: RoyalVaultAnimation(
           tier: RoyalVaultVisualTier.golden,
-          reward: const RoyalVaultRewardViewModel(
+          reward: RoyalVaultRewardViewModel(
             name: 'Frequency Meter',
             description:
                 '×1.4 Multiplier if your deck has one most common rank and you play it.',
             rarity: 'RARE',
             rarityColor: Color(0xFF9B7BFF),
             categoryLabel: 'NEW JOKER UNLOCKED',
-            icon: Icons.style_rounded,
+            artwork: _copperArtwork,
           ),
           fast: false,
           durationOverride: const Duration(milliseconds: 120),
@@ -149,13 +187,13 @@ void main() {
         _Harness(
           child: RoyalVaultAnimation(
             tier: RoyalVaultVisualTier.golden,
-            reward: const RoyalVaultRewardViewModel(
+            reward: RoyalVaultRewardViewModel(
               name: 'Frequency Meter',
               description: 'A deliberately secret effect.',
               rarity: 'WILD',
               rarityColor: Color(0xFFF04FD8),
               categoryLabel: 'NEW JOKER UNLOCKED',
-              icon: Icons.style_rounded,
+              artwork: _copperArtwork,
             ),
             fast: false,
             durationOverride: const Duration(milliseconds: 1000),
@@ -189,13 +227,13 @@ void main() {
       _Harness(
         child: RoyalVaultAnimation(
           tier: RoyalVaultVisualTier.cosmetic,
-          reward: const RoyalVaultRewardViewModel(
+          reward: RoyalVaultRewardViewModel(
             name: 'Velvet Sly',
             description: 'A premium Sly look for every room.',
             rarity: 'RARE',
             rarityColor: Color(0xFF9B7BFF),
             categoryLabel: 'NEW COSMETIC UNLOCKED',
-            icon: Icons.face_rounded,
+            artwork: _slyArtwork,
           ),
           fast: false,
           durationOverride: const Duration(milliseconds: 1000),
@@ -226,13 +264,13 @@ void main() {
         disableAnimations: true,
         child: RoyalVaultAnimation(
           tier: RoyalVaultVisualTier.wooden,
-          reward: const RoyalVaultRewardViewModel(
+          reward: RoyalVaultRewardViewModel(
             name: 'Copper',
             description: '+12 value when a scoring card is a Diamond.',
             rarity: 'COMMON',
             rarityColor: Color(0xFFCFC6B2),
             categoryLabel: 'NEW JOKER UNLOCKED',
-            icon: Icons.style_rounded,
+            artwork: _copperArtwork,
           ),
           fast: false,
           onClaim: () {},
@@ -240,7 +278,7 @@ void main() {
       ),
     );
 
-    await tester.pump(const Duration(milliseconds: 760));
+    await tester.pump(const Duration(milliseconds: 940));
 
     expect(find.byKey(const Key('royal-vault-claim')), findsOneWidget);
     expect(find.text('REWARD SECURED'), findsOneWidget);

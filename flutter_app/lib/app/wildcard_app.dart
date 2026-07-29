@@ -66,6 +66,8 @@ class _WildcardAppState extends State<WildcardApp> {
                 hasSavedRun: widget.controller.hasResumableRun,
                 dailyRewardAvailable:
                     widget.controller.dailyLoginOffer.available,
+                dailyRewardLabel:
+                    'Daily D${widget.controller.dailyLoginOffer.streak} +${widget.controller.dailyLoginOffer.reward} · next +${widget.controller.dailyLoginOffer.tomorrowReward}',
                 weeklyMissionsAttention:
                     widget.controller.weeklyMissionsNeedAttention,
                 cabinetAttention: widget.controller.cabinetNeedsAttention,
@@ -135,11 +137,15 @@ class _WildcardAppState extends State<WildcardApp> {
   }
 
   Future<void> _claimDaily(BuildContext context) async {
+    final claimedOffer = widget.controller.dailyLoginOffer;
     final reward = await widget.controller.claimDailyLoginReward();
     if (context.mounted && reward > 0) {
       // The WebView paired every coin grant with its little coin chord.
       widget.controller.sfx.play('coins');
-      showWildcardToast(context, 'Daily reward · +$reward coins');
+      showWildcardToast(
+        context,
+        'Day ${claimedOffer.streak} · +$reward coins · tomorrow +${claimedOffer.tomorrowReward}',
+      );
     }
   }
 

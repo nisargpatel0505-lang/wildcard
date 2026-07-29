@@ -301,13 +301,14 @@ class _CardStatusBadge extends StatelessWidget {
       border: Border.all(color: color.withValues(alpha: .9)),
     ),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       child: Text(
         label,
         style: TextStyle(
           color: color,
-          fontFamily: 'Bungee',
-          fontSize: 7,
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
           height: 1,
         ),
       ),

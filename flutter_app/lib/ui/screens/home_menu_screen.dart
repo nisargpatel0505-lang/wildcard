@@ -19,6 +19,7 @@ class WildcardHomeScreen extends StatelessWidget {
     this.playerTitle,
     this.hasSavedRun = false,
     this.dailyRewardAvailable = false,
+    this.dailyRewardLabel = 'Daily Reward',
     this.weeklyMissionsAttention = false,
     this.cabinetAttention = false,
     this.soundEnabled = true,
@@ -45,6 +46,7 @@ class WildcardHomeScreen extends StatelessWidget {
   final String? playerTitle;
   final bool hasSavedRun;
   final bool dailyRewardAvailable;
+  final String dailyRewardLabel;
   final bool weeklyMissionsAttention;
   final bool cabinetAttention;
   final bool soundEnabled;
@@ -68,8 +70,9 @@ class WildcardHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF080414),
+      backgroundColor: context.wildcard.pageBackground,
       body: WildcardBackground(
+        surface: WildcardUiSurface.home,
         asset: backgroundAsset,
         child: SafeArea(
           minimum: const EdgeInsets.only(bottom: 6),
@@ -292,7 +295,7 @@ class WildcardHomeScreen extends StatelessWidget {
         if (dailyRewardAvailable) ...[
           SizedBox(height: gap),
           WildcardButton(
-            label: 'Daily Reward',
+            label: dailyRewardLabel,
             icon: const Icon(Icons.star_rounded),
             onPressed: onDailyReward ?? _noOp,
             minHeight: metrics.primaryButtonHeight,
@@ -369,7 +372,10 @@ class _StatusChip extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 26, maxWidth: 220),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xB8060814),
+        color: Color.alphaBlend(
+          tokens.violet.withValues(alpha: .09),
+          tokens.surfaceStrong.withValues(alpha: .92),
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: tokens.line.withValues(alpha: 0.86)),
       ),
@@ -379,10 +385,11 @@ class _StatusChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: tokens.gold,
-          fontFamily: 'Bungee',
-          fontSize: 9,
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
           height: 1,
-          letterSpacing: 0.55,
+          letterSpacing: 0.4,
         ),
       ),
     );
@@ -400,16 +407,20 @@ class _CoinBadge extends StatelessWidget {
     return Semantics(
       label: '$coins account coins',
       child: Container(
+        key: const Key('home-coin-badge'),
         padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
         decoration: BoxDecoration(
-          color: const Color(0xC2050812),
+          color: Color.alphaBlend(
+            tokens.gold.withValues(alpha: .06),
+            tokens.surfaceStrong.withValues(alpha: .94),
+          ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: tokens.line.withValues(alpha: 0.92)),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x61000000),
+              color: tokens.shadow,
               blurRadius: 12,
-              offset: Offset(0, 3),
+              offset: const Offset(0, 3),
             ),
           ],
         ),

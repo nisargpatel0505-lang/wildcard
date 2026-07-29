@@ -45,31 +45,48 @@ class WildcardButton extends StatelessWidget {
     final tokens = context.wildcard;
     final enabled = onPressed != null;
     final foreground = switch (variant) {
-      WildcardButtonVariant.primary => const Color(0xFF251505),
+      WildcardButtonVariant.primary => tokens.onSecondaryAccent,
       WildcardButtonVariant.secondary ||
       WildcardButtonVariant.ghost => tokens.cream,
-      WildcardButtonVariant.danger => const Color(0xFF3D0F08),
-      WildcardButtonVariant.success => const Color(0xFF042313),
+      WildcardButtonVariant.danger => tokens.onDangerAccent,
+      WildcardButtonVariant.success => tokens.onPrimaryAccent,
     };
     final border = switch (variant) {
-      WildcardButtonVariant.primary => const Color(0xFFFFE69A),
+      WildcardButtonVariant.primary => Color.lerp(
+        tokens.gold,
+        tokens.cream,
+        .42,
+      )!,
       WildcardButtonVariant.secondary => tokens.mint.withValues(alpha: 0.76),
       WildcardButtonVariant.ghost => tokens.violet.withValues(alpha: 0.72),
       WildcardButtonVariant.danger => tokens.coral,
-      WildcardButtonVariant.success => const Color(0xFF9BF7C4),
+      WildcardButtonVariant.success => Color.lerp(
+        tokens.mint,
+        tokens.cream,
+        .36,
+      )!,
     };
     final gradient = switch (variant) {
-      WildcardButtonVariant.primary => const [
-        Color(0xFFFFD15D),
-        Color(0xFFF2A33D),
+      WildcardButtonVariant.primary => [
+        Color.lerp(tokens.gold, tokens.cream, .14)!,
+        Color.lerp(tokens.gold, tokens.ink, .18)!,
       ],
-      WildcardButtonVariant.secondary => const [
-        Color(0xF0173D43),
-        Color(0xF0271245),
+      WildcardButtonVariant.secondary => [
+        Color.alphaBlend(
+          tokens.mint.withValues(alpha: .16),
+          tokens.surfaceStrong,
+        ),
+        Color.alphaBlend(
+          tokens.violet.withValues(alpha: .16),
+          tokens.surfaceStrong,
+        ),
       ],
-      WildcardButtonVariant.ghost => const [
-        Color(0xF0211441),
-        Color(0xF00B1822),
+      WildcardButtonVariant.ghost => [
+        Color.alphaBlend(
+          tokens.violet.withValues(alpha: .19),
+          tokens.surfaceStrong,
+        ),
+        tokens.surfaceStrong,
       ],
       WildcardButtonVariant.danger => [
         tokens.coral,
@@ -77,17 +94,37 @@ class WildcardButton extends StatelessWidget {
       ],
       // Play Hand: a confident green, so the primary table action reads as
       // "go" against the red Discard beside it.
-      WildcardButtonVariant.success => const [
-        Color(0xFF35D07A),
-        Color(0xFF1C8A46),
+      WildcardButtonVariant.success => [
+        tokens.mint,
+        Color.lerp(tokens.mint, tokens.ink, .34)!,
       ],
     };
     final shadowColor = switch (variant) {
-      WildcardButtonVariant.primary => const Color(0xFF9C5A19),
-      WildcardButtonVariant.secondary => const Color(0xFF102B31),
-      WildcardButtonVariant.ghost => const Color(0xFF251345),
-      WildcardButtonVariant.danger => const Color(0xFF8A2C1F),
-      WildcardButtonVariant.success => const Color(0xFF115C31),
+      WildcardButtonVariant.primary => Color.lerp(
+        tokens.gold,
+        tokens.ink,
+        .52,
+      )!,
+      WildcardButtonVariant.secondary => Color.lerp(
+        tokens.mint,
+        tokens.ink,
+        .72,
+      )!,
+      WildcardButtonVariant.ghost => Color.lerp(
+        tokens.violet,
+        tokens.ink,
+        .68,
+      )!,
+      WildcardButtonVariant.danger => Color.lerp(
+        tokens.coral,
+        tokens.ink,
+        .50,
+      )!,
+      WildcardButtonVariant.success => Color.lerp(
+        tokens.mint,
+        tokens.ink,
+        .50,
+      )!,
     };
 
     final button = AnimatedOpacity(
@@ -109,10 +146,10 @@ class WildcardButton extends StatelessWidget {
                 color: shadowColor.withValues(alpha: 0.94),
                 offset: const Offset(0, 5),
               ),
-              const BoxShadow(
-                color: Color(0x70000000),
+              BoxShadow(
+                color: tokens.shadow,
                 blurRadius: 14,
-                offset: Offset(0, 9),
+                offset: const Offset(0, 9),
               ),
             ],
           ),
@@ -281,7 +318,7 @@ class WildcardSquareButton extends StatelessWidget {
           dimension: size,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xD20C1020),
+              color: tokens.surfaceStrong,
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
                 color: active
@@ -289,11 +326,11 @@ class WildcardSquareButton extends StatelessWidget {
                     : tokens.line.withValues(alpha: 0.58),
                 width: 2,
               ),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x61000000),
+                  color: tokens.shadow,
                   blurRadius: 8,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),

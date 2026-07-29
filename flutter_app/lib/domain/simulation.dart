@@ -32,6 +32,7 @@ class SimulationConfig {
     this.maxHeat = 12,
     this.initialJokers = const <String>['copper', 'polish'],
     this.allJokersUnlocked = true,
+    this.discoveredJokerIds,
     this.continueEndless = false,
     this.bossBlockedJokers,
     this.bossTargetMultiplier,
@@ -45,6 +46,13 @@ class SimulationConfig {
   final int maxHeat;
   final List<String> initialJokers;
   final bool allJokersUnlocked;
+
+  /// Optional account-discovery pool used only by the deterministic harness.
+  ///
+  /// Null preserves the historical [allJokersUnlocked] switch exactly.
+  /// Supplying a list lets progression audits model the live shop rule that
+  /// only permanently discovered Jokers can appear during a run.
+  final List<String>? discoveredJokerIds;
 
   /// Continue a Normal run after Heat 12 instead of banking the victory.
   ///
@@ -249,6 +257,7 @@ class SimulationBatchReport {
     'bossTargetMultiplier': config.bossTargetMultiplier,
     'initialJokers': config.initialJokers,
     'allJokersUnlocked': config.allJokersUnlocked,
+    'discoveredJokerIds': config.discoveredJokerIds,
     'wins': wins,
     'winRate': winRate,
     'averageHeatsCleared': averageHeatsCleared,
@@ -1503,11 +1512,14 @@ class _RunSimulation {
   }
 
   List<JokerDefinition> _rollJokerOffers() {
+    final discovered = config.discoveredJokerIds?.toSet();
     final pool = jokerCatalog
         .where(
           (joker) =>
               !state.jokerIds.contains(joker.id) &&
-              (config.allJokersUnlocked || joker.starter),
+              (discovered?.contains(joker.id) ??
+                  (config.allJokersUnlocked || joker.starter)) &&
+              jokerShopEligibleAtStage(joker, stage: state.stage),
         )
         .toList();
     final count = shopOfferCount(
@@ -1526,24 +1538,15 @@ class _RunSimulation {
           .floor();
       final forced = wildPool[index];
       offers.add(forced);
-      pool.remove(forced);
+      pool.removeWhere(isPremiumShopOffer);
     }
-    while (offers.length < count && pool.isNotEmpty) {
-      final total = pool.fold<double>(
-        0,
-        (sum, joker) => sum + shopRarityWeights[joker.rarity]!,
-      );
-      var roll = state.nextRandom(RandomStream.shop) * total;
-      var index = 0;
-      for (var candidate = 0; candidate < pool.length; candidate++) {
-        roll -= shopRarityWeights[pool[candidate].rarity]!;
-        if (roll <= 0) {
-          index = candidate;
-          break;
-        }
-      }
-      offers.add(pool.removeAt(index));
-    }
+    offers.addAll(
+      rollWeightedJokerOffers(
+        pool,
+        count: count - offers.length,
+        nextDouble: () => state.nextRandom(RandomStream.shop),
+      ),
+    );
     if (offers.any((joker) => joker.rarity == JokerRarity.wild)) {
       wildMissShops = 0;
     } else if (wildPool.isNotEmpty) {

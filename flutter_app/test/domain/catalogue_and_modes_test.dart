@@ -69,13 +69,15 @@ void main() {
     }
   });
 
-  test('rarity-weighted collection costs cover all 92 paid Jokers', () {
-    final paid = jokerCatalog.where((joker) => joker.unlock > 0);
-    expect(paid, hasLength(92));
-    expect(
-      paid.fold<int>(0, (total, joker) => total + joker.collectionUnlockCost),
-      18035,
-    );
+  test('the only permanent free discoveries are the ten starters', () {
+    final starters = jokerCatalog.where((joker) => joker.starter).toList();
+    final vaultDiscoveries = jokerCatalog
+        .where((joker) => !joker.starter)
+        .toList();
+    expect(starters.map((joker) => joker.id).toSet(), starterJokerIds.toSet());
+    expect(starters, hasLength(10));
+    expect(vaultDiscoveries, hasLength(92));
+    expect(vaultDiscoveries.every((joker) => !joker.starter), isTrue);
   });
 
   test('standard and early-Endless modifier cadence is every third Heat', () {

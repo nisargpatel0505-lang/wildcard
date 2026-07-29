@@ -15,18 +15,13 @@ void main() {
     expect(effectiveNoAdsFor(account, profileBuild: false), isTrue);
   });
 
-  test('ad-free service resolves rewards without initializing an ad', () async {
-    final ads = AdService()..setNoAds(true);
+  test('forced-ad entitlement never manufactures a rewarded claim', () async {
+    final ads = AdService()..setForcedAdsRemoved(true);
     addTearDown(ads.dispose);
 
-    expect(await ads.initializeAfterPrivacyAcceptance(), isTrue);
-    expect(ads.ready, isTrue);
-    expect(ads.rewardedReady, isFalse);
+    expect(ads.forcedAdsRemoved, isTrue);
     expect(ads.interstitialReady, isFalse);
-
-    final reward = await ads.showRewarded();
-    expect(reward, isNotNull);
-    expect(reward!.type, 'ad_free');
+    expect(await ads.showRewarded(), isNull);
     expect(await ads.showInterstitial(), isFalse);
   });
 }

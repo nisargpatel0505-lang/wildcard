@@ -35,7 +35,7 @@ class RunCoinBadge extends StatelessWidget {
       label: '$coins ${account ? 'account' : 'run'} coins',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xD20A1316),
+          color: tokens.surfaceStrong,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: tokens.gold.withValues(alpha: .62)),
           boxShadow: [

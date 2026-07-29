@@ -137,17 +137,17 @@ class _WildcardToastState extends State<_WildcardToast>
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xF20A0820),
+                  color: tokens.surfaceStrong,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: accent.withValues(alpha: 0.85),
                     width: 1.4,
                   ),
                   boxShadow: [
-                    const BoxShadow(
-                      color: Color(0xB3000000),
+                    BoxShadow(
+                      color: tokens.shadow,
                       blurRadius: 18,
-                      offset: Offset(0, 6),
+                      offset: const Offset(0, 6),
                     ),
                     BoxShadow(
                       color: accent.withValues(alpha: 0.22),

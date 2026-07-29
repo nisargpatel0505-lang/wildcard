@@ -23,7 +23,7 @@ void main() {
     );
   });
 
-  test('collection filter and sort match the shipped v7.1 rules', () {
+  test('collection filter and sort remain usable without direct prices', () {
     final common = jokerCatalog.firstWhere(
       (joker) => joker.rarity == JokerRarity.common && joker.unlock > 0,
     );
@@ -60,30 +60,21 @@ void main() {
     );
   });
 
-  test('direct Joker unlock debits once and is durably owned', () async {
-    final app = await AppController.bootstrap();
-    addTearDown(app.dispose);
-    final joker = jokerCatalog.firstWhere((candidate) => candidate.unlock > 0);
-    final openingCoins = joker.collectionUnlockCost + 250;
-    await app.mutateAccount((account) {
-      account.coins = openingCoins;
-      account.unlockedJokerIds.clear();
-    }, syncCloud: false);
+  test(
+    'fresh accounts contain the starter discoveries and no paid unlock',
+    () async {
+      final app = await AppController.bootstrap();
+      addTearDown(app.dispose);
+      final joker = jokerCatalog.firstWhere(
+        (candidate) => candidate.unlock > 0,
+      );
+      expect(app.account.unlockedJokerIds, starterJokerIds.toSet());
+      expect(app.account.unlockedJokerIds, isNot(contains(joker.id)));
+      expect(app.account.coins, 0);
+    },
+  );
 
-    expect(await app.unlockJoker(joker.id), isTrue);
-    expect(app.account.unlockedJokerIds, contains(joker.id));
-    expect(app.account.coins, openingCoins - joker.collectionUnlockCost);
-
-    expect(await app.unlockJoker(joker.id), isFalse);
-    expect(app.account.coins, openingCoins - joker.collectionUnlockCost);
-
-    final preferences = await SharedPreferences.getInstance();
-    final saved = preferences.getString('wildcard_save_v1');
-    expect(saved, isNotNull);
-    expect(AccountState.decode(saved!).unlockedJokerIds, contains(joker.id));
-  });
-
-  testWidgets('collection search and unlock fit a 320x568 phone', (
+  testWidgets('locked collection details and Vault direction fit 320x568', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -97,7 +88,7 @@ void main() {
       (joker) => joker.name == 'Frequency Meter',
     );
     final account = AccountState(
-      coins: target.collectionUnlockCost + 100,
+      coins: 100000,
       unlockedJokerIds: jokerCatalog
           .where((joker) => joker.starter)
           .map((joker) => joker.id)
@@ -109,22 +100,7 @@ void main() {
         home: Scaffold(
           body: ListView(
             padding: const EdgeInsets.all(12),
-            children: [
-              JokerCollectionSection(
-                account: account,
-                onUnlock: (id) async {
-                  final joker = jokerCatalog.firstWhere(
-                    (candidate) => candidate.id == id,
-                  );
-                  if (account.coins < joker.collectionUnlockCost ||
-                      !account.unlockedJokerIds.add(id)) {
-                    return false;
-                  }
-                  account.coins -= joker.collectionUnlockCost;
-                  return true;
-                },
-              ),
-            ],
+            children: [JokerCollectionSection(account: account)],
           ),
         ),
       ),
@@ -138,14 +114,17 @@ void main() {
     expect(find.byKey(Key('collection-joker-${target.id}')), findsOneWidget);
     expect(find.text('Showing 1 of 1 Jokers'), findsOneWidget);
 
-    final unlock = find.byKey(Key('collection-unlock-${target.id}'));
-    await tester.ensureVisible(unlock);
+    final discover = find.byKey(Key('collection-discover-${target.id}'));
+    await tester.ensureVisible(discover);
     await tester.pumpAndSettle();
-    await tester.tap(unlock);
+    expect(find.text(target.description), findsOneWidget);
+    expect(find.text('Discover through Joker Vaults'), findsOneWidget);
+    expect(find.byKey(Key('collection-unlock-${target.id}')), findsNothing);
+    await tester.tap(find.byKey(Key('collection-joker-${target.id}')));
     await tester.pumpAndSettle();
 
-    expect(account.unlockedJokerIds, contains(target.id));
-    expect(find.text(target.description), findsOneWidget);
+    expect(account.unlockedJokerIds, isNot(contains(target.id)));
+    expect(find.text('LOCKED · DISCOVER THROUGH JOKER VAULTS'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

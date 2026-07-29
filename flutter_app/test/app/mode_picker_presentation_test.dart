@@ -68,6 +68,8 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -5000));
       await tester.pumpAndSettle();
       expect(find.text('DEAL THIS RUN'), findsOneWidget);
+      expect(find.text('WILDCARD ARCADE'), findsNothing);
+      expect(find.byKey(const Key('open-arcade-mode')), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
@@ -136,19 +138,18 @@ void main() {
     );
     await tester.pump();
 
-    List<double> firstTransform(String key) =>
-        tester
-            .widget<Transform>(
-              find
-                  .descendant(
-                    of: find.byKey(ValueKey(key)),
-                    matching: find.byType(Transform),
-                  )
-                  .first,
-            )
-            .transform
-            .storage
-            .toList();
+    List<double> firstTransform(String key) => tester
+        .widget<Transform>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey(key)),
+                matching: find.byType(Transform),
+              )
+              .first,
+        )
+        .transform
+        .storage
+        .toList();
 
     final suitBefore = firstTransform('run-setup-suit-0');
     final slyBefore = tester
@@ -157,15 +158,10 @@ void main() {
         .storage
         .toList();
     await tester.pump(const Duration(seconds: 3));
-    expect(
-      firstTransform('run-setup-suit-0'),
-      isNot(equals(suitBefore)),
-    );
+    expect(firstTransform('run-setup-suit-0'), isNot(equals(suitBefore)));
     expect(
       tester
-          .widget<Transform>(
-            find.byKey(const ValueKey('run-setup-sly-motion')),
-          )
+          .widget<Transform>(find.byKey(const ValueKey('run-setup-sly-motion')))
           .transform
           .storage
           .toList(),

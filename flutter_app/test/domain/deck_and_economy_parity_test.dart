@@ -95,8 +95,8 @@ void main() {
 
     test('difficulty scales deterministic stake payout', () {
       expect(stakePayout(100, 12, difficulty: RunDifficulty.easy), 120);
-      expect(stakePayout(100, 12), 200);
-      expect(stakePayout(100, 12, difficulty: RunDifficulty.hard), 320);
+      expect(stakePayout(100, 12), 138);
+      expect(stakePayout(100, 12, difficulty: RunDifficulty.hard), 150);
     });
   });
 }

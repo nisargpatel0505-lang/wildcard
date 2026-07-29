@@ -75,7 +75,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     return WildcardPageFrame(
       title: "Sly's Lesson",
       subtitle: 'Five quick rules. Then the table is yours.',
-      room: WildcardRoom.palace,
+      surface: WildcardUiSurface.tutorial,
       child: Column(
         children: [
           AnimatedSwitcher(
@@ -125,7 +125,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                             ? TextOverflow.ellipsis
                             : TextOverflow.visible,
                         style: TextStyle(
-                          color: const Color(0xFF17131B),
+                          color: context.wildcard.ink,
                           fontSize: compact ? 12.5 : 13.5,
                           fontWeight: FontWeight.w500,
                           height: 1.28,

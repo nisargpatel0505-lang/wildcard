@@ -1,5 +1,4 @@
-import 'dart:math' as math;
-
+import '../core/daily_utc_date.dart';
 import 'joker_catalog.dart';
 
 /// Progression and collection constants recovered from the shipped v7.1.0
@@ -451,7 +450,7 @@ CosmeticDefinition? cosmeticById(String id) {
   return null;
 }
 
-const int cosmeticVaultPrice = 750;
+const int cosmeticVaultPrice = 1000;
 const double cosmeticVaultThemeGate = 0.008;
 const Map<JokerRarity, int> cosmeticVaultRarityWeights = <JokerRarity, int>{
   JokerRarity.common: 0,
@@ -464,6 +463,94 @@ int _cosmeticWeight(CosmeticDefinition cosmetic) {
   final weight = cosmeticVaultRarityWeights[cosmetic.rarity] ?? 1;
   // JavaScript uses `(weight || 1)`, so its explicit zero also falls back to 1.
   return weight == 0 ? 1 : weight;
+}
+
+/// Exact live rarity odds for the Cosmetic Vault's current unowned pool.
+///
+/// This mirrors both stages of [rollCosmeticVault]: the theme gate when both
+/// sides remain, then the per-item rarity weights within the selected side.
+Map<JokerRarity, double> cosmeticVaultEffectiveOdds(
+  Iterable<CosmeticDefinition> lockedPool,
+) {
+  final pool = lockedPool
+      .where((cosmetic) => cosmetic.price > 0)
+      .toList(growable: false);
+  if (pool.isEmpty) return const <JokerRarity, double>{};
+  final themes = pool
+      .where((cosmetic) => cosmetic.kind == CosmeticKind.theme)
+      .toList(growable: false);
+  final rest = pool
+      .where((cosmetic) => cosmetic.kind != CosmeticKind.theme)
+      .toList(growable: false);
+  final odds = <JokerRarity, double>{};
+
+  void addPool(List<CosmeticDefinition> source, double poolChance) {
+    if (source.isEmpty || poolChance <= 0) return;
+    final total = source.fold<int>(
+      0,
+      (sum, cosmetic) => sum + _cosmeticWeight(cosmetic),
+    );
+    for (final cosmetic in source) {
+      odds[cosmetic.rarity] =
+          (odds[cosmetic.rarity] ?? 0) +
+          poolChance * _cosmeticWeight(cosmetic) / total;
+    }
+  }
+
+  if (themes.isNotEmpty && rest.isNotEmpty) {
+    addPool(themes, cosmeticVaultThemeGate);
+    addPool(rest, 1 - cosmeticVaultThemeGate);
+  } else {
+    addPool(rest.isNotEmpty ? rest : themes, 1);
+  }
+  return <JokerRarity, double>{
+    for (final rarity in JokerRarity.values)
+      if ((odds[rarity] ?? 0) > 0) rarity: odds[rarity]!,
+  };
+}
+
+/// Exact live reward-kind odds for the Cosmetic Vault's current unowned pool.
+///
+/// This is kept beside [rollCosmeticVault] so the pre-purchase disclosure
+/// cannot drift away from the two-stage theme gate and weighted item draw.
+Map<CosmeticKind, double> cosmeticVaultKindOdds(
+  Iterable<CosmeticDefinition> lockedPool,
+) {
+  final pool = lockedPool
+      .where((cosmetic) => cosmetic.price > 0)
+      .toList(growable: false);
+  if (pool.isEmpty) return const <CosmeticKind, double>{};
+  final themes = pool
+      .where((cosmetic) => cosmetic.kind == CosmeticKind.theme)
+      .toList(growable: false);
+  final rest = pool
+      .where((cosmetic) => cosmetic.kind != CosmeticKind.theme)
+      .toList(growable: false);
+  final odds = <CosmeticKind, double>{};
+
+  void addPool(List<CosmeticDefinition> source, double poolChance) {
+    if (source.isEmpty || poolChance <= 0) return;
+    final total = source.fold<int>(
+      0,
+      (sum, cosmetic) => sum + _cosmeticWeight(cosmetic),
+    );
+    for (final cosmetic in source) {
+      odds[cosmetic.kind] =
+          (odds[cosmetic.kind] ?? 0) +
+          poolChance * _cosmeticWeight(cosmetic) / total;
+    }
+  }
+
+  if (themes.isNotEmpty && rest.isNotEmpty) {
+    addPool(themes, cosmeticVaultThemeGate);
+    addPool(rest, 1 - cosmeticVaultThemeGate);
+  } else {
+    addPool(rest.isNotEmpty ? rest : themes, 1);
+  }
+  return <CosmeticKind, double>{
+    for (final kind in CosmeticKind.values)
+      if ((odds[kind] ?? 0) > 0) kind: odds[kind]!,
+  };
 }
 
 /// Mirrors the two-random-draw Cosmetic Vault: first the 0.8% UI-theme gate,
@@ -961,55 +1048,87 @@ const List<WeeklyContractDefinition> weeklyContractCatalog =
       WeeklyContractDefinition(
         id: 'm_heats',
         stat: 'heats',
-        target: 15,
-        reward: 200,
-        name: 'Heat Streak',
-        description: 'Clear 15 Heats total this week.',
+        target: 35,
+        reward: 45,
+        name: 'Heat Campaign',
+        description: 'Clear 35 Heats across your runs this week.',
       ),
       WeeklyContractDefinition(
         id: 'm_flush',
         stat: 'flush',
-        target: 8,
-        reward: 150,
+        target: 10,
+        reward: 45,
         name: 'Flush Hunter',
-        description: 'Score 8 Flushes this week.',
+        description: 'Score 10 Flush-family hands this week.',
       ),
       WeeklyContractDefinition(
         id: 'm_hands',
         stat: 'hands',
-        target: 60,
-        reward: 150,
+        target: 120,
+        reward: 40,
         name: 'Grinder',
-        description: 'Play 60 hands this week.',
+        description: 'Play 120 hands across several runs this week.',
       ),
       WeeklyContractDefinition(
         id: 'm_wins',
         stat: 'wins',
         target: 2,
-        reward: 400,
+        reward: 60,
         name: 'Closer',
         description: 'Win 2 runs (clear Heat 12) this week.',
       ),
       WeeklyContractDefinition(
-        id: 'm_boss',
-        stat: 'bosskill',
-        target: 1,
-        reward: 300,
-        name: 'House Breaker',
-        description: 'Beat the boss Heat (THE HOUSE) once this week.',
+        id: 'm_pair',
+        stat: 'pair',
+        target: 30,
+        reward: 35,
+        name: 'Double Dealer',
+        description: 'Score 30 Pair-or-better hands this week.',
       ),
       WeeklyContractDefinition(
         id: 'm_big',
         stat: 'bighand',
-        target: 5,
-        reward: 200,
+        target: 8,
+        reward: 50,
         name: 'Heavy Hitter',
-        description: 'Score 5 Full House-or-better hands this week.',
+        description: 'Score 8 Full House-or-better hands this week.',
+      ),
+      WeeklyContractDefinition(
+        id: 'm_straight',
+        stat: 'straight',
+        target: 12,
+        reward: 45,
+        name: 'On The Line',
+        description: 'Score 12 Straight-family hands this week.',
+      ),
+      WeeklyContractDefinition(
+        id: 'm_modifiers',
+        stat: 'modifiers',
+        target: 12,
+        reward: 45,
+        name: 'Rule Breaker',
+        description: 'Clear 12 modified Heats this week.',
+      ),
+      WeeklyContractDefinition(
+        id: 'm_runs',
+        stat: 'runs',
+        target: 5,
+        reward: 40,
+        name: 'Five Sessions',
+        description: 'Finish 5 non-Daily runs this week.',
+      ),
+      WeeklyContractDefinition(
+        id: 'm_daily',
+        stat: 'daily',
+        target: 3,
+        reward: 45,
+        name: 'Daily Regular',
+        description: 'Complete a Daily Challenge on 3 days this week.',
       ),
     ];
 
-const int visibleWeeklyContractCount = 3;
-const int weeklyRefreshesPerDay = 1;
+const int visibleWeeklyContractCount = 5;
+const int weeklyRefreshesPerWeek = 1;
 
 int _unsigned32(int value) => value & 0xffffffff;
 int _imul32(int left, int right) => _unsigned32(left * right);
@@ -1067,6 +1186,49 @@ List<String> chooseWeeklyContracts({
       if (!result.contains(id)) result.add(id);
       if (result.length == visibleWeeklyContractCount) return result;
     }
+  }
+  return result;
+}
+
+bool weeklyRefreshUsedForWeek({
+  required String storedRefreshKey,
+  required String weekKey,
+}) {
+  if (storedRefreshKey == weekKey) return true;
+  final legacyDate = DateTime.tryParse(storedRefreshKey);
+  return legacyDate != null && isoWeekKey(legacyDate) == weekKey;
+}
+
+List<String> refreshedWeeklyContracts({
+  required String weekKey,
+  required int rotation,
+  required Iterable<String> currentIds,
+  required Iterable<String> claimedIds,
+  Iterable<String> protectedIds = const <String>[],
+}) {
+  final protected = protectedIds
+      .where(
+        weeklyContractCatalog.map((mission) => mission.id).toSet().contains,
+      )
+      .toSet()
+      .take(visibleWeeklyContractCount)
+      .toList(growable: false);
+  final ordered = chooseWeeklyContracts(
+    weekKey: weekKey,
+    rotation: rotation,
+    currentIds: currentIds,
+    claimedIds: claimedIds,
+  );
+  final result = <String>[...protected];
+  for (final id in ordered) {
+    if (!result.contains(id)) result.add(id);
+    if (result.length == visibleWeeklyContractCount) return result;
+  }
+  for (final id in shuffledWeeklyContractIds(
+    weeklySeed('$weekKey#$rotation'),
+  )) {
+    if (!result.contains(id)) result.add(id);
+    if (result.length == visibleWeeklyContractCount) break;
   }
   return result;
 }
@@ -1180,6 +1342,11 @@ const List<TitleDefinition> titleCatalog = <TitleDefinition>[
   TitleDefinition(id: 't_endless', name: 'Endless Runner'),
   TitleDefinition(id: 't_whale', name: 'High Roller'),
   TitleDefinition(id: 't_legend', name: 'Neon Legend'),
+  TitleDefinition(id: 't_eternal', name: 'Eternal Runner'),
+  TitleDefinition(id: 't_house_master', name: 'House Master'),
+  TitleDefinition(id: 't_royal_dealer', name: 'Royal Dealer'),
+  TitleDefinition(id: 't_vault_keeper', name: 'Vault Keeper'),
+  TitleDefinition(id: 't_contract_legend', name: 'Contract Legend'),
 ];
 
 bool titleIsUnlocked(String id, ProgressionSnapshot state) {
@@ -1196,6 +1363,12 @@ bool titleIsUnlocked(String id, ProgressionSnapshot state) {
       return state.bestScore >= 5000;
     case 't_legend':
       return state.achievementsEarned >= 20;
+    case 't_eternal':
+    case 't_house_master':
+    case 't_royal_dealer':
+    case 't_vault_keeper':
+    case 't_contract_legend':
+      return false;
   }
   return false;
 }
@@ -1205,8 +1378,6 @@ const List<String> tutorialStarterJokerIds = starterJokerIds;
 const List<String> tutorialFirstRunJokerIds = <String>['copper', 'polish'];
 const int stakeUnlockClearedHeat = 5;
 const int gauntletUnlockClearedHeat = 12;
-const int newcomerWoodVaultOwnedJokers = 15;
-const int newcomerWoodVaultPrice = 60;
 
 class ProgressionGates {
   const ProgressionGates({
@@ -1222,28 +1393,31 @@ class ProgressionGates {
   bool get dailyChallengeUnlocked => tutorialDone;
   bool get stakeUnlocked => bestClearedHeat >= stakeUnlockClearedHeat;
   bool get gauntletUnlocked => bestClearedHeat >= gauntletUnlockClearedHeat;
-  bool get newcomerWoodVaultPriceActive =>
-      unlockedJokers < newcomerWoodVaultOwnedJokers;
 }
 
-const int dailyLoginBase = 30;
-const int dailyLoginStep = 18;
-const int dailyLoginCap = 192;
+const int dailyLoginCap = 25;
 
-int dailyLoginRewardForStreak(int streak) => math.min(
-  dailyLoginCap,
-  dailyLoginBase + dailyLoginStep * math.max(0, streak - 1),
-);
+int dailyLoginRewardForStreak(int streak) {
+  if (streak <= 1) return 5;
+  if (streak == 2) return 10;
+  if (streak == 3) return 15;
+  if (streak == 4) return 20;
+  return dailyLoginCap;
+}
 
 class DailyLoginOffer {
   const DailyLoginOffer({
     required this.available,
     required this.streak,
     required this.reward,
+    required this.tomorrowReward,
+    required this.dateKey,
   });
   final bool available;
   final int streak;
   final int reward;
+  final int tomorrowReward;
+  final String dateKey;
 }
 
 bool _sameLocalDay(DateTime left, DateTime right) =>
@@ -1256,18 +1430,20 @@ DailyLoginOffer nextDailyLoginOffer({
   DateTime? lastClaim,
   int currentStreak = 0,
 }) {
-  if (lastClaim != null && _sameLocalDay(lastClaim, now)) {
+  final today = DateTime(now.year, now.month, now.day);
+  final claimedDay = lastClaim == null
+      ? null
+      : DateTime(lastClaim.year, lastClaim.month, lastClaim.day);
+  if (claimedDay != null && !claimedDay.isBefore(today)) {
     return DailyLoginOffer(
       available: false,
       streak: currentStreak,
       reward: dailyLoginRewardForStreak(currentStreak),
+      tomorrowReward: dailyLoginRewardForStreak(currentStreak + 1),
+      dateKey: calendarDateKey(now),
     );
   }
-  final yesterday = DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).subtract(const Duration(days: 1));
+  final yesterday = today.subtract(const Duration(days: 1));
   final nextStreak = lastClaim != null && _sameLocalDay(lastClaim, yesterday)
       ? currentStreak + 1
       : 1;
@@ -1275,6 +1451,8 @@ DailyLoginOffer nextDailyLoginOffer({
     available: true,
     streak: nextStreak,
     reward: dailyLoginRewardForStreak(nextStreak),
+    tomorrowReward: dailyLoginRewardForStreak(nextStreak + 1),
+    dateKey: calendarDateKey(now),
   );
 }
 

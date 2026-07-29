@@ -6,7 +6,7 @@ does not load the old HTML game in a WebView.
 
 ## Current release candidate
 
-- Version: `8.4.1` (`versionCode 63`)
+- Version: `8.5.0` (`versionCode 64`)
 - Android package: `com.nisarg.wildcard`
 - Minimum Android API: 24
 - Phone target: portrait-first, tested down to 320 x 568 logical pixels
@@ -37,7 +37,9 @@ manifest app ID and Dart ad-unit IDs remain consistent.
   backend-facing state tests and small-phone rendering checks
 
 The old `www/` client remains outside this directory only as the released
-reference and migration source while the Flutter beta is validated.
+reference, migration source and presentation comparison. `flutter_app/` is the
+authoritative implementation for v8 and later; new gameplay work must not be
+added to the legacy WebView client.
 
 ## Safety rules carried into Flutter
 

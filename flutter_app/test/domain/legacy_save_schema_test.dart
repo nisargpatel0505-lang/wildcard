@@ -14,6 +14,7 @@ void main() {
         'rewardClaims',
         'noAds',
         'missionSet',
+        'progressCounters',
       }),
     );
     expect(
@@ -37,7 +38,7 @@ void main() {
       'stage': 8,
       'hand': const <Object?>[],
       'cards': const <Object?>[],
-      'jokerIds': const <String>['copper'],
+      'jokerIds': const <String>['copper', 'removed_developer_joker'],
       'modId': 'tax',
       'supplyPurchaseCounts': const <String, int>{'scalpel': 2},
       'futureServerField': 'preserve-me',
@@ -48,7 +49,9 @@ void main() {
     expect(save.modifiers, const <HeatModifier>[HeatModifier.tax]);
     expect(save.supplyLedger.count(SupplyId.scalpel), 2);
     expect(save.supplyLedger.surcharge(SupplyId.scalpel), 10);
-    expect(save.toScoringState().cards, hasLength(minimumDeckSize));
+    final scoringState = save.toScoringState();
+    expect(scoringState.cards, hasLength(minimumDeckSize));
+    expect(scoringState.jokerIds, const <String>['copper']);
     expect(
       jsonDecode(save.encodePreservingUnknowns())['futureServerField'],
       'preserve-me',

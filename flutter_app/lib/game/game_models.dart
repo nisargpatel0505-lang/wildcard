@@ -67,6 +67,7 @@ class AccountMutation {
     this.leaderboardEligible = true,
     this.enhancedCount = 0,
     this.glassDouble = false,
+    this.enteredEndless = false,
   });
 
   final String claimId;
@@ -93,6 +94,7 @@ class AccountMutation {
   final bool leaderboardEligible;
   final int enhancedCount;
   final bool glassDouble;
+  final bool enteredEndless;
 }
 
 typedef RunSaveWriter =

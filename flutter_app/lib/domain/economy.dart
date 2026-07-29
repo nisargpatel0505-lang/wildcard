@@ -13,12 +13,86 @@ const Map<JokerRarity, double> shopRarityWeights = <JokerRarity, double>{
   JokerRarity.common: 4,
   JokerRarity.uncommon: 3.2,
   JokerRarity.rare: 3,
-  JokerRarity.wild: 1.8,
+  // A discovered WILD is still a run-defining offer, not a routine reroll
+  // result. Eligibility is separately delayed until the mid-game.
+  JokerRarity.wild: 0.45,
 };
+const int wildShopMinimumHeat = 6;
+const int highImpactShopMinimumHeat = 4;
+const double highImpactShopWeightMultiplier = 0.5;
+
+/// Non-WILD Jokers whose measured single-Joker lift is large enough to need
+/// the same shelf-spacing protection as a WILD.
+///
+/// The set is deliberately about shop presentation only: rarity, effect,
+/// score, price and permanent discovery rules remain unchanged.
+const Set<String> highImpactShopJokerIds = <String>{
+  'rarity_hunter',
+  'flushfund',
+  'rule_breaker',
+  'danger_music',
+  'purist',
+  'survivor',
+  'ensemble',
+};
+
+bool isHighImpactShopJoker(JokerDefinition joker) =>
+    highImpactShopJokerIds.contains(joker.id);
+
+bool isPremiumShopOffer(JokerDefinition joker) =>
+    joker.rarity == JokerRarity.wild || isHighImpactShopJoker(joker);
+
+bool jokerShopEligibleAtStage(
+  JokerDefinition joker, {
+  required int stage,
+  int wildMinimumStage = wildShopMinimumHeat,
+}) =>
+    (joker.rarity != JokerRarity.wild || stage >= wildMinimumStage) &&
+    (!isHighImpactShopJoker(joker) || stage >= highImpactShopMinimumHeat);
+
+double jokerShopOfferWeight(JokerDefinition joker) =>
+    shopRarityWeights[joker.rarity]! *
+    (isHighImpactShopJoker(joker) ? highImpactShopWeightMultiplier : 1);
+
+/// Draws weighted, duplicate-free Joker offers and caps the combined
+/// high-impact/WILD group at one.
+///
+/// Callers remain responsible for applying account-discovery and progression
+/// gates before passing [eligiblePool]. Injecting the random stream preserves
+/// each mode's deterministic RNG ownership.
+List<JokerDefinition> rollWeightedJokerOffers(
+  Iterable<JokerDefinition> eligiblePool, {
+  required int count,
+  required double Function() nextDouble,
+}) {
+  final pool = List<JokerDefinition>.from(eligiblePool);
+  final offers = <JokerDefinition>[];
+  while (offers.length < count && pool.isNotEmpty) {
+    final totalWeight = pool.fold<double>(
+      0,
+      (total, joker) => total + jokerShopOfferWeight(joker),
+    );
+    var roll = nextDouble().clamp(0.0, 0.9999999999999999) * totalWeight;
+    var chosenIndex = pool.length - 1;
+    for (var index = 0; index < pool.length; index++) {
+      roll -= jokerShopOfferWeight(pool[index]);
+      if (roll <= 0) {
+        chosenIndex = index;
+        break;
+      }
+    }
+    final chosen = pool.removeAt(chosenIndex);
+    offers.add(chosen);
+    if (isPremiumShopOffer(chosen)) {
+      pool.removeWhere(isPremiumShopOffer);
+    }
+  }
+  return offers;
+}
 
 int starterJokerPrice(JokerDefinition joker) =>
     joker.effect == JokerEffect.devTwentyX
-    ? 0 // owner test Joker is free to start with
+    ? 0
     : switch (joker.rarity) {
         JokerRarity.common => 6,
         JokerRarity.uncommon => 10,
@@ -195,22 +269,45 @@ class JokerChestDefinition {
     required this.tier,
     required this.basePrice,
     required this.rarityWeights,
+    required this.fallbackOrder,
   });
 
   final JokerChestTier tier;
   final int basePrice;
   final Map<JokerRarity, double> rarityWeights;
+  final Map<JokerRarity, List<JokerRarity>> fallbackOrder;
 
-  int price(int unlockedCount) =>
-      tier == JokerChestTier.wood && unlockedCount < 15 ? 60 : basePrice;
+  /// Kept as a method so old UI call sites remain source-compatible. Vault
+  /// prices no longer change with collection size.
+  int price([int unlockedCount = 0]) => basePrice;
 
+  /// Returns the exact live odds used by [roll].
+  ///
+  /// Each configured rarity's probability flows to the first available rarity
+  /// in its documented fallback list when that tier is exhausted. This makes
+  /// duplicate protection deterministic and keeps the disclosed odds truthful
+  /// for partially completed collections.
   Map<JokerRarity, double> effectiveOdds(Iterable<JokerDefinition> pool) {
     final available = pool.map((joker) => joker.rarity).toSet();
-    final active = <JokerRarity, double>{
-      for (final entry in rarityWeights.entries)
-        if (entry.value > 0 && available.contains(entry.key))
-          entry.key: entry.value,
-    };
+    final active = <JokerRarity, double>{};
+    for (final entry in rarityWeights.entries) {
+      if (entry.value <= 0) continue;
+      final destinations = <JokerRarity>[
+        entry.key,
+        ...fallbackOrder[entry.key] ?? const <JokerRarity>[],
+      ];
+      JokerRarity? destination;
+      for (final candidate in destinations) {
+        if (available.contains(candidate) &&
+            (rarityWeights[candidate] ?? 0) > 0) {
+          destination = candidate;
+          break;
+        }
+      }
+      if (destination != null) {
+        active[destination] = (active[destination] ?? 0) + entry.value;
+      }
+    }
     final total = active.values.fold<double>(0, (a, b) => a + b);
     if (total <= 0) return const <JokerRarity, double>{};
     return <JokerRarity, double>{
@@ -243,48 +340,71 @@ class JokerChestDefinition {
   }
 }
 
-const Map<JokerChestTier, JokerChestDefinition> jokerChests =
-    <JokerChestTier, JokerChestDefinition>{
-      JokerChestTier.wood: JokerChestDefinition(
-        tier: JokerChestTier.wood,
-        basePrice: 100,
-        rarityWeights: <JokerRarity, double>{
-          JokerRarity.common: 0.70,
-          JokerRarity.uncommon: 0.26,
-          JokerRarity.rare: 0.04,
-          JokerRarity.wild: 0,
-        },
-      ),
-      JokerChestTier.gold: JokerChestDefinition(
-        tier: JokerChestTier.gold,
-        basePrice: 300,
-        rarityWeights: <JokerRarity, double>{
-          JokerRarity.common: 0,
-          JokerRarity.uncommon: 0.50,
-          JokerRarity.rare: 0.42,
-          JokerRarity.wild: 0.08,
-        },
-      ),
-    };
+const Map<JokerChestTier, JokerChestDefinition>
+jokerChests = <JokerChestTier, JokerChestDefinition>{
+  JokerChestTier.wood: JokerChestDefinition(
+    tier: JokerChestTier.wood,
+    basePrice: 200,
+    rarityWeights: <JokerRarity, double>{
+      JokerRarity.common: 0.70,
+      JokerRarity.uncommon: 0.27,
+      JokerRarity.rare: 0.03,
+      JokerRarity.wild: 0,
+    },
+    fallbackOrder: <JokerRarity, List<JokerRarity>>{
+      JokerRarity.common: <JokerRarity>[JokerRarity.uncommon, JokerRarity.rare],
+      JokerRarity.uncommon: <JokerRarity>[JokerRarity.common, JokerRarity.rare],
+      JokerRarity.rare: <JokerRarity>[JokerRarity.uncommon, JokerRarity.common],
+    },
+  ),
+  JokerChestTier.gold: JokerChestDefinition(
+    tier: JokerChestTier.gold,
+    basePrice: 350,
+    rarityWeights: <JokerRarity, double>{
+      JokerRarity.common: 0,
+      JokerRarity.uncommon: 0.52,
+      JokerRarity.rare: 0.44,
+      JokerRarity.wild: 0.04,
+    },
+    fallbackOrder: <JokerRarity, List<JokerRarity>>{
+      JokerRarity.uncommon: <JokerRarity>[JokerRarity.rare, JokerRarity.wild],
+      JokerRarity.rare: <JokerRarity>[JokerRarity.uncommon, JokerRarity.wild],
+      JokerRarity.wild: <JokerRarity>[JokerRarity.rare, JokerRarity.uncommon],
+    },
+  ),
+};
 
 const int stakeUnlockHeat = 5;
 const int stakeMinimum = 10;
 const int stakeStep = 10;
 const int stakeHardMaximum = 200;
+
+/// Gross coins returned per 100 staked after each completed Heat.
+///
+/// The curve deliberately protects both ends of the contract:
+///
+/// * Heats 1-8 refund more of an early/mid loss, so the feature is not a
+///   new-player coin trap once it unlocks.
+/// * Heats 9-12 rise by 45 points in total rather than the previous 85, which
+///   limits repeated late-progression farming.
+/// * Heat 12 retains a clear 150 return so winning still feels materially
+///   different from narrowly missing the finish.
+///
+/// Difficulty-specific risk is applied by [RunDifficulty.stakeMultiplier].
 const List<int> stakePayoutPerHundred = <int>[
   0,
-  5,
-  10,
-  18,
-  28,
-  40,
+  20,
+  35,
+  45,
   55,
-  72,
+  70,
+  82,
   92,
+  100,
+  105,
+  110,
   115,
-  140,
-  170,
-  200,
+  150,
 ];
 const List<int> gauntletStakePayoutPerHundred = <int>[
   0,

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:wildcard/domain/joker_catalog.dart';
 
 const int _expectedPublicJokerCount = 102;
-const String _devJokerId = 'devx20';
 
 const Map<JokerRarity, PriceBand> _runShopBands = <JokerRarity, PriceBand>{
   JokerRarity.common: PriceBand(4, 6),
@@ -273,9 +272,6 @@ _PriceUpdatePlan _buildPricePlan(_CatalogueSource catalogue) {
 }
 
 void _verifyAppliedPlan(_CatalogueSource original, _CatalogueSource updated) {
-  if (original.devDefinition.sourceText != updated.devDefinition.sourceText) {
-    throw StateError('Owner-only DEV ×20 definition would be modified.');
-  }
   if (_redactPublicPrices(original) != _redactPublicPrices(updated)) {
     throw StateError('Planned update changes content beyond public prices.');
   }
@@ -353,7 +349,6 @@ void _printResult({
         'mode': options.mode.name,
         'catalog': options.catalog,
         'sourceGuardsPassed': true,
-        'devX20': 'unchanged',
         'applied': applied,
         'backup': backupPath,
         'plannedChangeCount': plan.changes.length,
@@ -374,7 +369,6 @@ void _printResult({
   stdout.writeln('Guarded public definitions: $_expectedPublicJokerCount');
   stdout.writeln('Planned public price edits: ${plan.changes.length}');
   stdout.writeln('Source-only-price guard: PASS');
-  stdout.writeln('DEV ×20: UNCHANGED');
   if (applied) {
     stdout.writeln('Backup: $backupPath');
     stdout.writeln('Post-apply price bands: PASS');
@@ -442,8 +436,8 @@ Options:
 
 With no arguments, the tool defaults to the read-only --check mode.
 --apply changes only public JokerDefinition price fields to the nearest
-rarity-band value. It validates exactly 102 public definitions, verifies
-DEV ×20 is untouched, and writes a verified backup before replacing source.
+rarity-band value. It validates exactly 102 public definitions and writes a
+verified backup before replacing source.
 ''');
 }
 
@@ -490,15 +484,6 @@ class JokerDefinition {}
 const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
 ${blocks.join('\n')}
 ];
-const JokerDefinition devTwentyXJoker = JokerDefinition(
-  id: 'devx20',
-  name: 'DEV ×20',
-  rarity: JokerRarity.wild,
-  description: 'Owner-only.',
-  price: 0,
-  unlock: 0,
-  effect: JokerEffect.devTwentyX,
-);
 ''';
   final catalogue = _CatalogueSource.parse(source);
   final plan = _buildPricePlan(catalogue);
@@ -506,22 +491,10 @@ const JokerDefinition devTwentyXJoker = JokerDefinition(
     plan.changes.length == expectedChanges,
     'expected price change count',
   );
-  _expect(
-    plan.updatedSource.contains("id: 'devx20'") &&
-        plan.updatedSource.contains('price: 0'),
-    'DEV definition remains intact',
-  );
   _expectFailure(
     () => _CatalogueSource.parse(source.replaceFirst(blocks.last, '')),
     'exact public count',
   );
-  _expectFailure(
-    () => _CatalogueSource.parse(
-      source.replaceFirst("id: 'devx20'", "id: 'wrong-dev'"),
-    ),
-    'DEV identity',
-  );
-
   final temporaryRoot = Directory.systemTemp.createTempSync(
     'wildcard_price_audit_',
   );
@@ -654,7 +627,6 @@ class _CatalogueSource {
   const _CatalogueSource({
     required this.source,
     required this.publicDefinitions,
-    required this.devDefinition,
   });
 
   factory _CatalogueSource.parse(String source) {
@@ -689,40 +661,11 @@ class _CatalogueSource {
         'duplicates=${sortedDuplicates.join(',')}.',
       );
     }
-    if (ids.contains(_devJokerId)) {
-      throw StateError('Owner-only $_devJokerId appears in jokerCatalog.');
-    }
-
-    const devMarker = 'const JokerDefinition devTwentyXJoker = JokerDefinition';
-    final devStart = source.indexOf(devMarker, listClose);
-    if (devStart < 0 ||
-        source.indexOf(devMarker, devStart + devMarker.length) >= 0) {
-      throw StateError('Expected exactly one DEV ×20 definition.');
-    }
-    final devOpen = source.indexOf('(', devStart + devMarker.length);
-    if (devOpen < 0) throw StateError('DEV ×20 definition has no body.');
-    final devClose = _matchingDelimiter(source, devOpen, '(', ')');
-    final devDefinition = _parseDefinition(source, devStart, devClose + 1);
-    if (devDefinition.id != _devJokerId ||
-        devDefinition.rarity != JokerRarity.wild ||
-        devDefinition.price != 0) {
-      throw StateError(
-        'DEV ×20 identity changed: id=${devDefinition.id}, '
-        'rarity=${devDefinition.rarity.name}, '
-        'price=${devDefinition.price}.',
-      );
-    }
-
-    return _CatalogueSource(
-      source: source,
-      publicDefinitions: definitions,
-      devDefinition: devDefinition,
-    );
+    return _CatalogueSource(source: source, publicDefinitions: definitions);
   }
 
   final String source;
   final List<_JokerSourceDefinition> publicDefinitions;
-  final _JokerSourceDefinition devDefinition;
 }
 
 List<_JokerSourceDefinition> _parseDefinitions(

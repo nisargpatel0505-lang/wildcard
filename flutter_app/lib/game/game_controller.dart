@@ -51,11 +51,16 @@ class GameController extends ChangeNotifier {
         .toSet()
         .take(maxJokers)
         .toList();
+    String? acceptedStartBoostId;
     if (config.startBoostJokerId case final id?) {
       if (jokersById.containsKey(id) &&
+          (config.unlockedJokerIds.contains(id) ||
+              (devJokerAvailable &&
+                  jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
           !initialJokers.contains(id) &&
           initialJokers.length < maxJokers) {
         initialJokers.add(id);
+        acceptedStartBoostId = id;
       }
     }
     final effectiveSeed = config.mode == RunMode.daily
@@ -77,13 +82,13 @@ class GameController extends ChangeNotifier {
       state: state,
       runId: runId,
       callbacks: callbacks,
-      unlockedJokerIds: config.mode == RunMode.daily
-          ? jokersById.keys.toSet()
-          : config.unlockedJokerIds,
+      unlockedJokerIds: config.unlockedJokerIds,
       pace: config.scoringPace,
       dailyDate: config.dailyDate,
-      startBoostJoker: config.startBoostJokerId,
-      startBoostCost: math.max(0, config.startBoostCost),
+      startBoostJoker: acceptedStartBoostId,
+      startBoostCost: acceptedStartBoostId == null
+          ? 0
+          : math.max(0, config.startBoostCost),
       stake: math.max(0, config.stake),
       guidedFirstRun: config.guidedFirstRun,
       legacyBase: const <String, Object?>{},
@@ -125,9 +130,7 @@ class GameController extends ChangeNotifier {
       state: state,
       runId: _string(raw['runId'], fallback: _newRunId(state.rngSeed)),
       callbacks: callbacks,
-      unlockedJokerIds: state.mode == RunMode.daily
-          ? jokersById.keys.toSet()
-          : unlockedJokerIds,
+      unlockedJokerIds: unlockedJokerIds,
       pace: pace,
       dailyDate: _string(raw['dailyDate']),
       startBoostJoker: _nullableString(raw['startBoostJoker']),
@@ -493,6 +496,15 @@ class GameController extends ChangeNotifier {
       return const GameActionResult.failure('That Joker is not on offer.');
     }
     final joker = jokerOffers[offerIndex];
+    if (!unlockedJokerIds.contains(joker.id) &&
+        !(devJokerAvailable && joker.effect == JokerEffect.devTwentyX)) {
+      jokerOffers.removeAt(offerIndex);
+      await _save(RunCheckpoint.shopChanged);
+      notifyListeners();
+      return const GameActionResult.failure(
+        'Discover that Joker through a Joker Vault first.',
+      );
+    }
     final price = joker.price + (inflationForShop ? 2 : 0);
     var refund = 0;
     JokerDefinition? replaced;
@@ -883,34 +895,25 @@ class GameController extends ChangeNotifier {
           .floor();
       final chosen = wildPool[index];
       result.add(chosen);
-      pool.remove(chosen);
+      pool.removeWhere(isPremiumShopOffer);
     }
-    while (result.length < count && pool.isNotEmpty) {
-      final totalWeight = pool.fold<double>(
-        0,
-        (total, joker) => total + shopRarityWeights[joker.rarity]!,
-      );
-      var roll = state.nextRandom(RandomStream.shop) * totalWeight;
-      var chosenIndex = pool.length - 1;
-      for (var index = 0; index < pool.length; index++) {
-        roll -= shopRarityWeights[pool[index].rarity]!;
-        if (roll <= 0) {
-          chosenIndex = index;
-          break;
-        }
-      }
-      result.add(pool.removeAt(chosenIndex));
-    }
+    result.addAll(
+      rollWeightedJokerOffers(
+        pool,
+        count: count - result.length,
+        nextDouble: () => state.nextRandom(RandomStream.shop),
+      ),
+    );
     jokerOffers
       ..clear()
       ..addAll(result);
     lastWildPityForced = forceWild;
-    if (countForPity) {
-      if (result.any((joker) => joker.rarity == JokerRarity.wild)) {
-        wildMissShops = 0;
-      } else if (wildPool.isNotEmpty) {
-        wildMissShops = math.min(wildPityAfterShops, wildMissShops + 1);
-      }
+    if (result.any((joker) => joker.rarity == JokerRarity.wild)) {
+      // Seeing a WILD on a reroll may reset pity, but reroll misses never
+      // advance it. This prevents buying rerolls from inflating WILD odds.
+      wildMissShops = 0;
+    } else if (countForPity && wildPool.isNotEmpty) {
+      wildMissShops = math.min(wildPityAfterShops, wildMissShops + 1);
     }
   }
 
@@ -920,7 +923,9 @@ class GameController extends ChangeNotifier {
         .where(
           (joker) =>
               !equipped.contains(joker.id) &&
-              (state.isDaily || unlockedJokerIds.contains(joker.id)),
+              unlockedJokerIds.contains(joker.id) &&
+              jokerShopEligibleAtStage(joker, stage: state.stage) &&
+              (!guidedFirstRun || !isPremiumShopOffer(joker)),
         )
         .toList(growable: true);
   }
@@ -1141,6 +1146,7 @@ class GameController extends ChangeNotifier {
             .where((card) => card.enhancement != null)
             .length,
         glassDouble: glassDouble,
+        enteredEndless: state.endless,
       ),
     );
     if (!resultSaved) {
@@ -1361,7 +1367,7 @@ class GameController extends ChangeNotifier {
     totalScore = _integer(raw['totalScore']);
     accountEarned = _integer(raw['accountEarned']);
     shopBuysUsed = _integer(raw['shopBuysUsed']);
-    wildMissShops = _integer(raw['wildMissShops']);
+    wildMissShops = _integer(raw['wildMissShops']).clamp(0, wildPityAfterShops);
     boostsBought = _integer(raw['boostsBought']);
     bestPlay = _integer(raw['bestPlay']);
     bestPlayType = _parseHandType(raw['bestPlayType']);
@@ -1399,22 +1405,57 @@ class GameController extends ChangeNotifier {
       if (jokersById.containsKey(key)) jokerScore[key] = value;
     });
     if (phase == RunPhase.shop) {
-      jokerOffers.addAll(
-        _stringList(
-          raw['shopOfferIds'],
-        ).map((id) => jokersById[id]).whereType(),
+      final maximumOffers = shopOfferCount(
+        stage: state.stage,
+        endless: state.endless,
+        gauntlet: state.isGauntlet,
       );
+      final seenRestoredIds = <String>{};
+      var restoredPremium = false;
+      for (final id in _stringList(raw['shopOfferIds'])) {
+        if (jokerOffers.length >= maximumOffers || !seenRestoredIds.add(id)) {
+          continue;
+        }
+        final joker = jokersById[id];
+        if (joker == null ||
+            !unlockedJokerIds.contains(joker.id) ||
+            !jokerShopEligibleAtStage(joker, stage: state.stage) ||
+            (guidedFirstRun && isPremiumShopOffer(joker)) ||
+            (restoredPremium && isPremiumShopOffer(joker))) {
+          continue;
+        }
+        jokerOffers.add(joker);
+        if (isPremiumShopOffer(joker)) restoredPremium = true;
+      }
       supplyOffers.addAll(
         _stringList(raw['supplyOfferIds'])
             .map(_parseSupplyId)
             .whereType<SupplyId>()
             .map((id) => supplyCatalog.firstWhere((supply) => supply.id == id)),
       );
-      // Old saves can be missing shop shelves. Deterministically replenish only
-      // when there truly is no serialized offer.
-      if (raw['shopOfferIds'] == null && jokerOffers.isEmpty) {
-        _rollJokerOffers(countForPity: false);
+      // Old shelves may be missing, over-full, or contain Jokers now blocked
+      // by discovery/premium gates. Preserve every still-valid offer, then
+      // replenish deterministically without advancing the WILD pity counter.
+      if (jokerOffers.length < maximumOffers) {
+        final pool = _availableJokerPool()
+          ..removeWhere(
+            (joker) => jokerOffers.any((offer) => offer.id == joker.id),
+          );
+        if (restoredPremium) pool.removeWhere(isPremiumShopOffer);
+        jokerOffers.addAll(
+          rollWeightedJokerOffers(
+            pool,
+            count: maximumOffers - jokerOffers.length,
+            nextDouble: () => state.nextRandom(RandomStream.shop),
+          ),
+        );
       }
+      if (jokerOffers.any((joker) => joker.rarity == JokerRarity.wild)) {
+        wildMissShops = 0;
+      }
+      lastWildPityForced =
+          lastWildPityForced &&
+          jokerOffers.any((joker) => joker.rarity == JokerRarity.wild);
       if (raw['supplyOfferIds'] == null && supplyOffers.isEmpty) {
         _rollSupplyOffers();
       }

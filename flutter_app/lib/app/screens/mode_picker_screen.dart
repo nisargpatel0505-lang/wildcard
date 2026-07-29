@@ -72,6 +72,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
       title: 'Choose Run',
       subtitle: 'Pick a table, then set your risk.',
       room: WildcardRoom.runSetup,
+      surface: WildcardUiSurface.modePicker,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
         children: [
@@ -229,8 +230,6 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   /// the Joker actually does, and the current pick is previewed underneath.
   Widget _starterPicker() {
     final tokens = context.wildcard;
-    // selectableJokers adds the owner test Joker on non-release builds only;
-    // it is otherwise identical to the public catalogue.
     final unlocked =
         selectableJokers
             .where(

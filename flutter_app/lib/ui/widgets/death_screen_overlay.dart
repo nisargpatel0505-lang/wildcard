@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../wildcard_theme.dart';
+
 /// The WebView's arcade "GAME OVER / RUN TERMINATED" pull-over (`#deathfx`),
 /// rebuilt with more punch.
 ///
@@ -49,6 +51,7 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.wildcard;
     // Each word on its own line, so a long word like TERMINATED can never wrap
     // its last letter onto a fresh line the way it did before.
     final words = (widget.terminated ? 'RUN TERMINATED' : 'GAME OVER').split(
@@ -56,8 +59,16 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
     );
     final sub = widget.terminated ? 'PLAYER FOLDED' : 'RUN TERMINATED';
     final washColors = widget.terminated
-        ? const [Color(0xFF16040C), Color(0xFF641124), Color(0xFF951631)]
-        : const [Color(0xFF2A0410), Color(0xFF8B0D1F), Color(0xFFC31432)];
+        ? [
+            Color.lerp(tokens.ink, tokens.coral, .08)!,
+            Color.lerp(tokens.ink, tokens.coral, .45)!,
+            Color.lerp(tokens.ink, tokens.coral, .68)!,
+          ]
+        : [
+            Color.lerp(tokens.ink, tokens.coral, .16)!,
+            Color.lerp(tokens.ink, tokens.coral, .62)!,
+            tokens.coral,
+          ];
 
     // Wrap in a transparent Material so the Text descendants resolve a proper
     // text style instead of the framework's yellow "no Material" underline.
@@ -105,7 +116,10 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    const ColoredBox(color: Color(0xFF31050C)),
+                    ColoredBox(
+                      key: const ValueKey('wildcard-surface-gameOver'),
+                      color: Color.lerp(tokens.ink, tokens.coral, .24)!,
+                    ),
                     // The red wash, scaling down from the top edge.
                     Align(
                       alignment: Alignment.topCenter,
@@ -119,9 +133,9 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
                               end: Alignment.bottomCenter,
                               colors: washColors,
                             ),
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
-                                color: Color(0x99000000),
+                                color: tokens.shadow,
                                 blurRadius: 140,
                                 spreadRadius: -20,
                               ),
@@ -159,18 +173,20 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
                                           fontSize: widget.terminated ? 62 : 72,
                                           height: 1.02,
                                           letterSpacing: 2,
-                                          color: const Color(0xFFFFE9A8),
-                                          shadows: const [
+                                          color: tokens.gold,
+                                          shadows: [
                                             Shadow(
-                                              color: Color(0xE6FF3C3C),
+                                              color: tokens.coral,
                                               blurRadius: 20,
                                             ),
                                             Shadow(
-                                              color: Color(0xFF7A0812),
-                                              offset: Offset(0, 4),
+                                              color: tokens.ink,
+                                              offset: const Offset(0, 4),
                                             ),
                                             Shadow(
-                                              color: Color(0x8CFF0000),
+                                              color: tokens.coral.withValues(
+                                                alpha: .55,
+                                              ),
                                               blurRadius: 50,
                                             ),
                                           ],
@@ -181,14 +197,18 @@ class _DeathScreenOverlayState extends State<DeathScreenOverlay>
                                   Text(
                                     sub,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'Bungee',
                                       fontSize: 15,
                                       letterSpacing: 4.5,
-                                      color: Color(0xFFFFB3B3),
+                                      color: Color.lerp(
+                                        tokens.coral,
+                                        tokens.cream,
+                                        .58,
+                                      ),
                                       shadows: [
                                         Shadow(
-                                          color: Color(0xB3FF3C3C),
+                                          color: tokens.coral,
                                           blurRadius: 12,
                                         ),
                                       ],

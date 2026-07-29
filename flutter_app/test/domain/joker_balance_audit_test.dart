@@ -25,8 +25,6 @@ void main() {
     expect(first.treatment.skip(1), first.control.skip(1));
     expect(first.treatment.every(publicIds.contains), isTrue);
     expect(first.control.every(publicIds.contains), isTrue);
-    expect(first.treatment, isNot(contains('devx20')));
-    expect(first.control, isNot(contains('devx20')));
   });
 
   test('terminal progress includes the exact failed-Heat fraction', () {
@@ -85,14 +83,7 @@ void main() {
     }
   });
 
-  test('developer and unknown ids cannot enter balance cohorts', () {
-    expect(
-      () => jokerBalanceKitsForSeed(
-        seed: 1,
-        forcedJokers: const <String>['devx20'],
-      ),
-      throwsArgumentError,
-    );
+  test('unknown ids cannot enter balance cohorts', () {
     expect(
       () => jokerBalanceKitsForSeed(
         seed: 1,

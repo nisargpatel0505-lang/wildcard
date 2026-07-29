@@ -7,10 +7,13 @@ import '../../services/haptics_service.dart';
 import '../../services/sfx_service.dart';
 import '../effects_profile.dart';
 import '../wildcard_theme.dart';
+import 'royal_vault_chest_art.dart';
+import 'royal_vault_reward_art.dart';
 import 'wildcard_background.dart';
 import 'wildcard_button.dart';
 
-enum RoyalVaultVisualTier { wooden, golden, cosmetic }
+export 'royal_vault_chest_art.dart' show RoyalVaultVisualTier;
+export 'royal_vault_reward_art.dart' show RoyalVaultRewardArtwork;
 
 /// A compact painted chest used by the Vault catalogue cards. It shares the
 /// opening sequence geometry, so the purchase tile previews the real chest.
@@ -26,64 +29,40 @@ class RoyalVaultChestEmblem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.wildcard;
-    final bodyColor = switch (tier) {
-      RoyalVaultVisualTier.wooden => const Color(0xFF8B4B25),
-      RoyalVaultVisualTier.golden => const Color(0xFF57277A),
-      RoyalVaultVisualTier.cosmetic => const Color(0xFF8B286C),
-    };
     return SizedBox(
       width: width,
-      height: width * .62,
+      height: width * .82,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
           Positioned(
-            left: 4,
-            right: 4,
+            left: width * .03,
+            right: width * .03,
             bottom: 0,
-            height: width * .38,
-            child: CustomPaint(
-              painter: _ChestBasePainter(
-                bodyColor: bodyColor,
-                gold: tokens.gold,
-                gem: tokens.mint,
-              ),
+            height: width * .55,
+            child: RoyalVaultChestLayer(
+              tier: tier,
+              layer: RoyalVaultChestLayerType.body,
+              semanticLabel: 'Royal Vault chest',
             ),
           ),
           Positioned(
-            left: 4,
-            right: 4,
+            left: width * .03,
+            right: width * .03,
             top: 0,
-            height: width * .31,
-            child: CustomPaint(
-              painter: _ChestLidPainter(
-                bodyColor: bodyColor,
-                gold: tokens.gold,
-                gem: tokens.mint,
-              ),
+            height: width * .56,
+            child: RoyalVaultChestLayer(
+              tier: tier,
+              layer: RoyalVaultChestLayerType.lid,
             ),
           ),
           Positioned(
-            bottom: width * .11,
-            child: Container(
-              width: width * .18,
-              height: width * .2,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(7),
-                gradient: LinearGradient(
-                  colors: [const Color(0xFFFFE47B), tokens.gold],
-                ),
-                border: Border.all(color: const Color(0xFFFFEFAE)),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x66000000), offset: Offset(0, 3)),
-                ],
-              ),
-              child: const Icon(
-                Icons.lock_rounded,
-                color: Color(0xFF321607),
-                size: 16,
-              ),
+            bottom: width * .08,
+            width: width * .26,
+            height: width * .31,
+            child: RoyalVaultChestLayer(
+              tier: tier,
+              layer: RoyalVaultChestLayerType.lock,
             ),
           ),
         ],
@@ -100,7 +79,7 @@ class RoyalVaultRewardViewModel {
     required this.rarity,
     required this.rarityColor,
     required this.categoryLabel,
-    required this.icon,
+    required this.artwork,
   });
 
   final String name;
@@ -108,7 +87,7 @@ class RoyalVaultRewardViewModel {
   final String rarity;
   final Color rarityColor;
   final String categoryLabel;
-  final IconData icon;
+  final RoyalVaultRewardArtwork artwork;
 }
 
 /// Displays the complete Royal Vault sequence as a safe-area-aware modal.
@@ -175,6 +154,7 @@ class RoyalVaultAnimation extends StatefulWidget {
     required this.fast,
     required this.onClaim,
     this.durationOverride,
+    this.progressOverride,
     this.sfx,
     this.haptics,
     super.key,
@@ -187,6 +167,11 @@ class RoyalVaultAnimation extends StatefulWidget {
 
   /// Exposed for deterministic widget tests; production uses Normal/Fast time.
   final Duration? durationOverride;
+
+  /// Freezes the native ceremony at one exact phase for deterministic visual
+  /// captures. Production callers must leave this null.
+  @visibleForTesting
+  final double? progressOverride;
 
   /// Optional sound and feel; null in tests and previews.
   final SfxService? sfx;
@@ -223,13 +208,13 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
 
   Duration get _ceremonyDuration {
     final rarity = widget.reward.rarity.toLowerCase();
-    final base = widget.fast ? 2600 : 4200;
+    final base = widget.fast ? 2200 : 4200;
     final extra = rarity.contains('wild')
         ? (widget.fast ? 180 : 320)
         : rarity.contains('rare')
-        ? (widget.fast ? 110 : 180)
+        ? (widget.fast ? 100 : 180)
         : rarity.contains('uncommon')
-        ? (widget.fast ? 60 : 90)
+        ? (widget.fast ? 50 : 90)
         : 0;
     return Duration(milliseconds: base + extra);
   }
@@ -287,6 +272,10 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
             setState(() => _claimEnabled = true);
           }
         });
+    if (widget.progressOverride case final progress?) {
+      _controller.value = progress.clamp(0.0, 1.0);
+      _claimEnabled = progress >= 1;
+    }
     _controller.addListener(_fireCues);
   }
 
@@ -295,9 +284,10 @@ class _RoyalVaultAnimationState extends State<RoyalVaultAnimation>
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
+    if (widget.progressOverride != null) return;
     if (widget.durationOverride == null &&
         MediaQuery.disableAnimationsOf(context)) {
-      _controller.duration = const Duration(milliseconds: 720);
+      _controller.duration = const Duration(milliseconds: 900);
     }
     _controller.forward();
   }
@@ -569,6 +559,15 @@ class _VaultStage extends StatelessWidget {
     final physicalRewardRise = reducedMotion
         ? (rewardRise > 0 ? 1.0 : 0.0)
         : rewardRise;
+    final arrival = reducedMotion ? 1.0 : _interval(0, .12, Curves.easeOutBack);
+    final shakeEnvelope = scan * (1 - physicalUnlock) * (.28 + .72 * scan);
+    final chestShakeX = reducedMotion
+        ? 0.0
+        : math.sin(progress * math.pi * 74) * 3.2 * shakeEnvelope;
+    final chestShakeY = reducedMotion
+        ? 0.0
+        : math.cos(progress * math.pi * 51) * 1.45 * shakeEnvelope;
+    final chestSettleY = (1 - arrival) * 22;
 
     // The chest fights the seal: jitter grows through the charge and a hard
     // decaying kick punctuates the burst.
@@ -578,16 +577,6 @@ class _VaultStage extends StatelessWidget {
       _ => .66,
     };
 
-    final tutorialChest = reward.categoryLabel.toLowerCase().contains(
-      'comeback',
-    );
-    final bodyColor = tutorialChest
-        ? const Color(0xFF176068)
-        : switch (tier) {
-            RoyalVaultVisualTier.wooden => const Color(0xFF8B4B25),
-            RoyalVaultVisualTier.golden => const Color(0xFF57277A),
-            RoyalVaultVisualTier.cosmetic => const Color(0xFF8B286C),
-          };
     final scanTick = (scan * 10.999).floor();
     final locked = progress >= .86;
     final scanLabel = locked ? reward.rarity.toUpperCase() : 'SEARCHING';
@@ -617,12 +606,17 @@ class _VaultStage extends StatelessWidget {
                 sceneWidth * .78,
                 compact ? 224.0 : 286.0,
               );
-              final baseHeight = chestWidth * .36;
-              final lidHeight = chestWidth * .34;
+              final baseHeight = chestWidth * .60;
+              final lidHeight = chestWidth * .61;
               final chestBottom = compact ? 12.0 : 18.0;
               final baseTop = sceneHeight - chestBottom - baseHeight;
-              final lidTop = baseTop - lidHeight + chestWidth * .045;
-              final mouth = Offset(sceneWidth / 2, baseTop + 3);
+              final lidTop = baseTop - lidHeight + chestWidth * .19;
+              final chestDx = chestShakeX;
+              final chestDy = chestSettleY + chestShakeY;
+              final mouth = Offset(
+                sceneWidth / 2 + chestDx,
+                baseTop + 3 + chestDy,
+              );
               final rewardWidth = math.min(
                 sceneWidth * .64,
                 compact ? 185.0 : 210.0,
@@ -761,8 +755,8 @@ class _VaultStage extends StatelessWidget {
                           ),
                         ),
                       Positioned(
-                        left: (sceneWidth - chestWidth * .74) / 2,
-                        top: baseTop - 5,
+                        left: (sceneWidth - chestWidth * .74) / 2 + chestDx,
+                        top: baseTop - 5 + chestDy,
                         width: chestWidth * .74,
                         height: compact ? 14 : 18,
                         child: Opacity(
@@ -788,30 +782,47 @@ class _VaultStage extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (scan > 0 && physicalOpening < 1)
+                        Positioned(
+                          left: sceneWidth / 2 - chestWidth * .17 + chestDx,
+                          top: baseTop - chestWidth * .43 + chestDy,
+                          width: chestWidth * .34,
+                          height: chestWidth * .34,
+                          child: Opacity(
+                            opacity:
+                                ((.18 + .48 * scan) *
+                                        (1 - physicalOpening) *
+                                        effects.glowScale)
+                                    .clamp(0.0, 1.0),
+                            child: Transform.scale(
+                              scale: .82 + .12 * lockPulse + .12 * scan,
+                              child: RoyalVaultChestLayer(
+                                tier: tier,
+                                layer: RoyalVaultChestLayerType.crest,
+                              ),
+                            ),
+                          ),
+                        ),
                       Positioned(
-                        left: (sceneWidth - chestWidth) / 2,
-                        top: lidTop,
+                        left: (sceneWidth - chestWidth) / 2 + chestDx,
+                        top: lidTop + chestDy,
                         width: chestWidth,
                         height: lidHeight,
                         child: Transform(
                           alignment: Alignment.bottomCenter,
                           transform: Matrix4.identity()
                             ..setEntry(3, 2, .0018)
-                            ..rotateX(-physicalOpening * 1.42),
-                          child: CustomPaint(
+                            ..rotateX(-physicalOpening * 1.28),
+                          child: RoyalVaultChestLayer(
                             key: const Key('royal-vault-chest-lid'),
-                            painter: _ChestLidPainter(
-                              bodyColor: bodyColor,
-                              gold: tokens.gold,
-                              gem: scanColor,
-                              opening: physicalOpening,
-                            ),
+                            tier: tier,
+                            layer: RoyalVaultChestLayerType.lid,
                           ),
                         ),
                       ),
                       Positioned(
-                        left: (sceneWidth - chestWidth * .70) / 2,
-                        top: baseTop - (compact ? 5 : 6),
+                        left: (sceneWidth - chestWidth * .70) / 2 + chestDx,
+                        top: baseTop - (compact ? 5 : 6) + chestDy,
                         width: chestWidth * .70,
                         height: compact ? 10 : 12,
                         child: CustomPaint(
@@ -841,38 +852,51 @@ class _VaultStage extends StatelessWidget {
                           ),
                         ),
                       Positioned(
-                        left: (sceneWidth - chestWidth) / 2,
-                        top: baseTop,
+                        left: (sceneWidth - chestWidth) / 2 + chestDx,
+                        top: baseTop + chestDy,
                         width: chestWidth,
                         height: baseHeight,
-                        child: CustomPaint(
+                        child: RoyalVaultChestLayer(
                           key: const Key('royal-vault-chest-base'),
-                          painter: _ChestBasePainter(
-                            bodyColor: bodyColor,
-                            gold: tokens.gold,
-                            gem: scanColor,
-                          ),
+                          tier: tier,
+                          layer: RoyalVaultChestLayerType.body,
                         ),
                       ),
                       Positioned(
                         key: const Key('royal-vault-lock'),
-                        left: sceneWidth / 2 - (compact ? 22 : 27),
+                        left: sceneWidth / 2 - (compact ? 27 : 34) + chestDx,
                         top:
                             baseTop +
-                            baseHeight * .04 +
-                            (compact ? 11 : 15) * physicalUnlock,
-                        width: compact ? 44 : 54,
-                        height: compact ? 54 : 65,
+                            chestDy +
+                            baseHeight * .01 +
+                            (compact ? 15 : 21) * physicalUnlock,
+                        width: compact ? 54 : 68,
+                        height: compact ? 66 : 83,
                         child: Transform.rotate(
-                          angle: reducedMotion ? 0 : physicalUnlock * .13,
+                          angle: reducedMotion ? 0 : physicalUnlock * .16,
                           child: Opacity(
-                            opacity: 1 - .34 * physicalUnlock,
-                            child: _AnimatedLock(
-                              pulse:
-                                  lockPulse *
-                                  (.42 + .24 * anticipation + .34 * scan),
-                              color: tokens.gold,
-                              unlocked: physicalUnlock,
+                            opacity: 1 - .58 * physicalUnlock,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: scanColor.withValues(
+                                      alpha:
+                                          .12 +
+                                          .28 *
+                                              lockPulse *
+                                              (.42 +
+                                                  .24 * anticipation +
+                                                  .34 * scan),
+                                    ),
+                                    blurRadius: 10 + 8 * lockPulse,
+                                  ),
+                                ],
+                              ),
+                              child: RoyalVaultChestLayer(
+                                tier: tier,
+                                layer: RoyalVaultChestLayerType.lock,
+                              ),
                             ),
                           ),
                         ),
@@ -900,6 +924,8 @@ class _VaultStage extends StatelessWidget {
   }
 }
 
+// Kept as a code-native fallback reference for asset recovery builds.
+// ignore: unused_element
 class _AnimatedLock extends StatelessWidget {
   const _AnimatedLock({
     required this.pulse,
@@ -1125,38 +1151,37 @@ class _RewardToken extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: displayColor,
-                          fontFamily: 'Bungee',
-                          fontSize: 6.5,
+                          fontFamily: 'SpaceGrotesk',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
                           letterSpacing: .8,
                         ),
                       ),
                     ),
                   ),
                   const Spacer(),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: displayColor.withValues(alpha: .14),
-                      border: Border.all(
-                        color: displayColor.withValues(alpha: .55),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: displayColor.withValues(
-                            alpha: .18 + .25 * glow,
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: revealed
+                        ? RoyalVaultRewardArtworkView(
+                            artwork: reward.artwork,
+                            accent: displayColor,
+                          )
+                        : DecoratedBox(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: displayColor.withValues(alpha: .14),
+                              border: Border.all(
+                                color: displayColor.withValues(alpha: .55),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.question_mark_rounded,
+                              color: Color(0xFFFFF0C2),
+                              size: 30,
+                            ),
                           ),
-                          blurRadius: 12 + 9 * glow,
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        revealed ? reward.icon : Icons.question_mark_rounded,
-                        color: const Color(0xFFFFF0C2),
-                        size: 32,
-                      ),
-                    ),
                   ),
                   const Spacer(),
                   if (revealed)
@@ -1177,8 +1202,9 @@ class _RewardToken extends StatelessWidget {
                       'IDENTIFYING\u2026',
                       style: TextStyle(
                         color: displayColor.withValues(alpha: .74),
-                        fontFamily: 'Bungee',
-                        fontSize: 8,
+                        fontFamily: 'SpaceGrotesk',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
                         letterSpacing: .6,
                       ),
                     ),
@@ -1349,6 +1375,8 @@ class _RewardDetails extends StatelessWidget {
   );
 }
 
+// Kept as a code-native fallback reference for asset recovery builds.
+// ignore: unused_element
 class _ChestBasePainter extends CustomPainter {
   const _ChestBasePainter({
     required this.bodyColor,
@@ -1474,11 +1502,14 @@ class _ChestBasePainter extends CustomPainter {
       oldDelegate.gem != gem;
 }
 
+// Kept as a code-native fallback reference for asset recovery builds.
+// ignore: unused_element
 class _ChestLidPainter extends CustomPainter {
   const _ChestLidPainter({
     required this.bodyColor,
     required this.gold,
     required this.gem,
+    // ignore: unused_element_parameter
     this.opening = 0,
   });
 

@@ -141,6 +141,7 @@ class AccountState {
     this.dailyStreak = 0,
     Map<String, Object?>? achievements,
     Map<String, Object?>? achievementClaimed,
+    Map<String, int>? progressCounters,
     this.adDate = '',
     this.adViews = 0,
     Set<String>? cosmeticsOwned,
@@ -166,6 +167,7 @@ class AccountState {
        topRuns = topRuns ?? <TopRunRecord>[],
        achievements = achievements ?? <String, Object?>{},
        achievementClaimed = achievementClaimed ?? <String, Object?>{},
+       progressCounters = progressCounters ?? <String, int>{},
        cosmeticsOwned = cosmeticsOwned ?? <String>{},
        missionStats = missionStats ?? <String, int>{},
        missionClaimed = missionClaimed ?? <String, bool>{},
@@ -213,6 +215,7 @@ class AccountState {
       'dailyStreak',
       'achievements',
       'achievementClaimed',
+      'progressCounters',
       'adDate',
       'adViews',
       'cosmeticsOwned',
@@ -266,6 +269,7 @@ class AccountState {
       achievementClaimed: claimedSource is Map
           ? _objectMap(claimedSource)
           : <String, Object?>{for (final key in achievements.keys) key: 1},
+      progressCounters: _nonNegativeIntMap(json['progressCounters']),
       adDate: json['adDate']?.toString() ?? '',
       adViews: _clampInt(json['adViews'], max: 9999),
       cosmeticsOwned: _strings(json['cosmeticsOwned']).toSet(),
@@ -274,7 +278,7 @@ class AccountState {
       missionWeek: json['missionWeek']?.toString() ?? '',
       missionStats: _nonNegativeIntMap(json['missionStats']),
       missionClaimed: _boolMap(json['missionClaimed']),
-      missionSet: _strings(json['missionSet']).take(3).toList(),
+      missionSet: _strings(json['missionSet']).take(5).toList(),
       missionRotation: _clampInt(json['missionRotation'], max: 9999),
       missionRefreshDate: json['missionRefreshDate'] is String
           ? json['missionRefreshDate']! as String
@@ -316,6 +320,7 @@ class AccountState {
   int dailyStreak;
   final Map<String, Object?> achievements;
   final Map<String, Object?> achievementClaimed;
+  final Map<String, int> progressCounters;
   String adDate;
   int adViews;
   final Set<String> cosmeticsOwned;
@@ -360,6 +365,7 @@ class AccountState {
         'dailyStreak': dailyStreak,
         'achievements': achievements,
         'achievementClaimed': achievementClaimed,
+        'progressCounters': progressCounters,
         'adDate': adDate,
         'adViews': adViews,
         'cosmeticsOwned': cosmeticsOwned.toList(),

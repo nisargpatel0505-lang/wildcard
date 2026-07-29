@@ -36,6 +36,7 @@ const Set<String> legacyAccountSaveFields = <String>{
   'dailyStreak',
   'achievements',
   'achievementClaimed',
+  'progressCounters',
   'adDate',
   'adViews',
   'cosmeticsOwned',
@@ -235,9 +236,9 @@ class LegacyRunSave {
       discardsLeft: _int(raw['discardsLeft'], fallback: discardsPerHeat),
       handsPlayedThisStage: _int(raw['handsPlayedThisStage']),
       runCoins: _int(raw['runCoins']),
-      jokerIds: _strings(raw['jokerIds'])
-          .where((id) => id != devTwentyXJoker.id || devJokerAvailable)
-          .toList(growable: false),
+      jokerIds: _strings(
+        raw['jokerIds'],
+      ).where(jokersById.containsKey).toList(growable: false),
       blockedJokerIds: _strings(raw['bossBlockedJokerIds']).toSet(),
       jokerState: jokerState,
       cards: sculptedDeck,

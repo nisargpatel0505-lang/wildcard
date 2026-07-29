@@ -16,6 +16,7 @@ import '../../domain/sly_quips.dart';
 import '../../game/game_controller.dart';
 import '../../game/game_models.dart';
 import '../../game/scoring_timeline.dart';
+import '../../services/forced_ad_policy.dart';
 import '../../services/haptics_service.dart';
 import '../../services/sfx_service.dart';
 import '../../ui/widgets/death_screen_overlay.dart';
@@ -351,24 +352,25 @@ class _GameHostScreenState extends State<GameHostScreen> {
     final result = presentation.result!;
     final target = math.max(1, game.state.target);
     final total = result.total;
+    final palette = context.wildcard;
     String? word;
     Color? color;
     String chord;
     if (total >= target) {
       word = 'WILD!';
-      color = const Color(0xFFF7C548);
+      color = palette.gold;
       chord = 'callout_wild';
     } else if (total >= target * 0.6) {
       word = 'MEGA!';
-      color = const Color(0xFFB794FF);
+      color = palette.rare;
       chord = 'callout_mega';
     } else if (total >= target * 0.35) {
       word = 'GREAT!';
-      color = const Color(0xFF45E0C6);
+      color = palette.mint;
       chord = 'callout_great';
     } else if (total >= target * 0.2) {
       word = 'NICE!';
-      color = const Color(0xFF9B7BFF);
+      color = palette.violet;
       chord = 'callout_nice';
     } else {
       chord = 'hand_total';
@@ -531,7 +533,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       ),
     );
     if (!mounted) return;
-    await widget.appController.ads.showInterstitial();
+    await _showTerminalAdOnce();
   }
 
   /// Plays the arcade death pull-over as a fullscreen route, then shows the ad.
@@ -560,10 +562,25 @@ class _GameHostScreenState extends State<GameHostScreen> {
   Future<void> _showTerminalAdOnce() async {
     if (_terminalAdAttempted || !mounted) return;
     _terminalAdAttempted = true;
-    if (game.endReason == RunEndReason.abandoned ||
-        game.endReason == RunEndReason.defeated) {
-      await widget.appController.ads.showInterstitial();
-    }
+    final finishedRuns = widget.appController.account.stats.runs;
+    final firstRun =
+        game.guidedFirstRun ||
+        (game.phase == RunPhase.victory
+            ? finishedRuns == 0
+            : finishedRuns <= 1);
+    await widget.appController.ads.showTerminalInterstitial(
+      TerminalInterstitialContext(
+        runId: game.runId,
+        isTutorial: game.guidedFirstRun,
+        isFirstRun: firstRun,
+        abandoned: game.endReason == RunEndReason.abandoned,
+        handsPlayed: game.handTypeCounts.values.fold<int>(
+          0,
+          (sum, count) => sum + count,
+        ),
+        stagesCleared: game.state.stagesCleared,
+      ),
+    );
   }
 
   @override
@@ -600,7 +617,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
                 child: _CalloutStamp(
                   key: ValueKey('callout-$_calloutSeq'),
                   word: _calloutWord!,
-                  color: _calloutColor ?? const Color(0xFFF7C548),
+                  color: _calloutColor ?? context.wildcard.gold,
                 ),
               ),
             );
@@ -781,6 +798,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       title: 'ONE MORE PLAY?',
       subtitle: 'Sly has one last deal for this Heat.',
       icon: Icons.favorite_outline_rounded,
+      surface: WildcardUiSurface.adBreak,
       children: [
         _StatRow(
           'Heat ${game.state.stage} score',
@@ -791,9 +809,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
         const _StatRow('Leaderboard', 'Revived runs stay local'),
         const SizedBox(height: 18),
         WildcardButton(
-          label: widget.appController.effectiveNoAds
-              ? 'Use Ad-Free Revive'
-              : 'Watch Ad · +1 Play',
+          label: 'Watch Ad · +1 Play',
           icon: const Icon(Icons.ondemand_video_rounded),
           onPressed: _revive,
           variant: WildcardButtonVariant.primary,
@@ -894,8 +910,6 @@ class _GameHostScreenState extends State<GameHostScreen> {
           WildcardButton(
             label: doubleClaimed
                 ? 'Run Coins Doubled · +$doubleBase'
-                : widget.appController.effectiveNoAds
-                ? 'Claim Ad-Free Double · +$doubleBase'
                 : 'Watch Ad · Double +$doubleBase',
             icon: Icon(
               doubleClaimed
@@ -942,14 +956,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
   }
 
   Future<void> _revive() async {
-    if (!widget.appController.effectiveNoAds) {
-      final reward = await widget.appController.ads.showRewarded();
-      if (reward == null) {
-        if (mounted) {
-          _message('Rewarded ad is not ready. Your revive is still safe.');
-        }
-        return;
+    final reward = await widget.appController.ads.showRewarded();
+    if (reward == null) {
+      if (mounted) {
+        _message('Rewarded ad is not ready. Your revive is still safe.');
       }
+      return;
     }
     await _act(game.acceptRevive());
   }
@@ -1001,7 +1013,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
           rarity: reward.rarity.name.toUpperCase(),
           rarityColor: rarityColor,
           categoryLabel: 'COMEBACK JOKER UNLOCKED',
-          icon: Icons.style_rounded,
+          artwork: RoyalVaultRewardArtwork.forJoker(reward),
         ),
         fast: widget.appController.account.speed == ScoringPace.fast,
       );
@@ -1217,6 +1229,7 @@ class _PhaseScaffold extends StatelessWidget {
     required this.children,
     this.danger = false,
     this.celebration = false,
+    this.surface = WildcardUiSurface.results,
   });
 
   final String title;
@@ -1225,10 +1238,12 @@ class _PhaseScaffold extends StatelessWidget {
   final List<Widget> children;
   final bool danger;
   final bool celebration;
+  final WildcardUiSurface surface;
 
   @override
   Widget build(BuildContext context) {
-    final accent = danger ? context.wildcard.coral : context.wildcard.gold;
+    final tokens = context.wildcard;
+    final accent = danger ? tokens.coral : tokens.gold;
     final content = SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 34, 18, 28),
@@ -1239,15 +1254,17 @@ class _PhaseScaffold extends StatelessWidget {
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: danger ? const Color(0xFFFFE3DE) : accent,
+              color: danger
+                  ? Color.lerp(tokens.coral, tokens.cream, .76)
+                  : accent,
               fontFamily: 'Bungee',
               fontSize: danger ? 31 : 27,
               height: 1.05,
               letterSpacing: danger ? 1.2 : 0,
               shadows: danger
-                  ? const [
-                      Shadow(color: Color(0xCC2A0000), offset: Offset(0, 2)),
-                      Shadow(color: Color(0x99FF3B2F), blurRadius: 18),
+                  ? [
+                      Shadow(color: tokens.ink, offset: const Offset(0, 2)),
+                      Shadow(color: tokens.coral, blurRadius: 18),
                     ]
                   : null,
             ),
@@ -1263,9 +1280,10 @@ class _PhaseScaffold extends StatelessWidget {
       ),
     );
     return Scaffold(
-      backgroundColor: const Color(0xFF080414),
+      backgroundColor: tokens.pageBackground,
       body: WildcardBackground(
         room: WildcardRoom.themedHome,
+        surface: danger ? WildcardUiSurface.gameOver : surface,
         energy: celebration ? 1 : 0,
         momentPulse: celebration ? 1 : 0,
         // The WebView build washed the whole screen red when a run died, and
@@ -1277,11 +1295,18 @@ class _PhaseScaffold extends StatelessWidget {
                   Positioned.fill(
                     child: IgnorePointer(
                       child: DecoratedBox(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: RadialGradient(
-                            center: Alignment(0, -0.35),
+                            center: const Alignment(0, -0.35),
                             radius: 1.15,
-                            colors: [Color(0x8CFF2A1F), Color(0xD9370006)],
+                            colors: [
+                              tokens.coral.withValues(alpha: .55),
+                              Color.lerp(
+                                tokens.ink,
+                                tokens.coral,
+                                .38,
+                              )!.withValues(alpha: .86),
+                            ],
                           ),
                         ),
                       ),
@@ -1653,6 +1678,7 @@ class _FloatingFinalScoreState extends State<_FloatingFinalScore>
   Widget build(BuildContext context) {
     final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     final effects = EffectsProfile.resolve(context);
+    final palette = context.wildcard;
     return LayoutBuilder(
       builder: (context, constraints) {
         final fontSize = (constraints.maxWidth * 0.14).clamp(40.0, 72.0);
@@ -1693,25 +1719,27 @@ class _FloatingFinalScoreState extends State<_FloatingFinalScore>
                               child: CustomPaint(
                                 painter: _FinaleParticlePainter(
                                   intensity: effects.particleScale,
+                                  primary: palette.gold,
+                                  secondary: palette.violet,
                                 ),
                               ),
                             ),
                           Text(
                             '+${_formatScore((widget.total * count).round())}',
                             style: TextStyle(
-                              color: const Color(0xFFF7C548),
+                              color: palette.gold,
                               fontFamily: 'Bungee',
                               fontSize: fontSize,
                               height: 1,
-                              shadows: const [
+                              shadows: [
                                 Shadow(
-                                  color: Color(0xFF32150B),
-                                  offset: Offset(0, 5),
+                                  color: palette.ink,
+                                  offset: const Offset(0, 5),
                                   blurRadius: 1,
                                 ),
-                                Shadow(color: Color(0xCC000000), blurRadius: 8),
+                                Shadow(color: palette.shadow, blurRadius: 8),
                                 Shadow(
-                                  color: Color(0x99F7C548),
+                                  color: palette.gold.withValues(alpha: .6),
                                   blurRadius: 24,
                                 ),
                               ],
@@ -1732,9 +1760,15 @@ class _FloatingFinalScoreState extends State<_FloatingFinalScore>
 }
 
 class _FinaleParticlePainter extends CustomPainter {
-  const _FinaleParticlePainter({required this.intensity});
+  const _FinaleParticlePainter({
+    required this.intensity,
+    required this.primary,
+    required this.secondary,
+  });
 
   final double intensity;
+  final Color primary;
+  final Color secondary;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1745,16 +1779,16 @@ class _FinaleParticlePainter extends CustomPainter {
       final radius = 54.0 + (index * 17 % 38);
       final point = origin + Offset(math.cos(angle), math.sin(angle)) * radius;
       final paint = Paint()
-        ..color =
-            (index.isEven ? const Color(0xFFF7C548) : const Color(0xFFB794FF))
-                .withValues(alpha: 0.62);
+        ..color = (index.isEven ? primary : secondary).withValues(alpha: 0.62);
       canvas.drawCircle(point, 1.8 + (index % 3), paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _FinaleParticlePainter oldDelegate) =>
-      oldDelegate.intensity != intensity;
+      oldDelegate.intensity != intensity ||
+      oldDelegate.primary != primary ||
+      oldDelegate.secondary != secondary;
 }
 
 String _formatScore(int value) {
@@ -1820,6 +1854,7 @@ class _CalloutStampState extends State<_CalloutStamp>
                       painter: _CalloutSparkPainter(
                         progress: t,
                         color: widget.color,
+                        secondaryColor: context.wildcard.cream,
                         intensity: effects.particleScale,
                       ),
                     ),
@@ -1869,11 +1904,13 @@ class _CalloutSparkPainter extends CustomPainter {
   const _CalloutSparkPainter({
     required this.progress,
     required this.color,
+    required this.secondaryColor,
     required this.intensity,
   });
 
   final double progress;
   final Color color;
+  final Color secondaryColor;
   final double intensity;
 
   @override
@@ -1892,7 +1929,7 @@ class _CalloutSparkPainter extends CustomPainter {
         origin.dx + math.cos(angle) * dist,
         origin.dy + math.sin(angle) * dist - p * 8,
       );
-      final glyphColor = i.isEven ? color : const Color(0xFFFFF3C8);
+      final glyphColor = i.isEven ? color : secondaryColor;
       paint.color = glyphColor.withValues(alpha: fade);
       final radius = 2.2 + (i % 3) * 1.2;
       if (i.isEven) {
@@ -1918,6 +1955,7 @@ class _CalloutSparkPainter extends CustomPainter {
   bool shouldRepaint(covariant _CalloutSparkPainter oldDelegate) =>
       oldDelegate.progress != progress ||
       oldDelegate.color != color ||
+      oldDelegate.secondaryColor != secondaryColor ||
       oldDelegate.intensity != intensity;
 }
 

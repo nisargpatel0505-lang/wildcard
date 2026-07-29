@@ -1,9 +1,10 @@
 const bool _isReleaseMode = bool.fromEnvironment('dart.vm.product');
+const bool _isOwnerBuild = bool.fromEnvironment('WILDCARD_OWNER_BUILD');
 
 enum JokerRarity { common, uncommon, rare, wild }
 
 enum JokerEffect {
-  /// Owner-only test effect. Never reachable from a release build.
+  /// Owner-only test effect. Never reachable from a Play release build.
   devTwentyX,
   copperChip,
   suitPresser,
@@ -131,17 +132,6 @@ class JokerDefinition {
   final JokerEffect effect;
   final bool starter;
   final String? stateKey;
-
-  int get collectionUnlockCost {
-    if (unlock == 0) return 0;
-    final multiplier = switch (rarity) {
-      JokerRarity.common => 1.5,
-      JokerRarity.uncommon => 2.2,
-      JokerRarity.rare => 2.7,
-      JokerRarity.wild => 3.0,
-    };
-    return ((unlock * multiplier) / 5).round() * 5;
-  }
 
   int get startBoostPrice => switch (rarity) {
     JokerRarity.common => 6,
@@ -1106,10 +1096,8 @@ int publicUnlockedJokerCount(Iterable<String> ownedIds) {
   return jokerCatalog.where((joker) => owned.contains(joker.id)).length;
 }
 
-/// Owner-only test Joker. Deliberately NOT part of [jokerCatalog]: the public
-/// catalogue stays at 102 and `publicUnlockedJokerCount` keeps ignoring it, so
-/// collection counts and their tests are unaffected. It exists purely so the
-/// owner can reach late Heats, the Heat 12 cinematic and Endless quickly.
+/// Owner-only test Joker. It remains outside [jokerCatalog], so public
+/// collection counts, chest odds and shop pools stay fixed at 102 Jokers.
 const JokerDefinition devTwentyXJoker = JokerDefinition(
   id: 'devx20',
   name: 'DEV ×20',
@@ -1120,18 +1108,15 @@ const JokerDefinition devTwentyXJoker = JokerDefinition(
   effect: JokerEffect.devTwentyX,
 );
 
-/// True for debug and profile builds, false for release. A Play build can
-/// therefore never surface the Joker, and the id is dropped from any save it
-/// loads because it is absent from the catalogue.
-bool get devJokerAvailable => !_isReleaseMode;
+/// Enabled only for an explicitly marked non-release owner build.
+bool get devJokerAvailable => _isOwnerBuild && !_isReleaseMode;
 
 final Map<String, JokerDefinition> jokersById = <String, JokerDefinition>{
   for (final joker in jokerCatalog) joker.id: joker,
   if (devJokerAvailable) devTwentyXJoker.id: devTwentyXJoker,
 };
 
-/// Jokers offerable as a start boost: the public catalogue, plus the owner
-/// test Joker on non-release builds.
+/// Jokers offerable as a start boost, plus the owner's local test card.
 List<JokerDefinition> get selectableJokers => <JokerDefinition>[
   if (devJokerAvailable) devTwentyXJoker,
   ...jokerCatalog,
@@ -1150,11 +1135,7 @@ const List<String> starterJokerIds = <String>[
   'face_value',
 ];
 
-const Map<JokerRarity, double> jokerShopRarityWeights = <JokerRarity, double>{
-  JokerRarity.common: 4,
-  JokerRarity.uncommon: 3.2,
-  JokerRarity.rare: 3,
-  JokerRarity.wild: 1.8,
-};
-
-const int wildPityAfterShops = 6;
+// Deep-Endless drought protection. Standard runs expose only six eligible
+// natural shops, so WILD remains rare instead of becoming a guaranteed offer
+// immediately after entering Endless.
+const int wildPityAfterShops = 24;
