@@ -418,7 +418,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
           ),
           clipBehavior: Clip.antiAlias,
           child: SlySprite(
-            skin: _slySkin(cosmetic.id),
+            skin: resolveSlySkin(cosmetic.id),
             size: 58,
             borderRadius: 0,
             animate: false,
@@ -441,7 +441,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
   }
 
   Widget _themeSwatch(String id) {
-    final preview = WildcardThemeTokens.forId(_themeId(id));
+    final preview = WildcardThemeTokens.forId(resolveWildcardThemeId(id));
     return Container(
       width: 58,
       height: 70,
@@ -543,37 +543,3 @@ class _ShopHubScreenState extends State<ShopHubScreen>
     super.dispose();
   }
 }
-
-SlySkin _slySkin(String id) => switch (id) {
-  'sly_gold' => SlySkin.gold,
-  'sly_shadow' => SlySkin.shadow,
-  'sly_robot' => SlySkin.robot,
-  'sly_king' => SlySkin.king,
-  'sly_alien' => SlySkin.alien,
-  'sly_devil' => SlySkin.devil,
-  'sly_clown' => SlySkin.clown,
-  'sly_block_drop' => SlySkin.blockDrop,
-  'sly_abyssal' => SlySkin.abyssal,
-  'sly_desert' => SlySkin.desertMirage,
-  _ => SlySkin.classic,
-};
-
-WildcardThemeId _themeId(String id) => switch (id) {
-  'theme_sunset' => WildcardThemeId.sunset,
-  'theme_ice' => WildcardThemeId.ice,
-  'theme_neon_elite' => WildcardThemeId.neonElite,
-  'theme_gold' => WildcardThemeId.midas,
-  'theme_vapor' => WildcardThemeId.vaporwave,
-  'theme_blood' => WildcardThemeId.bloodMoon,
-  'theme_cosmic' => WildcardThemeId.cosmicWilds,
-  'theme_neon_heist' => WildcardThemeId.neonHeist,
-  'theme_moonlit_mask' => WildcardThemeId.moonlitMasquerade,
-  'theme_ember' => WildcardThemeId.emberCasino,
-  'theme_emerald_throne' => WildcardThemeId.emeraldThrone,
-  'theme_haunted' => WildcardThemeId.hauntedCarnival,
-  'theme_clockwork' => WildcardThemeId.clockworkRoyale,
-  'theme_block_drop' => WildcardThemeId.blockDropArcade,
-  'theme_abyssal' => WildcardThemeId.abyssalJackpot,
-  'theme_desert_mirage' => WildcardThemeId.desertMirage,
-  _ => WildcardThemeId.classic,
-};

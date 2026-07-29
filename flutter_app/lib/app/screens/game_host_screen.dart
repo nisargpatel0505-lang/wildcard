@@ -685,7 +685,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       hand: selectedHand,
       slySpeech: _slySpeech(score),
       slyExpression: _slyExpression(score),
-      slySkin: _slySkin(widget.appController.account.equipped.sly),
+      slySkin: resolveSlySkin(widget.appController.account.equipped.sly),
       tableFeltId: widget.appController.account.equipped.table,
       guidedFirstRun: game.guidedFirstRun,
       guideStep: game.guideStep,
@@ -1961,17 +1961,3 @@ class _CalloutSparkPainter extends CustomPainter {
 
 TextStyle _sheetHeading(BuildContext context) =>
     TextStyle(color: context.wildcard.gold, fontFamily: 'Bungee', fontSize: 17);
-
-SlySkin _slySkin(String id) => switch (id) {
-  'sly_gold' => SlySkin.gold,
-  'sly_shadow' => SlySkin.shadow,
-  'sly_robot' => SlySkin.robot,
-  'sly_king' => SlySkin.king,
-  'sly_alien' => SlySkin.alien,
-  'sly_devil' => SlySkin.devil,
-  'sly_clown' => SlySkin.clown,
-  'sly_block_drop' => SlySkin.blockDrop,
-  'sly_abyssal' => SlySkin.abyssal,
-  'sly_desert' => SlySkin.desertMirage,
-  _ => SlySkin.classic,
-};

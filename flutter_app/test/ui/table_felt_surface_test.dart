@@ -29,6 +29,10 @@ void main() {
       'felt_emerald_royale',
       'felt_neon_grid',
       'felt_obsidian_marble',
+      'felt_hearts_kingdom',
+      'felt_spades_kingdom',
+      'felt_diamonds_kingdom',
+      'felt_clubs_kingdom',
     };
 
     expect(tableFeltVisuals.keys.toSet(), ids);
@@ -42,7 +46,7 @@ void main() {
       procedural.map((felt) => felt.pattern).toSet(),
       hasLength(procedural.length),
     );
-    expect(imageBased, hasLength(4));
+    expect(imageBased, hasLength(8));
     expect(
       imageBased.map((felt) => felt.assetPath).toSet(),
       hasLength(imageBased.length),

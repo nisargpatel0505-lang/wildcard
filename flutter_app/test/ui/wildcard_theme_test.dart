@@ -5,8 +5,52 @@ import 'package:wildcard/ui/wildcard_theme.dart';
 
 void main() {
   group('expanded WILDCARD themes', () {
+    test('four kingdom themes resolve distinct home and gameplay artwork', () {
+      const packs = <WildcardThemeId, (String gameplay, String home)>{
+        WildcardThemeId.heartsKingdom: (
+          'assets/art/backgrounds/wildcard-kingdom-hearts-gameplay.webp',
+          'assets/art/backgrounds/wildcard-theme-hearts-kingdom-home.webp',
+        ),
+        WildcardThemeId.spadesKingdom: (
+          'assets/art/backgrounds/wildcard-kingdom-spades-gameplay.webp',
+          'assets/art/backgrounds/wildcard-theme-spades-kingdom-home.webp',
+        ),
+        WildcardThemeId.diamondsKingdom: (
+          'assets/art/backgrounds/wildcard-kingdom-diamonds-gameplay.webp',
+          'assets/art/backgrounds/wildcard-theme-diamonds-kingdom-home.webp',
+        ),
+        WildcardThemeId.clubsKingdom: (
+          'assets/art/backgrounds/wildcard-kingdom-clubs-gameplay.webp',
+          'assets/art/backgrounds/wildcard-theme-clubs-kingdom-home.webp',
+        ),
+      };
+
+      for (final entry in packs.entries) {
+        final tokens = WildcardThemeTokens.forId(entry.key);
+        expect(tokens.homeBackgroundAsset, entry.value.$2);
+        expect(tokens.gameplayBackgroundAsset, entry.value.$1);
+        expect(
+          tokens.backgroundAssetFor(WildcardUiSurface.home),
+          entry.value.$2,
+        );
+        expect(
+          tokens.backgroundAssetFor(WildcardUiSurface.normalGameplay),
+          entry.value.$1,
+        );
+      }
+    });
+
+    test('themes without gameplay art safely reuse their home background', () {
+      final tokens = WildcardThemeTokens.forId(WildcardThemeId.classic);
+      expect(tokens.gameplayBackgroundAsset, isNull);
+      expect(
+        tokens.backgroundAssetFor(WildcardUiSurface.normalGameplay),
+        tokens.homeBackgroundAsset,
+      );
+    });
+
     test('all three new themes point at their dedicated room artwork', () {
-      expect(WildcardThemeId.values, hasLength(17));
+      expect(WildcardThemeId.values, hasLength(21));
 
       expect(
         WildcardThemeTokens.forId(
@@ -46,6 +90,10 @@ void main() {
       WildcardThemeId.blockDropArcade,
       WildcardThemeId.abyssalJackpot,
       WildcardThemeId.desertMirage,
+      WildcardThemeId.heartsKingdom,
+      WildcardThemeId.spadesKingdom,
+      WildcardThemeId.diamondsKingdom,
+      WildcardThemeId.clubsKingdom,
     ]) {
       testWidgets('${theme.name} room renders at 320x568', (tester) async {
         tester.view.devicePixelRatio = 1;
