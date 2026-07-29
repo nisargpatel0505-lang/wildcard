@@ -1,4 +1,5 @@
 export 'models/game_ui_models.dart';
+export 'cosmetic_visual_registry.dart';
 export 'effects_profile.dart';
 export 'screens/between_heat_shop_screen.dart';
 export 'screens/deck_overlay.dart';

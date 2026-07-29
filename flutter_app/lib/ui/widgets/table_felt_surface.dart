@@ -197,6 +197,38 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     pattern: TableFeltPattern.imageTexture,
     assetPath: 'assets/tables/obsidian_marble.webp',
   ),
+  'felt_hearts_kingdom': TableFeltVisual(
+    id: 'felt_hearts_kingdom',
+    primary: Color(0xFF6B1628),
+    secondary: Color(0xFF240711),
+    trim: Color(0xFFE4A264),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/kingdom_hearts_felt.webp',
+  ),
+  'felt_spades_kingdom': TableFeltVisual(
+    id: 'felt_spades_kingdom',
+    primary: Color(0xFF17263A),
+    secondary: Color(0xFF050A12),
+    trim: Color(0xFFB7CEE2),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/kingdom_spades_felt.webp',
+  ),
+  'felt_diamonds_kingdom': TableFeltVisual(
+    id: 'felt_diamonds_kingdom',
+    primary: Color(0xFF3D2B0A),
+    secondary: Color(0xFF100B03),
+    trim: Color(0xFFFFD36A),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/kingdom_diamonds_felt.webp',
+  ),
+  'felt_clubs_kingdom': TableFeltVisual(
+    id: 'felt_clubs_kingdom',
+    primary: Color(0xFF16432F),
+    secondary: Color(0xFF06160F),
+    trim: Color(0xFFC7AC62),
+    pattern: TableFeltPattern.imageTexture,
+    assetPath: 'assets/tables/kingdom_clubs_felt.webp',
+  ),
 };
 
 TableFeltVisual resolveTableFeltVisual(String id) =>

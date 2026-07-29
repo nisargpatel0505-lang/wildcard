@@ -12,11 +12,20 @@ import 'sly_sprite.dart';
 /// swap at 620ms; victory holds 1700ms and swaps at 520ms. Reduced motion pins
 /// the settled B frame with no slide.
 class SlyStageFxOverlay extends StatefulWidget {
-  const SlyStageFxOverlay.deal({this.onFinished, super.key}) : deal = true;
-  const SlyStageFxOverlay.victory({this.onFinished, super.key}) : deal = false;
+  const SlyStageFxOverlay.deal({
+    this.skin = SlySkin.classic,
+    this.onFinished,
+    super.key,
+  }) : deal = true;
+  const SlyStageFxOverlay.victory({
+    this.skin = SlySkin.classic,
+    this.onFinished,
+    super.key,
+  }) : deal = false;
 
   /// `true` for the deal intro, `false` for the victory celebration.
   final bool deal;
+  final SlySkin skin;
   final VoidCallback? onFinished;
 
   @override
@@ -111,7 +120,7 @@ class _SlyStageFxOverlayState extends State<SlyStageFxOverlay>
               ),
             );
           },
-          child: SlyStageSprite(pose: pose, size: size),
+          child: SlyStageSprite(pose: pose, skin: widget.skin, size: size),
         ),
       ),
     );

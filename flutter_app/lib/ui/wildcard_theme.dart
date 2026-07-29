@@ -21,6 +21,10 @@ enum WildcardThemeId {
   blockDropArcade,
   abyssalJackpot,
   desertMirage,
+  heartsKingdom,
+  spadesKingdom,
+  diamondsKingdom,
+  clubsKingdom,
 }
 
 /// Every player-facing surface that must inherit the equipped UI theme.
@@ -55,6 +59,7 @@ enum WildcardUiSurface {
 
 enum WildcardBackdropRole {
   equippedTheme,
+  equippedGameplayTheme,
   runSetup,
   shopRoom,
   vaultRoom,
@@ -94,7 +99,7 @@ abstract final class WildcardThemeCoverage {
       backdrop: WildcardBackdropRole.runSetup,
     ),
     WildcardUiSurface.normalGameplay: WildcardSurfaceThemeSpec(
-      backdrop: WildcardBackdropRole.equippedTheme,
+      backdrop: WildcardBackdropRole.equippedGameplayTheme,
     ),
     WildcardUiSurface.tutorial: WildcardSurfaceThemeSpec(
       backdrop: WildcardBackdropRole.equippedTheme,
@@ -178,6 +183,7 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
     required this.artTintMiddle,
     required this.artTintBottom,
     required this.homeBackgroundAsset,
+    this.gameplayBackgroundAsset,
   });
 
   final Color ink;
@@ -198,6 +204,7 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
   final Color artTintMiddle;
   final Color artTintBottom;
   final String homeBackgroundAsset;
+  final String? gameplayBackgroundAsset;
 
   static const String palaceBackground =
       'assets/art/backgrounds/wildcard-main-menu-palace.webp';
@@ -468,6 +475,40 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-desert-mirage.webp',
         );
+      case WildcardThemeId.heartsKingdom:
+        return WildcardThemeTokens.forId(WildcardThemeId.emberCasino).copyWith(
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-hearts-kingdom-home.webp',
+          gameplayBackgroundAsset:
+              'assets/art/backgrounds/wildcard-kingdom-hearts-gameplay.webp',
+        );
+      case WildcardThemeId.spadesKingdom:
+        return WildcardThemeTokens.forId(
+          WildcardThemeId.moonlitMasquerade,
+        ).copyWith(
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-spades-kingdom-home.webp',
+          gameplayBackgroundAsset:
+              'assets/art/backgrounds/wildcard-kingdom-spades-gameplay.webp',
+        );
+      case WildcardThemeId.diamondsKingdom:
+        return WildcardThemeTokens.forId(
+          WildcardThemeId.clockworkRoyale,
+        ).copyWith(
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-diamonds-kingdom-home.webp',
+          gameplayBackgroundAsset:
+              'assets/art/backgrounds/wildcard-kingdom-diamonds-gameplay.webp',
+        );
+      case WildcardThemeId.clubsKingdom:
+        return WildcardThemeTokens.forId(
+          WildcardThemeId.emeraldThrone,
+        ).copyWith(
+          homeBackgroundAsset:
+              'assets/art/backgrounds/wildcard-theme-clubs-kingdom-home.webp',
+          gameplayBackgroundAsset:
+              'assets/art/backgrounds/wildcard-kingdom-clubs-gameplay.webp',
+        );
     }
   }
 
@@ -491,6 +532,7 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
     Color? artTintMiddle,
     Color? artTintBottom,
     String? homeBackgroundAsset,
+    String? gameplayBackgroundAsset,
   }) {
     return WildcardThemeTokens(
       ink: ink ?? this.ink,
@@ -511,6 +553,8 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
       artTintMiddle: artTintMiddle ?? this.artTintMiddle,
       artTintBottom: artTintBottom ?? this.artTintBottom,
       homeBackgroundAsset: homeBackgroundAsset ?? this.homeBackgroundAsset,
+      gameplayBackgroundAsset:
+          gameplayBackgroundAsset ?? this.gameplayBackgroundAsset,
     );
   }
 
@@ -538,6 +582,9 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
       homeBackgroundAsset: t < 0.5
           ? homeBackgroundAsset
           : other.homeBackgroundAsset,
+      gameplayBackgroundAsset: t < 0.5
+          ? gameplayBackgroundAsset
+          : other.gameplayBackgroundAsset,
     );
   }
 
@@ -580,6 +627,8 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
   String? backgroundAssetFor(WildcardUiSurface surface) {
     return switch (WildcardThemeCoverage.forSurface(surface).backdrop) {
       WildcardBackdropRole.equippedTheme => homeBackgroundAsset,
+      WildcardBackdropRole.equippedGameplayTheme =>
+        gameplayBackgroundAsset ?? homeBackgroundAsset,
       WildcardBackdropRole.runSetup => null,
       WildcardBackdropRole.shopRoom => shopBackground,
       WildcardBackdropRole.vaultRoom => vaultBackground,

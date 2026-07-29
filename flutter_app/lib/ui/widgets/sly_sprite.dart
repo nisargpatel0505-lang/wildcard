@@ -26,6 +26,10 @@ enum SlySkin {
   blockDrop,
   abyssal,
   desertMirage,
+  hearts,
+  spades,
+  diamonds,
+  clubs,
 }
 
 enum SlyStagePose { dealStart, dealFinish, victoryStart, victoryFinish }
@@ -536,12 +540,41 @@ const String slyAbyssalExpressionSpriteAsset =
     'assets/art/sly/sly-abyssal-expression-grid.webp';
 const String slyDesertExpressionSpriteAsset =
     'assets/art/sly/sly-desert-expression-grid.webp';
+const String slyHeartsExpressionSpriteAsset =
+    'assets/art/sly/sly-hearts-expression-grid.webp';
+const String slySpadesExpressionSpriteAsset =
+    'assets/art/sly/sly-spades-expression-grid.webp';
+const String slyDiamondsExpressionSpriteAsset =
+    'assets/art/sly/sly-diamonds-expression-grid.webp';
+const String slyClubsExpressionSpriteAsset =
+    'assets/art/sly/sly-clubs-expression-grid.webp';
+const String slyStageSpriteAsset = 'assets/art/sly/sly-stage-actions-grid.webp';
+const String slyHeartsStageSpriteAsset =
+    'assets/art/sly/sly-hearts-stage-actions-grid.webp';
+const String slySpadesStageSpriteAsset =
+    'assets/art/sly/sly-spades-stage-actions-grid.webp';
+const String slyDiamondsStageSpriteAsset =
+    'assets/art/sly/sly-diamonds-stage-actions-grid.webp';
+const String slyClubsStageSpriteAsset =
+    'assets/art/sly/sly-clubs-stage-actions-grid.webp';
 
 String? slyExpressionAssetForSkin(SlySkin skin) => switch (skin) {
   SlySkin.blockDrop => slyBlockDropExpressionSpriteAsset,
   SlySkin.abyssal => slyAbyssalExpressionSpriteAsset,
   SlySkin.desertMirage => slyDesertExpressionSpriteAsset,
+  SlySkin.hearts => slyHeartsExpressionSpriteAsset,
+  SlySkin.spades => slySpadesExpressionSpriteAsset,
+  SlySkin.diamonds => slyDiamondsExpressionSpriteAsset,
+  SlySkin.clubs => slyClubsExpressionSpriteAsset,
   _ => null,
+};
+
+String slyStageAssetForSkin(SlySkin skin) => switch (skin) {
+  SlySkin.hearts => slyHeartsStageSpriteAsset,
+  SlySkin.spades => slySpadesStageSpriteAsset,
+  SlySkin.diamonds => slyDiamondsStageSpriteAsset,
+  SlySkin.clubs => slyClubsStageSpriteAsset,
+  _ => slyStageSpriteAsset,
 };
 
 /// The atlas is deliberately mapped by name rather than enum ordinal so adding
@@ -560,9 +593,15 @@ int slyExpressionFrameIndex(SlyExpression expression) => switch (expression) {
 };
 
 class SlyStageSprite extends StatelessWidget {
-  const SlyStageSprite({required this.pose, this.size = 260, super.key});
+  const SlyStageSprite({
+    required this.pose,
+    this.skin = SlySkin.classic,
+    this.size = 260,
+    super.key,
+  });
 
   final SlyStagePose pose;
+  final SlySkin skin;
   final double size;
 
   @override
@@ -570,7 +609,7 @@ class SlyStageSprite extends StatelessWidget {
     final index = pose.index;
     return ExcludeSemantics(
       child: _SpriteFrame(
-        asset: 'assets/art/sly/sly-stage-actions-grid.webp',
+        asset: slyStageAssetForSkin(skin),
         columns: 2,
         rows: 2,
         column: index % 2,

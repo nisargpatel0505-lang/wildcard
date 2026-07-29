@@ -5,19 +5,19 @@ import 'package:wildcard/domain/progression_catalog.dart';
 void main() {
   group('cosmetic catalogue', () {
     test('contains every available table, UI theme and Sly look', () {
-      expect(cosmeticCatalog, hasLength(48));
-      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(48));
+      expect(cosmeticCatalog, hasLength(60));
+      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(60));
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.table),
-        hasLength(20),
+        hasLength(24),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.theme),
-        hasLength(17),
+        hasLength(21),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.sly),
-        hasLength(11),
+        hasLength(15),
       );
       expect(
         cosmeticCatalog
@@ -28,7 +28,7 @@ void main() {
       );
       expect(
         cosmeticCatalog.fold<int>(0, (sum, item) => sum + item.price),
-        72650,
+        115650,
       );
     });
 
@@ -43,11 +43,11 @@ void main() {
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.rare),
-        hasLength(20),
+        hasLength(28),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.wild),
-        hasLength(12),
+        hasLength(16),
       );
       expect(cosmeticById('theme_neon_heist')?.price, 5000);
       expect(cosmeticById('theme_clockwork')?.price, 5000);
@@ -58,6 +58,30 @@ void main() {
       expect(cosmeticById('sly_block_drop')?.price, 5000);
       expect(cosmeticById('sly_abyssal')?.price, 5000);
       expect(cosmeticById('sly_desert')?.price, 5000);
+      expect(cosmeticById('theme_hearts_kingdom')?.price, 1000);
+      expect(cosmeticById('theme_spades_kingdom')?.price, 1000);
+      expect(cosmeticById('theme_diamonds_kingdom')?.price, 1000);
+      expect(cosmeticById('theme_clubs_kingdom')?.price, 1000);
+      expect(cosmeticById('felt_hearts_kingdom')?.price, 2800);
+      expect(cosmeticById('felt_spades_kingdom')?.price, 2800);
+      expect(cosmeticById('felt_diamonds_kingdom')?.price, 3200);
+      expect(cosmeticById('felt_clubs_kingdom')?.price, 3200);
+      expect(
+        cosmeticById('sly_hearts')!.price,
+        greaterThan(cosmeticById('theme_ember')!.price),
+      );
+      expect(
+        cosmeticById('sly_spades')!.price,
+        greaterThan(cosmeticById('theme_moonlit_mask')!.price),
+      );
+      expect(
+        cosmeticById('sly_diamonds')!.price,
+        greaterThan(cosmeticById('theme_clockwork')!.price),
+      );
+      expect(
+        cosmeticById('sly_clubs')!.price,
+        greaterThan(cosmeticById('theme_emerald_throne')!.price),
+      );
     });
 
     test('new procedural and premium tables stay registered', () {

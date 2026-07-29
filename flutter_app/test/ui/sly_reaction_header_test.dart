@@ -177,6 +177,10 @@ void main() {
     (SlySkin.blockDrop, 'blockDrop', slyBlockDropExpressionSpriteAsset),
     (SlySkin.abyssal, 'abyssal', slyAbyssalExpressionSpriteAsset),
     (SlySkin.desertMirage, 'desertMirage', slyDesertExpressionSpriteAsset),
+    (SlySkin.hearts, 'hearts', slyHeartsExpressionSpriteAsset),
+    (SlySkin.spades, 'spades', slySpadesExpressionSpriteAsset),
+    (SlySkin.diamonds, 'diamonds', slyDiamondsExpressionSpriteAsset),
+    (SlySkin.clubs, 'clubs', slyClubsExpressionSpriteAsset),
   ]) {
     testWidgets(
       '${themedSkin.$2} Sly uses its matching authored expression atlas',

@@ -48,7 +48,9 @@ class _WildcardAppState extends State<WildcardApp> {
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
         theme: WildcardTheme.build(
-          themeId: _themeId(widget.controller.account.equipped.theme),
+          themeId: resolveWildcardThemeId(
+            widget.controller.account.equipped.theme,
+          ),
         ),
         builder: (context, child) => MediaQuery.withClampedTextScaling(
           minScaleFactor: 0.85,
@@ -255,24 +257,4 @@ class _WildcardAppState extends State<WildcardApp> {
     if (context == null) return;
     showWildcardToast(context, value);
   }
-
-  static WildcardThemeId _themeId(String id) => switch (id) {
-    'theme_sunset' => WildcardThemeId.sunset,
-    'theme_ice' => WildcardThemeId.ice,
-    'theme_neon_elite' => WildcardThemeId.neonElite,
-    'theme_gold' => WildcardThemeId.midas,
-    'theme_vapor' => WildcardThemeId.vaporwave,
-    'theme_blood' => WildcardThemeId.bloodMoon,
-    'theme_cosmic' => WildcardThemeId.cosmicWilds,
-    'theme_neon_heist' => WildcardThemeId.neonHeist,
-    'theme_moonlit_mask' => WildcardThemeId.moonlitMasquerade,
-    'theme_ember' => WildcardThemeId.emberCasino,
-    'theme_emerald_throne' => WildcardThemeId.emeraldThrone,
-    'theme_haunted' => WildcardThemeId.hauntedCarnival,
-    'theme_clockwork' => WildcardThemeId.clockworkRoyale,
-    'theme_block_drop' => WildcardThemeId.blockDropArcade,
-    'theme_abyssal' => WildcardThemeId.abyssalJackpot,
-    'theme_desert_mirage' => WildcardThemeId.desertMirage,
-    _ => WildcardThemeId.classic,
-  };
 }
