@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/ui/widgets/table_felt_surface.dart';
+import 'package:wildcard/ui/widgets/suit_glyph.dart';
 import 'package:wildcard/ui/wildcard_theme.dart';
 
 void main() {
@@ -160,6 +161,48 @@ void main() {
     expect(resized.width, 512);
     expect(resized.height, 512);
     expect(image.filterQuality, FilterQuality.low);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('kingdom felts cover once and keep a responsive suit watermark', (
+    tester,
+  ) async {
+    const kingdomIds = <String>{
+      'felt_hearts_kingdom',
+      'felt_spades_kingdom',
+      'felt_diamonds_kingdom',
+      'felt_clubs_kingdom',
+    };
+    for (final id in kingdomIds) {
+      final visual = tableFeltVisuals[id]!;
+      expect(visual.textureLayout, TableTextureLayout.coverOnce, reason: id);
+      expect(visual.watermarkSuit, isNotNull, reason: id);
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: WildcardTheme.build(),
+        home: const Scaffold(
+          body: TableFeltSurface(
+            feltId: 'felt_hearts_kingdom',
+            child: SizedBox(width: 360, height: 220),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final image = tester.widget<Image>(
+      find.byKey(const ValueKey('table-felt-texture-felt_hearts_kingdom')),
+    );
+    expect(image.repeat, ImageRepeat.noRepeat);
+    expect(image.fit, BoxFit.cover);
+    expect(image.filterQuality, FilterQuality.medium);
+    expect(image.image, isA<ResizeImage>());
+    final resized = image.image as ResizeImage;
+    expect(resized.width, 1024);
+    expect(resized.height, 1024);
+    expect(find.byType(SuitGlyph), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

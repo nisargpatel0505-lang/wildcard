@@ -40,6 +40,53 @@ void main() {
       }
     });
 
+    test(
+      'kingdom themes own distinct palettes instead of cloning old rooms',
+      () {
+        final kingdoms = <WildcardThemeId, WildcardThemeId>{
+          WildcardThemeId.heartsKingdom: WildcardThemeId.emberCasino,
+          WildcardThemeId.spadesKingdom: WildcardThemeId.moonlitMasquerade,
+          WildcardThemeId.diamondsKingdom: WildcardThemeId.clockworkRoyale,
+          WildcardThemeId.clubsKingdom: WildcardThemeId.emeraldThrone,
+        };
+        final tokens = kingdoms.keys
+            .map(WildcardThemeTokens.forId)
+            .toList(growable: false);
+
+        expect(tokens.map((theme) => theme.ink).toSet(), hasLength(4));
+        expect(tokens.map((theme) => theme.felt).toSet(), hasLength(4));
+        expect(tokens.map((theme) => theme.mint).toSet(), hasLength(4));
+        expect(tokens.map((theme) => theme.gold).toSet(), hasLength(4));
+        expect(tokens.map((theme) => theme.panel).toSet(), hasLength(4));
+
+        for (final entry in kingdoms.entries) {
+          final kingdom = WildcardThemeTokens.forId(entry.key);
+          final legacy = WildcardThemeTokens.forId(entry.value);
+          expect(
+            <Color>[
+              kingdom.ink,
+              kingdom.felt,
+              kingdom.mint,
+              kingdom.gold,
+              kingdom.violet,
+              kingdom.panel,
+            ],
+            isNot(
+              equals(<Color>[
+                legacy.ink,
+                legacy.felt,
+                legacy.mint,
+                legacy.gold,
+                legacy.violet,
+                legacy.panel,
+              ]),
+            ),
+            reason: '${entry.key.name} must not clone ${entry.value.name}',
+          );
+        }
+      },
+    );
+
     test('themes without gameplay art safely reuse their home background', () {
       final tokens = WildcardThemeTokens.forId(WildcardThemeId.classic);
       expect(tokens.gameplayBackgroundAsset, isNull);

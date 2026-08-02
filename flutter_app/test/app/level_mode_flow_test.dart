@@ -78,6 +78,19 @@ void main() {
     );
     await tester.pump();
 
+    final campaignScroll = find
+        .descendant(
+          of: find.byKey(const ValueKey('level-select-list')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('level-1')),
+      420,
+      scrollable: campaignScroll,
+    );
+    await tester.drag(campaignScroll, const Offset(0, -90));
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('level-1')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('level-3')));
@@ -86,13 +99,63 @@ void main() {
     await tester.pump();
     expect(opened, <int>[1, 3]);
 
+    final chapterScroll = find
+        .descendant(
+          of: find.byKey(const ValueKey('level-chapter-selector')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('level-chapter-10')),
+      450,
+      scrollable: chapterScroll,
+    );
+    await tester.drag(chapterScroll, const Offset(-100, 0));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('level-chapter-10')));
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('level-chapter-path-10')),
+      450,
+      scrollable: campaignScroll,
+    );
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('level-100')),
-      900,
-      scrollable: find.byType(Scrollable).last,
+      450,
+      scrollable: campaignScroll,
     );
     expect(find.byKey(const ValueKey('level-100')), findsOneWidget);
-    expect(find.text('LOCKED'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Level Select makes frontier continuation prominent', (
+    tester,
+  ) async {
+    final opened = <int>[];
+    await tester.pumpWidget(
+      _Harness(
+        child: LevelSelectScreen(
+          catalog: catalog,
+          account: AccountState(
+            highestUnlockedLevel: 13,
+            clearedLevelIds: <int>{for (var id = 1; id <= 12; id++) id},
+            levelBestScores: <int, int>{13: 925},
+            levelAttempts: <int, int>{13: 3},
+          ),
+          onOpenLevel: (level) => opened.add(level.id),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('campaign-progress-hero')), findsOne);
+    expect(find.text('BEST SCORE'), findsOne);
+    expect(find.text('925'), findsOne);
+    expect(find.text('ATTEMPTS'), findsOne);
+    expect(find.text('3'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('continue-frontier-button')));
+    await tester.pump();
+    expect(opened, <int>[13]);
     expect(tester.takeException(), isNull);
   });
 
@@ -116,40 +179,24 @@ void main() {
     WildcardButton startButton() => tester.widget<WildcardButton>(
       find.byKey(const ValueKey('start-level-button')),
     );
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('start-level-button')),
-      450,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
     expect(startButton().onPressed, isNull);
 
-    await tester.scrollUntilVisible(
-      find.byType(GridView),
-      -450,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-
     for (final id in level.jokerOptionIds.take(level.chooseJokers)) {
-      // Joker cards intentionally display the real catalogue name, not the
-      // internal ID. Locate the card by its order when the name is not the ID.
-      final optionCards = find.descendant(
-        of: find.byType(GridView),
-        matching: find.byType(WildcardCard),
+      final option = find.byKey(ValueKey('level-joker-option-$id'));
+      await tester.scrollUntilVisible(
+        option,
+        420,
+        scrollable: find
+            .descendant(
+              of: find.byKey(ValueKey('level-brief-${level.id}')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
       );
-      final index = level.jokerOptionIds.indexOf(id);
-      await tester.ensureVisible(optionCards.at(index));
-      await tester.tap(optionCards.at(index));
+      await tester.tap(option);
       await tester.pump();
     }
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('start-level-button')),
-      450,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
     expect(startButton().onPressed, isNotNull);
     await tester.tap(find.byKey(const ValueKey('start-level-button')));
     await tester.pump();
@@ -175,14 +222,122 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('FIXED JOKERS'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('start-level-button')),
-      450,
-      scrollable: find.byType(Scrollable).first,
+      find.text('HELPFUL FIXED JOKERS'),
+      420,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('level-brief-64')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('HELPFUL FIXED JOKERS'), findsOneWidget);
+    expect(find.byKey(const ValueKey('start-level-button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Level Brief reveals burden and authored help after 3 failures', (
+    tester,
+  ) async {
+    final level = catalog.level(75);
+    expect(level.negativeJokerId, isNotNull);
+    expect(level.recommendedLoadouts, isNotEmpty);
+
+    await tester.pumpWidget(
+      _Harness(
+        child: LevelBriefScreen(
+          level: level,
+          priorAttempts: 2,
+          onLaunch: (_) {},
+        ),
+      ),
     );
     await tester.pump();
-    expect(find.byKey(const ValueKey('start-level-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-authored-hint')), findsNothing);
+
+    await tester.pumpWidget(
+      _Harness(
+        child: LevelBriefScreen(
+          level: level,
+          priorAttempts: 3,
+          onLaunch: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('forced-burden-heading')),
+      420,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('level-brief-75')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('FORCED BURDEN'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('level-authored-hint')),
+      420,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('level-brief-75')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('AUTHORED HINT'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('level-recommended-loadouts')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Level campaign hub and brief remain scroll-safe at 320x568', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 568);
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPhysicalSize();
+    });
+
+    await tester.pumpWidget(
+      _Harness(
+        child: LevelSelectScreen(
+          catalog: catalog,
+          account: AccountState(highestUnlockedLevel: 1),
+          onOpenLevel: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+
+    final choiceLevel = catalog.levels.firstWhere(
+      (level) => level.chooseJokers > 0,
+    );
+    await tester.pumpWidget(
+      _Harness(
+        child: LevelBriefScreen(level: choiceLevel, onLaunch: (_) {}),
+      ),
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(
+        ValueKey('level-joker-option-${choiceLevel.jokerOptionIds.last}'),
+      ),
+      420,
+      scrollable: find
+          .descendant(
+            of: find.byKey(ValueKey('level-brief-${choiceLevel.id}')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(tester.takeException(), isNull);
   });
 

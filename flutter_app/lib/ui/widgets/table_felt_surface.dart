@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../domain/cards.dart';
 import '../wildcard_theme.dart';
+import 'suit_glyph.dart';
 
 /// Static table treatments for the collectible felts.
 ///
@@ -29,6 +31,13 @@ enum TableFeltPattern {
   imageTexture,
 }
 
+/// How an image-based felt is composed inside the responsive play surface.
+///
+/// Most premium felts are seamless material tiles. Kingdom felts are authored
+/// as one complete surface, so repeating them would duplicate their border and
+/// crest whenever the playfield changes size.
+enum TableTextureLayout { repeatingTile, coverOnce }
+
 @immutable
 class TableFeltVisual {
   const TableFeltVisual({
@@ -38,6 +47,8 @@ class TableFeltVisual {
     required this.trim,
     required this.pattern,
     this.assetPath,
+    this.textureLayout = TableTextureLayout.repeatingTile,
+    this.watermarkSuit,
   });
 
   final String id;
@@ -46,6 +57,8 @@ class TableFeltVisual {
   final Color trim;
   final TableFeltPattern pattern;
   final String? assetPath;
+  final TableTextureLayout textureLayout;
+  final CardSuit? watermarkSuit;
 
   bool get isImageBased => assetPath != null;
 }
@@ -204,6 +217,8 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     trim: Color(0xFFE4A264),
     pattern: TableFeltPattern.imageTexture,
     assetPath: 'assets/tables/kingdom_hearts_felt.webp',
+    textureLayout: TableTextureLayout.coverOnce,
+    watermarkSuit: CardSuit.hearts,
   ),
   'felt_spades_kingdom': TableFeltVisual(
     id: 'felt_spades_kingdom',
@@ -212,6 +227,8 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     trim: Color(0xFFB7CEE2),
     pattern: TableFeltPattern.imageTexture,
     assetPath: 'assets/tables/kingdom_spades_felt.webp',
+    textureLayout: TableTextureLayout.coverOnce,
+    watermarkSuit: CardSuit.spades,
   ),
   'felt_diamonds_kingdom': TableFeltVisual(
     id: 'felt_diamonds_kingdom',
@@ -220,6 +237,8 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     trim: Color(0xFFFFD36A),
     pattern: TableFeltPattern.imageTexture,
     assetPath: 'assets/tables/kingdom_diamonds_felt.webp',
+    textureLayout: TableTextureLayout.coverOnce,
+    watermarkSuit: CardSuit.diamonds,
   ),
   'felt_clubs_kingdom': TableFeltVisual(
     id: 'felt_clubs_kingdom',
@@ -228,6 +247,8 @@ const Map<String, TableFeltVisual> tableFeltVisuals = <String, TableFeltVisual>{
     trim: Color(0xFFC7AC62),
     pattern: TableFeltPattern.imageTexture,
     assetPath: 'assets/tables/kingdom_clubs_felt.webp',
+    textureLayout: TableTextureLayout.coverOnce,
+    watermarkSuit: CardSuit.clubs,
   ),
 };
 
@@ -255,6 +276,8 @@ class TableFeltSurface extends StatelessWidget {
     final visual = resolveTableFeltVisual(feltId);
     final tokens = context.wildcard;
     final trim = Color.lerp(visual.trim, tokens.violet, 0.18)!;
+    final repeatsTexture =
+        visual.textureLayout == TableTextureLayout.repeatingTile;
     return SizedBox(
       width: width,
       child: Stack(
@@ -289,12 +312,16 @@ class TableFeltSurface extends StatelessWidget {
                         Image.asset(
                           assetPath,
                           key: ValueKey('table-felt-texture-${visual.id}'),
-                          fit: BoxFit.none,
-                          repeat: ImageRepeat.repeat,
-                          scale: 2,
-                          cacheWidth: 512,
-                          cacheHeight: 512,
-                          filterQuality: FilterQuality.low,
+                          fit: repeatsTexture ? BoxFit.none : BoxFit.cover,
+                          repeat: repeatsTexture
+                              ? ImageRepeat.repeat
+                              : ImageRepeat.noRepeat,
+                          scale: repeatsTexture ? 2 : 1,
+                          cacheWidth: repeatsTexture ? 512 : 1024,
+                          cacheHeight: repeatsTexture ? 512 : 1024,
+                          filterQuality: repeatsTexture
+                              ? FilterQuality.low
+                              : FilterQuality.medium,
                           excludeFromSemantics: true,
                         ),
                       if (visual.isImageBased)
@@ -309,6 +336,27 @@ class TableFeltSurface extends StatelessWidget {
                               ],
                             ),
                           ),
+                        ),
+                      if (visual.watermarkSuit case final suit?)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final dimension = math
+                                .min(
+                                  constraints.maxWidth * 0.20,
+                                  constraints.maxHeight * 0.30,
+                                )
+                                .clamp(34.0, 78.0)
+                                .toDouble();
+                            return Center(
+                              child: IgnorePointer(
+                                child: SuitGlyph(
+                                  suit: suit,
+                                  color: visual.trim.withValues(alpha: 0.09),
+                                  size: dimension,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       CustomPaint(painter: _TableFeltPainter(visual)),
                     ],
@@ -639,13 +687,15 @@ class _TableFeltPainter extends CustomPainter {
           );
         }
       case TableFeltPattern.imageTexture:
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(8, 8, size.width - 16, size.height - 16),
-            const Radius.circular(10),
-          ),
-          line..strokeWidth = 1.2,
-        );
+        if (visual.textureLayout == TableTextureLayout.repeatingTile) {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(8, 8, size.width - 16, size.height - 16),
+              const Radius.circular(10),
+            ),
+            line..strokeWidth = 1.2,
+          );
+        }
     }
   }
 

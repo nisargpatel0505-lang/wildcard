@@ -208,6 +208,8 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
 
   static const String palaceBackground =
       'assets/art/backgrounds/wildcard-main-menu-palace.webp';
+  static const String levelCampaignBackground =
+      'assets/art/backgrounds/wildcard-level-campaign-atlas.webp';
   static const String cosmicBackground =
       'assets/art/backgrounds/wildcard-endless-victory-cosmos.webp';
   static const String shopBackground =
@@ -476,34 +478,96 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
               'assets/art/backgrounds/wildcard-theme-desert-mirage.webp',
         );
       case WildcardThemeId.heartsKingdom:
-        return WildcardThemeTokens.forId(WildcardThemeId.emberCasino).copyWith(
+        return classic.copyWith(
+          ink: const Color(0xFF19070E),
+          felt: const Color(0xFF4B1023),
+          feltHighlight: const Color(0xFF79203D),
+          cream: const Color(0xFFFFF2E8),
+          creamDim: const Color(0xFFD9B8B3),
+          mint: const Color(0xFFFF86A4),
+          gold: const Color(0xFFF3BB79),
+          violet: const Color(0xFFC968AC),
+          coral: const Color(0xFFFF6E67),
+          rare: const Color(0xFFFF9A74),
+          wild: const Color(0xFFE47BCB),
+          panel: const Color(0xED2A0B19),
+          panelStrong: const Color(0xFA16050D),
+          line: const Color(0xB3E8A978),
+          artTintTop: const Color(0x0A2A0712),
+          artTintMiddle: const Color(0x332E0918),
+          artTintBottom: const Color(0x8A15040B),
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-hearts-kingdom-home.webp',
           gameplayBackgroundAsset:
               'assets/art/backgrounds/wildcard-kingdom-hearts-gameplay.webp',
         );
       case WildcardThemeId.spadesKingdom:
-        return WildcardThemeTokens.forId(
-          WildcardThemeId.moonlitMasquerade,
-        ).copyWith(
+        return classic.copyWith(
+          ink: const Color(0xFF050A14),
+          felt: const Color(0xFF111F35),
+          feltHighlight: const Color(0xFF203B59),
+          cream: const Color(0xFFF0F6FF),
+          creamDim: const Color(0xFFAFC0D4),
+          mint: const Color(0xFF79D8FF),
+          gold: const Color(0xFFD5DFEC),
+          violet: const Color(0xFF8195FF),
+          coral: const Color(0xFFEE708B),
+          rare: const Color(0xFF84CBFF),
+          wild: const Color(0xFFA18AFF),
+          panel: const Color(0xED0C1729),
+          panelStrong: const Color(0xFA050A14),
+          line: const Color(0xB39AB9DB),
+          artTintTop: const Color(0x0A050B18),
+          artTintMiddle: const Color(0x32101E38),
+          artTintBottom: const Color(0x8D03070F),
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-spades-kingdom-home.webp',
           gameplayBackgroundAsset:
               'assets/art/backgrounds/wildcard-kingdom-spades-gameplay.webp',
         );
       case WildcardThemeId.diamondsKingdom:
-        return WildcardThemeTokens.forId(
-          WildcardThemeId.clockworkRoyale,
-        ).copyWith(
+        return classic.copyWith(
+          ink: const Color(0xFF081218),
+          felt: const Color(0xFF123943),
+          feltHighlight: const Color(0xFF1E5965),
+          cream: const Color(0xFFFFFAE9),
+          creamDim: const Color(0xFFD6D2BD),
+          mint: const Color(0xFF5CE8DF),
+          gold: const Color(0xFFFFD36B),
+          violet: const Color(0xFF69AAEA),
+          coral: const Color(0xFFFF8962),
+          rare: const Color(0xFFFFB64D),
+          wild: const Color(0xFF8AAEFF),
+          panel: const Color(0xEB102A32),
+          panelStrong: const Color(0xFA07151B),
+          line: const Color(0xB3E5C15C),
+          artTintTop: const Color(0x08051118),
+          artTintMiddle: const Color(0x29122F38),
+          artTintBottom: const Color(0x80061015),
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-diamonds-kingdom-home.webp',
           gameplayBackgroundAsset:
               'assets/art/backgrounds/wildcard-kingdom-diamonds-gameplay.webp',
         );
       case WildcardThemeId.clubsKingdom:
-        return WildcardThemeTokens.forId(
-          WildcardThemeId.emeraldThrone,
-        ).copyWith(
+        return classic.copyWith(
+          ink: const Color(0xFF07140F),
+          felt: const Color(0xFF123D2B),
+          feltHighlight: const Color(0xFF205F43),
+          cream: const Color(0xFFF2F3DF),
+          creamDim: const Color(0xFFBBC9AE),
+          mint: const Color(0xFF63E5A5),
+          gold: const Color(0xFFDDBA68),
+          violet: const Color(0xFF78BFA3),
+          coral: const Color(0xFFE78659),
+          rare: const Color(0xFFE9AA5E),
+          wild: const Color(0xFF91D799),
+          panel: const Color(0xED0C2B1E),
+          panelStrong: const Color(0xFA06170F),
+          line: const Color(0xB3B89B58),
+          artTintTop: const Color(0x0806120C),
+          artTintMiddle: const Color(0x2D0C3523),
+          artTintBottom: const Color(0x89040F0A),
           homeBackgroundAsset:
               'assets/art/backgrounds/wildcard-theme-clubs-kingdom-home.webp',
           gameplayBackgroundAsset:

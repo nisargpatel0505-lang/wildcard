@@ -444,7 +444,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     _reactSly(
       mood: mood,
       expression: set.expression,
-      speech: game.isLevelMode ? game.levelObjectiveText : set.pick(_slyRandom),
+      speech: set.pick(_slyRandom),
       label: label ?? slyLabelFor(mood),
       priority: _slyPriority(mood),
       motion: _slyMotion(mood),
@@ -473,7 +473,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       mood: mood,
       priority: priority,
       expression: expression,
-      speech: game.isLevelMode ? game.levelObjectiveText : speech,
+      speech: speech,
       label: label,
       motion: motion,
       hold: hold,
@@ -714,9 +714,16 @@ class _GameHostScreenState extends State<GameHostScreen> {
       score: score,
       scoringTimeline: game.scoringTimeline,
       slyReaction: _slyReaction,
+      backgroundAsset: game.isLevelMode
+          ? WildcardThemeTokens.levelCampaignBackground
+          : null,
       stageLabel: game.isLevelMode ? 'LEVEL' : 'HEAT',
-      ruleBanner: game.isLevelMode ? _levelRuleBanner() : null,
-      lockSlySpeech: game.isLevelMode,
+      stageValue: game.isLevelMode ? game.levelAttempt!.levelId : null,
+      scoreLabel: game.isLevelMode ? 'Level score' : 'Heat score',
+      showScoreTarget: !game.isLevelMode || game.levelDynamicTarget > 0,
+      objectiveText: game.isLevelMode ? _levelObjectiveTrackerText() : null,
+      levelRules: game.isLevelMode ? _levelRuleItems() : const <String>[],
+      compactJokerSlots: game.isLevelMode,
       showRunCoins: !game.isLevelMode,
       stakeText: game.stake > 0
           ? '${game.stake} → ${game.stakePayoutAmount}'
@@ -755,10 +762,8 @@ class _GameHostScreenState extends State<GameHostScreen> {
           ? () {
               _haptics.discard();
               _sfx.play('discard');
-              if (!game.isLevelMode) {
-                _beginSlyGeneration();
-                _saySly(SlyMood.discard);
-              }
+              _beginSlyGeneration();
+              _saySly(SlyMood.discard);
               unawaited(_act(game.discardSelected()));
             }
           : null,
@@ -989,6 +994,16 @@ class _GameHostScreenState extends State<GameHostScreen> {
     final cleared = game.levelCleared;
     final tries =
         widget.appController.account.levelAttempts[attempt.levelId] ?? 0;
+    final chapter = ((attempt.levelId - 1) ~/ 10) + 1;
+    final chapterStart = (chapter - 1) * 10 + 1;
+    final chapterEnd = math.min(chapterStart + 9, 100);
+    final chapterCleared = widget.appController.account.clearedLevelIds
+        .where((id) => id >= chapterStart && id <= chapterEnd)
+        .length;
+    final bestScore =
+        widget.appController.account.levelBestScores[attempt.levelId] ??
+        game.totalScore;
+    final chapterComplete = cleared && attempt.levelId % 10 == 0;
     return _PhaseScaffold(
       title: cleared ? 'LEVEL CLEARED' : 'LEVEL FAILED',
       subtitle: cleared
@@ -999,9 +1014,26 @@ class _GameHostScreenState extends State<GameHostScreen> {
           : Icons.refresh_rounded,
       danger: !cleared,
       celebration: cleared,
+      backgroundAsset: WildcardThemeTokens.levelCampaignBackground,
       children: [
+        _CampaignResultProgress(
+          chapter: chapter,
+          cleared: chapterCleared,
+          chapterComplete: chapterComplete,
+          levelCleared: cleared,
+          nextLevel: cleared && attempt.levelId < 100
+              ? attempt.levelId + 1
+              : null,
+        ),
+        const SizedBox(height: 10),
         _StatRow('Level', '${attempt.levelId} · ${attempt.levelName}'),
-        _StatRow('Score', '${game.totalScore} / ${game.levelDynamicTarget}'),
+        _StatRow(
+          'Score',
+          game.levelDynamicTarget > 0
+              ? '${game.totalScore} / ${game.levelDynamicTarget}'
+              : '${game.totalScore}',
+        ),
+        _StatRow('Best score', '$bestScore'),
         _StatRow(
           'Scoring hands',
           '${game.levelProgress?.scoringHandsPlayed ?? 0}',
@@ -1289,7 +1321,6 @@ class _GameHostScreenState extends State<GameHostScreen> {
   void _message(String message) => showWildcardToast(context, message);
 
   String _slySpeech(ScoreResult? score) {
-    if (game.isLevelMode) return game.levelObjectiveText;
     if (game.isBusy && game.scoringPresentation.activeEvent != null) {
       final event = game.scoringPresentation.activeEvent!;
       if (event.jokerIndex != null && event.jokerIndex! >= 0) {
@@ -1330,18 +1361,145 @@ class _GameHostScreenState extends State<GameHostScreen> {
     return SlyExpression.thoughtful;
   }
 
-  String _levelRuleBanner() {
+  String? _levelObjectiveTrackerText() {
+    final lines = game.levelObjectiveText
+        .split('\n')
+        .map((line) => line.trim())
+        .where(
+          (line) =>
+              line.isNotEmpty &&
+              !(game.levelDynamicTarget > 0 && line.startsWith('SCORE ')),
+        )
+        .toList(growable: false);
+    return lines.isEmpty ? null : lines.join('\n');
+  }
+
+  List<String> _levelRuleItems() {
     final attempt = game.levelAttempt!;
     final parts = <String>[...attempt.visibleModifiers];
     if (game.levelDisabledSuit case final suit?) {
-      parts.add('${suit.name.toUpperCase()} rank is disabled this hand');
+      parts.add('THIS HAND · ${suit.name.toUpperCase()} rank is disabled');
     }
     final blocked = game.state.blockedJokerIds
         .map((id) => jokersById[id]?.name ?? id)
         .toList(growable: false);
-    if (blocked.isNotEmpty) parts.add('Joker off: ${blocked.join(', ')}');
-    if (parts.isEmpty) return 'AUTHORED LEVEL · Complete Sly’s objective';
-    return parts.join(' · ');
+    if (blocked.isNotEmpty) parts.add('JOKER OFF · ${blocked.join(', ')}');
+    return List<String>.unmodifiable(parts);
+  }
+}
+
+class _CampaignResultProgress extends StatelessWidget {
+  const _CampaignResultProgress({
+    required this.chapter,
+    required this.cleared,
+    required this.chapterComplete,
+    required this.levelCleared,
+    required this.nextLevel,
+  });
+
+  final int chapter;
+  final int cleared;
+  final bool chapterComplete;
+  final bool levelCleared;
+  final int? nextLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    final completed = cleared.clamp(0, 10);
+    final accent = chapterComplete
+        ? tokens.gold
+        : levelCleared
+        ? tokens.mint
+        : tokens.coral;
+    return Semantics(
+      label:
+          'Chapter $chapter progress, $completed of 10 levels cleared${chapterComplete ? ', chapter complete' : ''}',
+      child: Container(
+        key: const ValueKey('level-result-chapter-progress'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(
+            accent.withValues(alpha: .12),
+            tokens.surfaceStrong,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accent, width: chapterComplete ? 2 : 1.3),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: .15),
+              blurRadius: 18,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  chapterComplete
+                      ? Icons.workspace_premium_rounded
+                      : levelCleared
+                      ? Icons.auto_awesome_rounded
+                      : Icons.flag_rounded,
+                  color: accent,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    chapterComplete
+                        ? 'CHAPTER $chapter MASTERED'
+                        : 'CHAPTER $chapter · $completed / 10 TABLES',
+                    style: TextStyle(
+                      color: accent,
+                      fontFamily: 'Bungee',
+                      fontSize: 11.5,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (var index = 0; index < 10; index++) ...[
+                  if (index > 0) const SizedBox(width: 4),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 420),
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: index < completed
+                            ? accent
+                            : tokens.cream.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (nextLevel != null) ...[
+              const SizedBox(height: 9),
+              Text(
+                'THE PATH OPENS · LEVEL $nextLevel UNLOCKED',
+                style: TextStyle(
+                  color: tokens.cream,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .35,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1354,6 +1512,7 @@ class _PhaseScaffold extends StatelessWidget {
     this.danger = false,
     this.celebration = false,
     this.surface = WildcardUiSurface.results,
+    this.backgroundAsset,
   });
 
   final String title;
@@ -1363,6 +1522,7 @@ class _PhaseScaffold extends StatelessWidget {
   final bool danger;
   final bool celebration;
   final WildcardUiSurface surface;
+  final String? backgroundAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -1408,6 +1568,7 @@ class _PhaseScaffold extends StatelessWidget {
       body: WildcardBackground(
         room: WildcardRoom.themedHome,
         surface: danger ? WildcardUiSurface.gameOver : surface,
+        asset: backgroundAsset,
         energy: celebration ? 1 : 0,
         momentPulse: celebration ? 1 : 0,
         // The WebView build washed the whole screen red when a run died, and

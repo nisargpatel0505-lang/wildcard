@@ -338,6 +338,36 @@ void main() {
       },
     );
 
+    test('Level 11 clears immediately when the third Pair scores', () async {
+      final level = catalog.level(11);
+      final harness = _Harness();
+      final game = await GameController.startNew(
+        config: _config(
+          _attempt(level),
+          highestUnlockedLevel: 11,
+          runId: 'pair-chain-objective-clear',
+        ),
+        callbacks: harness.callbacks,
+        wait: _noWait,
+      );
+      addTearDown(game.dispose);
+
+      expect(level.objective.targetScore, 0);
+      await _playPairOfRank(game, CardRank.two);
+      expect(game.phase, RunPhase.game);
+      await _playPairOfRank(game, CardRank.three);
+      expect(game.phase, RunPhase.game);
+      expect(game.levelProgress!.handCounts[HandType.pair], 2);
+
+      await _playPairOfRank(game, CardRank.four);
+
+      expect(game.totalScore, lessThan(145));
+      expect(game.levelProgress!.handCounts[HandType.pair], 3);
+      expect(game.phase, RunPhase.ended);
+      expect(game.endReason, RunEndReason.levelCleared);
+      expect(harness.clears, 1);
+    });
+
     test('uses the exact authored layout and fixed temporary Jokers', () async {
       final level = catalog.level(64);
       final layout = level.layouts.first;
@@ -692,6 +722,19 @@ GameRunConfig _config(
 
 Future<void> _playOneCard(GameController game) async {
   await game.toggleCard(game.hand.first.uid!);
+  final result = await game.playSelected();
+  expect(result.ok, isTrue, reason: result.message);
+}
+
+Future<void> _playPairOfRank(GameController game, CardRank rank) async {
+  final pair = game.hand
+      .where((card) => card.rank == rank)
+      .take(2)
+      .toList(growable: false);
+  expect(pair, hasLength(2), reason: 'authored Level 11 layout lost $rank');
+  for (final card in pair) {
+    await game.toggleCard(card.uid!);
+  }
   final result = await game.playSelected();
   expect(result.ok, isTrue, reason: result.message);
 }

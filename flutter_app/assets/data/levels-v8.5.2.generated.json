@@ -7996,7 +7996,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 145,
+        "target_score": 0,
         "required_counts": {
           "Pair": 3
         },
@@ -8790,7 +8790,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 240,
+        "target_score": 0,
         "required_counts": {
           "Two Pair": 2
         },
@@ -9584,7 +9584,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 305,
+        "target_score": 0,
         "required_counts": {
           "Pair": 1,
           "Two Pair": 1,
@@ -10380,7 +10380,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 455,
+        "target_score": 0,
         "required_counts": {
           "Straight": 2
         },
@@ -11174,7 +11174,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 530,
+        "target_score": 0,
         "required_counts": {
           "Flush": 2
         },
@@ -11968,7 +11968,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 425,
+        "target_score": 0,
         "required_counts": {
           "Full House": 1,
           "Pair": 1
@@ -12763,7 +12763,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 600,
+        "target_score": 0,
         "required_counts": {
           "Four of a Kind": 1
         },
@@ -13558,7 +13558,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 550,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -25096,7 +25096,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 300,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [
           "Pair",
@@ -33514,7 +33514,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 335,
+        "target_score": 0,
         "required_counts": {
           "Pair": 2
         },
@@ -34528,7 +34528,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 360,
+        "target_score": 0,
         "required_counts": {
           "Two Pair": 2
         },
@@ -35542,7 +35542,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 380,
+        "target_score": 0,
         "required_counts": {
           "Straight": 1
         },
@@ -36476,7 +36476,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 410,
+        "target_score": 0,
         "required_counts": {
           "Flush": 1
         },
@@ -45150,7 +45150,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 415,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -45905,7 +45905,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 320,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [
           "Pair",
@@ -60168,7 +60168,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 875,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -71943,7 +71943,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 710,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [
           "Pair",
@@ -77438,7 +77438,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 3300,
+        "target_score": 0,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,

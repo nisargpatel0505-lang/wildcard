@@ -50,7 +50,12 @@ class RunTableScreen extends StatelessWidget {
     this.guidedFirstRun = false,
     this.guideStep = 0,
     this.stageLabel = 'HEAT',
-    this.ruleBanner,
+    this.stageValue,
+    this.scoreLabel = 'Heat score',
+    this.showScoreTarget = true,
+    this.objectiveText,
+    this.levelRules = const <String>[],
+    this.compactJokerSlots = false,
     this.lockSlySpeech = false,
     this.showRunCoins = true,
     this.onToggleCard,
@@ -102,7 +107,12 @@ class RunTableScreen extends StatelessWidget {
   final bool guidedFirstRun;
   final int guideStep;
   final String stageLabel;
-  final String? ruleBanner;
+  final int? stageValue;
+  final String scoreLabel;
+  final bool showScoreTarget;
+  final String? objectiveText;
+  final List<String> levelRules;
+  final bool compactJokerSlots;
   final bool lockSlySpeech;
   final bool showRunCoins;
 
@@ -134,7 +144,7 @@ class RunTableScreen extends StatelessWidget {
         asset: backgroundAsset,
         tintStrength: 0.78,
         energy: state.stageScore / math.max(1, state.target),
-        modifierActive: state.hasAnyModifier || ruleBanner != null,
+        modifierActive: state.hasAnyModifier || levelRules.isNotEmpty,
         houseActive: state.hasBossModifier,
         child: SafeArea(
           minimum: const EdgeInsets.only(bottom: 4),
@@ -220,19 +230,31 @@ class RunTableScreen extends StatelessWidget {
                           stakeText: stakeText,
                           compact: metrics.compact,
                           stageLabel: stageLabel,
+                          stageValue: stageValue,
                           showRunCoins: showRunCoins,
                         ),
-                        SizedBox(height: metrics.outerGap),
-                        withPresentation(
-                          (presentation) => _TargetPanel(
-                            state: state,
-                            compact: metrics.compact,
-                            stageScoreOverride:
-                                presentation.isActive && !presentation.complete
-                                ? state.stageScore + presentation.visibleTotal
-                                : null,
+                        if (showScoreTarget) ...[
+                          SizedBox(height: metrics.outerGap),
+                          withPresentation(
+                            (presentation) => _TargetPanel(
+                              state: state,
+                              compact: metrics.compact,
+                              scoreLabel: scoreLabel,
+                              stageScoreOverride:
+                                  presentation.isActive &&
+                                      !presentation.complete
+                                  ? state.stageScore + presentation.visibleTotal
+                                  : null,
+                            ),
                           ),
-                        ),
+                        ],
+                        if (objectiveText?.trim().isNotEmpty == true) ...[
+                          SizedBox(height: metrics.outerGap),
+                          _LevelObjectivePanel(
+                            text: objectiveText!,
+                            compact: metrics.compact,
+                          ),
+                        ],
                         if (state.hasAnyModifier) ...[
                           SizedBox(height: metrics.outerGap),
                           _ModifierPanel(
@@ -240,10 +262,10 @@ class RunTableScreen extends StatelessWidget {
                             compact: metrics.compact,
                           ),
                         ],
-                        if (ruleBanner case final banner?) ...[
+                        if (levelRules.isNotEmpty) ...[
                           SizedBox(height: metrics.outerGap),
                           _LevelRulePanel(
-                            text: banner,
+                            rules: levelRules,
                             compact: metrics.compact,
                           ),
                         ],
@@ -259,6 +281,7 @@ class RunTableScreen extends StatelessWidget {
                                 : presentation.label,
                             presentationSequence: presentation.sequence,
                             cardHeight: metrics.jokerHeight,
+                            compactSlots: compactJokerSlots,
                             onInspect: onInspectJoker,
                           ),
                         ),
@@ -626,6 +649,7 @@ class _HeatHud extends StatelessWidget {
     required this.stakeText,
     required this.compact,
     required this.stageLabel,
+    required this.stageValue,
     required this.showRunCoins,
   });
 
@@ -633,12 +657,13 @@ class _HeatHud extends StatelessWidget {
   final String? stakeText;
   final bool compact;
   final String stageLabel;
+  final int? stageValue;
   final bool showRunCoins;
 
   @override
   Widget build(BuildContext context) {
     final cells = <(String, String, _HudAccent)>[
-      (stageLabel, '${state.stage}', _HudAccent.cream),
+      (stageLabel, '${stageValue ?? state.stage}', _HudAccent.cream),
       ('PLAYS', '${state.handsLeft}', _HudAccent.coral),
       ('DISCARDS', '${state.discardsLeft}', _HudAccent.coral),
       ('DECK', '${state.deckCardsLeft}', _HudAccent.violet),
@@ -655,6 +680,9 @@ class _HeatHud extends StatelessWidget {
             if (index > 0) const SizedBox(width: 3),
             Expanded(
               child: _HudCell(
+                key: ValueKey(
+                  'hud-${cells[index].$1.toLowerCase().replaceAll(' ', '-')}',
+                ),
                 label: cells[index].$1,
                 value: cells[index].$2,
                 accent: cells[index].$3,
@@ -676,6 +704,7 @@ class _HudCell extends StatelessWidget {
     required this.value,
     required this.accent,
     required this.compact,
+    super.key,
   });
 
   final String label;
@@ -740,11 +769,13 @@ class _TargetPanel extends StatelessWidget {
   const _TargetPanel({
     required this.state,
     required this.compact,
+    required this.scoreLabel,
     this.stageScoreOverride,
   });
 
   final ScoringState state;
   final bool compact;
+  final String scoreLabel;
   final int? stageScoreOverride;
 
   @override
@@ -766,7 +797,7 @@ class _TargetPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Heat score: ${_formatNumber(stageScore)}',
+                  '$scoreLabel: ${_formatNumber(stageScore)}',
                   style: TextStyle(
                     color: tokens.cream,
                     fontSize: compact ? 11 : 13,
@@ -880,8 +911,8 @@ class _ModifierPanel extends StatelessWidget {
   }
 }
 
-class _LevelRulePanel extends StatelessWidget {
-  const _LevelRulePanel({required this.text, required this.compact});
+class _LevelObjectivePanel extends StatelessWidget {
+  const _LevelObjectivePanel({required this.text, required this.compact});
 
   final String text;
   final bool compact;
@@ -889,7 +920,122 @@ class _LevelRulePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.wildcard;
+    final objectives = text
+        .split('\n')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
     return Container(
+      key: const Key('level-objective-panel'),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 7 : 9),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          tokens.gold.withValues(alpha: .12),
+          tokens.surfaceStrong,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: tokens.gold, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.flag_rounded, color: tokens.gold, size: 17),
+              const SizedBox(width: 6),
+              Text(
+                'LEVEL OBJECTIVE',
+                style: TextStyle(
+                  color: tokens.gold,
+                  fontWeight: FontWeight.w700,
+                  fontSize: compact ? 9.5 : 10.5,
+                  letterSpacing: .55,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: compact ? 4 : 6),
+          for (var index = 0; index < objectives.length; index++) ...[
+            _ObjectiveProgressRow(text: objectives[index], compact: compact),
+            if (index < objectives.length - 1) const SizedBox(height: 3),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ObjectiveProgressRow extends StatelessWidget {
+  const _ObjectiveProgressRow({required this.text, required this.compact});
+
+  final String text;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    final upper = text.toUpperCase();
+    final failed =
+        upper.contains('BROKEN') ||
+        upper.contains('MISSED') ||
+        upper.contains('FORBIDDEN');
+    final fraction = RegExp(r'(\d+)\s*/\s*(\d+)').firstMatch(text);
+    final complete =
+        !failed &&
+        (upper.contains('✓') ||
+            (fraction != null &&
+                int.parse(fraction.group(1)!) >=
+                    int.parse(fraction.group(2)!)));
+    final color = failed
+        ? tokens.coral
+        : complete
+        ? tokens.mint
+        : tokens.cream;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          failed
+              ? Icons.cancel_rounded
+              : complete
+              ? Icons.check_circle_rounded
+              : Icons.radio_button_unchecked_rounded,
+          color: color,
+          size: compact ? 14 : 16,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: compact ? 9.5 : 10.5,
+              height: 1.18,
+              fontWeight: complete || failed
+                  ? FontWeight.w700
+                  : FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LevelRulePanel extends StatelessWidget {
+  const _LevelRulePanel({required this.rules, required this.compact});
+
+  final List<String> rules;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    return Container(
+      key: const Key('level-rule-panel'),
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 7 : 9),
       decoration: BoxDecoration(
@@ -900,24 +1046,63 @@ class _LevelRulePanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: tokens.violet, width: 1.5),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.rule_rounded, color: tokens.gold, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              maxLines: compact ? 3 : 4,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: tokens.cream,
-                fontSize: compact ? 9.5 : 10.5,
-                height: 1.2,
-                fontWeight: FontWeight.w600,
+          Row(
+            children: [
+              Icon(Icons.rule_rounded, color: tokens.violet, size: 17),
+              const SizedBox(width: 6),
+              Text(
+                'TABLE RULES',
+                style: TextStyle(
+                  color: tokens.violet,
+                  fontWeight: FontWeight.w700,
+                  fontSize: compact ? 9.5 : 10.5,
+                  letterSpacing: .55,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: compact ? 5 : 7),
+          for (var index = 0; index < rules.length; index++) ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: compact ? 5 : 6,
+              ),
+              decoration: BoxDecoration(
+                color: tokens.violet.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: tokens.violet.withValues(alpha: .38)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    color: tokens.gold,
+                    size: compact ? 14 : 16,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      rules[index],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.cream,
+                        fontSize: compact ? 9.5 : 10.5,
+                        height: 1.18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+            if (index < rules.length - 1) const SizedBox(height: 4),
+          ],
         ],
       ),
     );
@@ -932,6 +1117,7 @@ class _JokerSection extends StatelessWidget {
     required this.summary,
     required this.presentationSequence,
     required this.cardHeight,
+    required this.compactSlots,
     required this.onInspect,
   });
 
@@ -941,6 +1127,7 @@ class _JokerSection extends StatelessWidget {
   final String? summary;
   final int presentationSequence;
   final double cardHeight;
+  final bool compactSlots;
   final ValueChanged<JokerDefinition>? onInspect;
 
   @override
@@ -963,6 +1150,36 @@ class _JokerSection extends StatelessWidget {
     final activeSummary = activeJokerDefinition != null && triggerLabel != null
         ? '${activeJokerDefinition.name} \u00b7 $triggerLabel'
         : null;
+    if (compactSlots && state.jokerIds.isEmpty) {
+      return Container(
+        key: const ValueKey('level-no-jokers'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        decoration: BoxDecoration(
+          color: tokens.panel.withValues(alpha: .88),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: tokens.line.withValues(alpha: .9)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.style_outlined, color: tokens.mint, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'NO JOKERS · THIS TABLE TESTS THE CARDS ALONE',
+                style: TextStyle(
+                  color: tokens.creamDim,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 9.5,
+                  letterSpacing: .25,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    final slotCount = compactSlots ? state.jokerIds.length : maxJokers;
     return Column(
       children: [
         Row(
@@ -1007,7 +1224,7 @@ class _JokerSection extends StatelessWidget {
               spacing: gap,
               runSpacing: gap,
               children: [
-                for (var index = 0; index < maxJokers; index++)
+                for (var index = 0; index < slotCount; index++)
                   SizedBox(
                     width: width,
                     child: Builder(

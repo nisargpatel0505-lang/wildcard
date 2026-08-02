@@ -199,6 +199,8 @@ class _WildcardAppState extends State<WildcardApp> {
         MaterialPageRoute<void>(
           builder: (_) => LevelBriefScreen(
             level: level,
+            priorAttempts:
+                widget.controller.account.levelAttempts[level.id] ?? 0,
             onLaunch: (request) => unawaited(_launchLevel(request)),
           ),
         ),

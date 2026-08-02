@@ -64,6 +64,12 @@ sequence state, variety, quality, premium-hand type coverage, forbidden hands
 and per-hand cumulative checkpoints. It supplies concise objective/progress
 text for Sly's Level-only speech panel.
 
+An objective-only table has `target_score: 0` and clears on the same committed
+hand that completes its stated objective. A score target is combined with other
+conditions only when the player-facing description explicitly says to reach a
+target or checkpoint; Level 11 therefore clears on its third Pair without a
+hidden score gate.
+
 The controller installs the catalog target, hands, discards, hand size, maximum
 selection, exact deck and temporary Jokers. It also supports discard target
 tax, shrinking discards, rotating/blackout/fading Jokers, disabled-suit
@@ -119,7 +125,7 @@ faded/blocked Joker state, phase and pending transition.
   optional solver-route validation CLI.
 - `test/domain/level_mode/` and `test/app/level_mode_flow_test.dart`: catalog,
   scoring, objectives, controller, save/merge, simulation and UI coverage.
-- `pubspec.yaml`: version `8.6.0+67` and the production data asset.
+- `pubspec.yaml`: version `8.6.1+68` and the production data asset.
 
 ## Exact shipping level table
 
@@ -137,14 +143,14 @@ Target `0` denotes an objective-only table, not missing data.
 | 8 | Same Suit | 0 | 5 | 5 | 12 |
 | 9 | Full House | 0 | 5 | 5 | 12 |
 | 10 | First Score Test | 515 | 5 | 5 | 12 |
-| 11 | Pair Chain | 145 | 4 | 5 | 12 |
-| 12 | Two Pair Chain | 240 | 4 | 5 | 12 |
-| 13 | Mixed Set | 305 | 5 | 5 | 12 |
-| 14 | Straight Practice | 455 | 5 | 5 | 12 |
-| 15 | Flush Practice | 530 | 5 | 5 | 12 |
-| 16 | House Party | 425 | 5 | 5 | 12 |
-| 17 | Four Strong | 600 | 5 | 5 | 12 |
-| 18 | Variety Pack | 550 | 5 | 5 | 12 |
+| 11 | Pair Chain | 0 | 4 | 5 | 12 |
+| 12 | Two Pair Chain | 0 | 4 | 5 | 12 |
+| 13 | Mixed Set | 0 | 5 | 5 | 12 |
+| 14 | Straight Practice | 0 | 5 | 5 | 12 |
+| 15 | Flush Practice | 0 | 5 | 5 | 12 |
+| 16 | House Party | 0 | 5 | 5 | 12 |
+| 17 | Four Strong | 0 | 5 | 5 | 12 |
+| 18 | Variety Pack | 0 | 5 | 5 | 12 |
 | 19 | No Waste | 450 | 5 | 5 | 12 |
 | 20 | Basics Final | 535 | 5 | 5 | 12 |
 | 21 | No High Cards | 380 | 5 | 5 | 12 |
@@ -158,7 +164,7 @@ Target `0` denotes an objective-only table, not missing data.
 | 29 | Final Hand | 410 | 5 | 5 | 12 |
 | 30 | Modifier Checkpoint | 450 | 5 | 5 | 12 |
 | 31 | One of Each | 460 | 5 | 5 | 12 |
-| 32 | In Order | 300 | 5 | 5 | 12 |
+| 32 | In Order | 0 | 5 | 5 | 12 |
 | 33 | Even Lock | 625 | 5 | 5 | 20 |
 | 34 | Odd Lock | 610 | 5 | 5 | 20 |
 | 35 | Suit Shift | 455 | 5 | 5 | 12 |
@@ -168,10 +174,10 @@ Target `0` denotes an objective-only table, not missing data.
 | 39 | Rising Pressure | 375 | 4 | 3 | 12 |
 | 40 | Modifier Final | 420 | 5 | 5 | 12 |
 | 41 | Quarter Blocked | 445 | 5 | 5 | 20 |
-| 42 | Pairs Through It | 335 | 5 | 5 | 20 |
-| 43 | Double Pair | 360 | 5 | 5 | 20 |
-| 44 | Broken Run | 380 | 5 | 5 | 20 |
-| 45 | Thin Suit | 410 | 5 | 5 | 20 |
+| 42 | Pairs Through It | 0 | 5 | 5 | 20 |
+| 43 | Double Pair | 0 | 5 | 5 | 20 |
+| 44 | Broken Run | 0 | 5 | 5 | 20 |
+| 45 | Thin Suit | 0 | 5 | 5 | 20 |
 | 46 | Forty Down | 450 | 5 | 5 | 20 |
 | 47 | Adapt | 515 | 5 | 5 | 20 |
 | 48 | Half Deck | 385 | 5 | 5 | 20 |
@@ -182,8 +188,8 @@ Target `0` denotes an objective-only table, not missing data.
 | 53 | Half and Faceless | 385 | 5 | 5 | 20 |
 | 54 | Red Rescue | 395 | 5 | 5 | 20 |
 | 55 | Black Rescue | 395 | 5 | 5 | 20 |
-| 56 | Half Variety | 415 | 5 | 5 | 20 |
-| 57 | Half Sequence | 320 | 5 | 5 | 20 |
+| 56 | Half Variety | 0 | 5 | 5 | 20 |
+| 57 | Half Sequence | 0 | 5 | 5 | 20 |
 | 58 | Half Pressure | 525 | 4 | 3 | 20 |
 | 59 | Shifting Suit | 410 | 5 | 5 | 20 |
 | 60 | Restricted Final | 400 | 5 | 5 | 20 |
@@ -200,7 +206,7 @@ Target `0` denotes an objective-only table, not missing data.
 | 71 | Pair Architect | 850 | 5 | 5 | 12 |
 | 72 | Straight Architect | 1545 | 5 | 5 | 12 |
 | 73 | Flush Architect | 1425 | 5 | 5 | 12 |
-| 74 | Rank Architect | 875 | 5 | 5 | 12 |
+| 74 | Rank Architect | 0 | 5 | 5 | 12 |
 | 75 | Dead Slot | 1320 | 5 | 5 | 12 |
 | 76 | Rising Power | 1025 | 5 | 5 | 12 |
 | 77 | Joker Blackout | 1125 | 5 | 5 | 12 |
@@ -213,13 +219,13 @@ Target `0` denotes an objective-only table, not missing data.
 | 84 | Red Build | 1525 | 5 | 5 | 12 |
 | 85 | Expensive Discards | 1725 | 5 | 5 | 12 |
 | 86 | Scorched Ranks | 3700 | 5 | 5 | 12 |
-| 87 | Combo Ladder | 710 | 5 | 5 | 12 |
+| 87 | Combo Ladder | 0 | 5 | 5 | 12 |
 | 88 | Four Styles | 2950 | 5 | 5 | 12 |
 | 89 | Half-Deck Blackout | 1795 | 5 | 5 | 20 |
 | 90 | Expert Final | 2500 | 5 | 5 | 12 |
 | 91 | Open Build | 6100 | 5 | 5 | 12 |
 | 92 | Half-Deck Power | 1475 | 5 | 5 | 20 |
-| 93 | Half-Deck Variety | 3300 | 5 | 5 | 20 |
+| 93 | Half-Deck Variety | 0 | 5 | 5 | 20 |
 | 94 | Minimal Discards | 1970 | 5 | 2 | 12 |
 | 95 | Faceless Build | 1000 | 5 | 5 | 20 |
 | 96 | Low-Card Lock | 2100 | 5 | 5 | 20 |

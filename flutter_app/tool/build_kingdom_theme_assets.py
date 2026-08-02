@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Build the four WILDCARD kingdom cosmetic asset packs.
+"""Validate or selectively rebuild the four WILDCARD kingdom asset packs.
 
-The script preserves the shipping environments and Sly artwork, then derives:
-* uncluttered 1080x1920 gameplay backgrounds,
-* 1024x1024 suit-specific felt textures,
-* strict 3x3 expression atlases and 2x2 action atlases.
+The commissioned gameplay rooms and table surfaces are source artwork and must
+not be overwritten by a routine helper run. By default this script now only
+validates the shipping assets. It can still rebuild the deterministic Sly
+atlases, or produce fallback gameplay rooms from the matching kingdom home art
+when explicitly requested.
 """
 
 from __future__ import annotations
 
 import math
 import random
+import argparse
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
@@ -25,7 +27,7 @@ TABLES = ROOT / "assets" / "tables"
 
 PACKS = {
     "hearts": {
-        "home": BACKGROUNDS / "wildcard-theme-ember-casino.webp",
+        "home": BACKGROUNDS / "wildcard-theme-hearts-kingdom-home.webp",
         "game": BACKGROUNDS / "wildcard-kingdom-hearts-gameplay.webp",
         "table": TABLES / "kingdom_hearts_felt.webp",
         "sly": SLY / "sly-hearts-expression-grid.webp",
@@ -37,7 +39,7 @@ PACKS = {
         "ink": "#120609",
     },
     "spades": {
-        "home": BACKGROUNDS / "wildcard-theme-moonlit-masquerade.webp",
+        "home": BACKGROUNDS / "wildcard-theme-spades-kingdom-home.webp",
         "game": BACKGROUNDS / "wildcard-kingdom-spades-gameplay.webp",
         "table": TABLES / "kingdom_spades_felt.webp",
         "sly": SLY / "sly-spades-expression-grid.webp",
@@ -49,7 +51,7 @@ PACKS = {
         "ink": "#070A12",
     },
     "diamonds": {
-        "home": BACKGROUNDS / "wildcard-theme-clockwork-royale.webp",
+        "home": BACKGROUNDS / "wildcard-theme-diamonds-kingdom-home.webp",
         "game": BACKGROUNDS / "wildcard-kingdom-diamonds-gameplay.webp",
         "table": TABLES / "kingdom_diamonds_felt.webp",
         "sly": SLY / "sly-diamonds-expression-grid.webp",
@@ -61,7 +63,7 @@ PACKS = {
         "ink": "#0D0A10",
     },
     "clubs": {
-        "home": BACKGROUNDS / "wildcard-theme-emerald-throne.webp",
+        "home": BACKGROUNDS / "wildcard-theme-clubs-kingdom-home.webp",
         "game": BACKGROUNDS / "wildcard-kingdom-clubs-gameplay.webp",
         "table": TABLES / "kingdom_clubs_felt.webp",
         "sly": SLY / "sly-clubs-expression-grid.webp",
@@ -283,10 +285,26 @@ def validate() -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--rebuild-sly",
+        action="store_true",
+        help="rebuild the deterministic expression and action atlases",
+    )
+    parser.add_argument(
+        "--rebuild-fallback-backgrounds",
+        action="store_true",
+        help=(
+            "replace commissioned gameplay rooms with simple crops of each "
+            "matching kingdom home image"
+        ),
+    )
+    args = parser.parse_args()
     for suit, pack in PACKS.items():
-        build_gameplay_background(suit, pack)
-        build_table(suit, pack)
-        build_sly_assets(suit, pack)
+        if args.rebuild_fallback_backgrounds:
+            build_gameplay_background(suit, pack)
+        if args.rebuild_sly:
+            build_sly_assets(suit, pack)
     validate()
 
 

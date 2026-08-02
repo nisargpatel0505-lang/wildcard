@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/domain/cards.dart';
+import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/level_mode/level_catalog.dart';
 import 'package:wildcard/domain/level_mode/level_definition.dart';
 
@@ -38,6 +39,48 @@ void main() {
             .every((layout) => layout.deckCodes.length == 26),
         isTrue,
       );
+    });
+
+    test('objective-only tables never hide an additional score target', () {
+      final catalog = LevelCatalog.fromJsonString(productionSource);
+      const objectiveOnlyLevels = <int>[
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        32,
+        42,
+        43,
+        44,
+        45,
+        56,
+        57,
+        74,
+        87,
+        93,
+      ];
+
+      for (final levelId in objectiveOnlyLevels) {
+        expect(
+          catalog.level(levelId).objective.targetScore,
+          0,
+          reason: 'Level $levelId must clear when its stated objective clears',
+        );
+      }
+
+      final pairChain = catalog.level(11);
+      expect(pairChain.description, 'Score three Pairs in four plays.');
+      expect(pairChain.objective.requiredCounts, <HandType, int>{
+        HandType.pair: 3,
+      });
+
+      // Combined challenges that explicitly say "reach the target" retain it.
+      expect(catalog.level(10).objective.targetScore, 515);
+      expect(catalog.level(82).objective.targetScore, 3300);
     });
 
     test(
