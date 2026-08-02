@@ -269,7 +269,7 @@ recommended-loadout frequencies are saved in:
 
 ## Verification
 
-- Final Dart static analysis: no issues.
+- Final `flutter analyze --no-pub`: no issues (26.7 seconds).
 - Level Mode domain/controller/UI suite: 73/73 passed.
 - Existing app/core/game/services partition: 93/93 passed.
 - Existing UI/golden partition: 138/138 passed.
