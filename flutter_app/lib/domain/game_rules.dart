@@ -259,6 +259,11 @@ class ScoringState {
     this.previousHandType,
     this.previousGauntletModifierName,
     this.endless = false,
+    this.targetOverride,
+    this.handsPerHeatOverride,
+    this.discardsOverride,
+    this.handSizeOverride,
+    this.maxSelectOverride,
   }) : rngCounters = rngCounters ?? RandomCounters(),
        // Both of these are live, mutating run state: Jokers are bought and
        // sold, cards are cut and copied. A caller handing in a fixed-length
@@ -268,7 +273,12 @@ class ScoringState {
        blockedJokerIds = blockedJokerIds ?? <String>{},
        jokerState = jokerState ?? <String, double>{},
        cards = cards == null ? baseCardSet() : List<PlayingCard>.of(cards),
-       handLevels = handLevels ?? <HandType, int>{},
+       // Hand levels are mutable run state (shops and Level setup replace
+       // them). Always own a growable copy even when a catalog or decoder
+       // supplies an unmodifiable map.
+       handLevels = Map<HandType, int>.of(
+         handLevels ?? const <HandType, int>{},
+       ),
        modifiers = _uniqueModifiers(
          modifierStack ??
              (modifier == null
@@ -300,6 +310,14 @@ class ScoringState {
   HandType? previousHandType;
   String? previousGauntletModifierName;
   bool endless;
+
+  /// Level Mode installs authored table limits here. They are deliberately
+  /// nullable so every Arcade run continues through the original rules.
+  int? targetOverride;
+  int? handsPerHeatOverride;
+  int? discardsOverride;
+  int? handSizeOverride;
+  int? maxSelectOverride;
 
   bool get isGauntlet => mode == RunMode.gauntlet;
   bool get isDaily => mode == RunMode.daily;
@@ -349,26 +367,32 @@ class ScoringState {
   }
 
   int get effectiveDiscards =>
-      discardsPerHeat - (hasModifier(HeatModifier.cold) ? 1 : 0);
+      discardsOverride ??
+      (discardsPerHeat - (hasModifier(HeatModifier.cold) ? 1 : 0));
 
   int get effectiveHandSize =>
-      handSize -
-      (hasModifier(HeatModifier.shortStack) ? 1 : 0) -
-      (hasModifier(HeatModifier.famine) ? 2 : 0);
+      handSizeOverride ??
+      (handSize -
+          (hasModifier(HeatModifier.shortStack) ? 1 : 0) -
+          (hasModifier(HeatModifier.famine) ? 2 : 0));
 
-  int get effectiveHandsPerHeat => math.max(
-    1,
-    handsPerHeat -
-        (hasModifier(HeatModifier.closingTime) ? 1 : 0) -
-        (isJokerActive('overclock') ? 1 : 0),
-  );
+  int get effectiveHandsPerHeat =>
+      handsPerHeatOverride ??
+      math.max(
+        1,
+        handsPerHeat -
+            (hasModifier(HeatModifier.closingTime) ? 1 : 0) -
+            (isJokerActive('overclock') ? 1 : 0),
+      );
 
   int get effectiveMaxSelect {
+    if (maxSelectOverride case final value?) return value;
     if (hasModifier(HeatModifier.lowCeiling)) return 4;
     return isJokerActive('cheat') ? 6 : maxSelectedCards;
   }
 
   int get target {
+    if (targetOverride case final value?) return math.max(0, value);
     final safeStage = math.max(1, stage);
     var result = safeStage <= 12
         ? heatTargets[safeStage - 1]

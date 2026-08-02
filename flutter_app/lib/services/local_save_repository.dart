@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_constants.dart';
+import '../domain/account_state.dart';
 
 class LegacySaveSnapshot {
   const LegacySaveSnapshot({
@@ -180,6 +181,18 @@ class LocalSaveRepository {
 
   Map<String, dynamic>? decodeAccount() => _decodeObject(accountJson);
 
+  /// Decodes the local account through the same typed, backward-compatible
+  /// migration path used by app bootstrap and cloud reconciliation.
+  AccountState? decodeAccountState() {
+    final source = accountJson;
+    if (source == null || source.isEmpty) return null;
+    try {
+      return AccountState.decode(source);
+    } on FormatException {
+      return null;
+    }
+  }
+
   Map<String, dynamic>? decodeRun() => _decodeObject(runJson);
 
   Map<String, dynamic>? _decodeObject(String? source) {
@@ -194,6 +207,11 @@ class LocalSaveRepository {
 
   Future<void> writeAccount(Map<String, dynamic> account) =>
       writeAccountJson(jsonEncode(account));
+
+  Future<void> writeAccountState(
+    AccountState account, {
+    int? savedAtOverride,
+  }) => writeAccountJson(account.encode(savedAtOverride: savedAtOverride));
 
   Future<void> writeRun(Map<String, dynamic>? run) =>
       run == null ? clearRun() : writeRunJson(jsonEncode(run));

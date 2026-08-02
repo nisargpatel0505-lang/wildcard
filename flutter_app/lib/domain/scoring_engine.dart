@@ -7,6 +7,103 @@ import 'random_streams.dart';
 
 enum ScoreEventType { card, rankJoker, retrigger, seven, mult, xMult }
 
+enum LevelRankColor { red, black }
+
+/// Immutable, per-play scoring rules used only by a Level Mode attempt.
+///
+/// The controller owns changing attempt state (the play number, hand history,
+/// and currently disabled suit) and creates a fresh override for each preview
+/// and committed score. Passing no override preserves the Arcade pipeline.
+class LevelScoringOverride {
+  LevelScoringOverride({
+    this.highCardScoresZero = false,
+    Set<HandType> allowedHandTypes = const <HandType>{},
+    this.faceRanksScoreZero = false,
+    this.scoringColor,
+    this.redRankFactor = 1,
+    this.blackRankFactor = 1,
+    Map<HandType, int> previousHandCounts = const <HandType, int>{},
+    this.repeatDecay = 0,
+    this.repeatedHandsScoreZero = false,
+    this.playIndex = 0,
+    List<double> perPlayScoreFactors = const <double>[],
+    this.disabledSuit,
+    this.hasAuthoredModifier = false,
+    this.authoredModifierCount = 0,
+  }) : allowedHandTypes = Set<HandType>.unmodifiable(allowedHandTypes),
+       previousHandCounts = Map<HandType, int>.unmodifiable(previousHandCounts),
+       perPlayScoreFactors = List<double>.unmodifiable(perPlayScoreFactors) {
+    if (redRankFactor < 0 || !redRankFactor.isFinite) {
+      throw ArgumentError.value(redRankFactor, 'redRankFactor');
+    }
+    if (blackRankFactor < 0 || !blackRankFactor.isFinite) {
+      throw ArgumentError.value(blackRankFactor, 'blackRankFactor');
+    }
+    if (repeatDecay < 0 || repeatDecay > 1 || !repeatDecay.isFinite) {
+      throw ArgumentError.value(repeatDecay, 'repeatDecay');
+    }
+    if (playIndex < 0) throw ArgumentError.value(playIndex, 'playIndex');
+    if (authoredModifierCount < 0) {
+      throw ArgumentError.value(authoredModifierCount, 'authoredModifierCount');
+    }
+    if (previousHandCounts.values.any((count) => count < 0)) {
+      throw ArgumentError.value(previousHandCounts, 'previousHandCounts');
+    }
+    if (perPlayScoreFactors.any((factor) => factor < 0 || !factor.isFinite)) {
+      throw ArgumentError.value(perPlayScoreFactors, 'perPlayScoreFactors');
+    }
+  }
+
+  final bool highCardScoresZero;
+  final Set<HandType> allowedHandTypes;
+  final bool faceRanksScoreZero;
+  final LevelRankColor? scoringColor;
+  final double redRankFactor;
+  final double blackRankFactor;
+  final Map<HandType, int> previousHandCounts;
+  final double repeatDecay;
+  final bool repeatedHandsScoreZero;
+
+  /// Zero-based number of scoring hands already resolved in this level.
+  final int playIndex;
+  final List<double> perPlayScoreFactors;
+
+  /// The visible suit disabled for this play, after rotation is resolved.
+  final CardSuit? disabledSuit;
+
+  /// Authored Level modifiers are rule descriptors, not Arcade
+  /// [HeatModifier] values. Their count lives here so modifier-sensitive
+  /// Jokers work without injecting fake Heat modifiers and their side effects.
+  final bool hasAuthoredModifier;
+  final int authoredModifierCount;
+
+  int previousCount(HandType type) => previousHandCounts[type] ?? 0;
+
+  double get perPlayFactor => playIndex < perPlayScoreFactors.length
+      ? perPlayScoreFactors[playIndex]
+      : 1;
+
+  bool suppressesRank(PlayingCard card) {
+    if (disabledSuit == card.suit) return true;
+    if (faceRanksScoreZero &&
+        const <CardRank>{
+          CardRank.jack,
+          CardRank.queen,
+          CardRank.king,
+        }.contains(card.rank)) {
+      return true;
+    }
+    return switch (scoringColor) {
+      LevelRankColor.red => !card.isRed,
+      LevelRankColor.black => card.isRed,
+      null => false,
+    };
+  }
+
+  double rankFactor(PlayingCard card) =>
+      card.isRed ? redRankFactor : blackRankFactor;
+}
+
 class ScoreEvent {
   const ScoreEvent({
     required this.type,
@@ -235,9 +332,10 @@ JokerModifierStatus jokerModifierStatus(
 }
 
 class WildcardScoringEngine {
-  WildcardScoringEngine(this.state);
+  WildcardScoringEngine(this.state, {this.levelOverride});
 
   final ScoringState state;
+  final LevelScoringOverride? levelOverride;
 
   List<_EquippedJoker> get _activeJokers => <_EquippedJoker>[
     for (var index = 0; index < state.jokerIds.length; index++)
@@ -247,6 +345,15 @@ class WildcardScoringEngine {
   ];
 
   bool hasJoker(String id) => state.isJokerActive(id);
+
+  bool get _hasEffectiveModifier =>
+      state.hasAnyModifier ||
+      (levelOverride?.hasAuthoredModifier ?? false) ||
+      _effectiveModifierCount > 0;
+
+  int get _effectiveModifierCount => levelOverride == null
+      ? state.modifiers.length
+      : math.max(state.modifiers.length, levelOverride!.authoredModifierCount);
 
   int _evaluationValue(PlayingCard card) =>
       hasJoker('alchemist') && card.rank == CardRank.two ? 15 : card.value;
@@ -364,9 +471,10 @@ class WildcardScoringEngine {
     if (type == HandType.highCard) {
       var pool = cards;
       if (state.hasModifier(HeatModifier.heartless) ||
-          state.hasModifier(HeatModifier.frostbite)) {
+          state.hasModifier(HeatModifier.frostbite) ||
+          levelOverride != null) {
         final liveCards = cards
-            .where((card) => !state.cardRankSuppressed(card))
+            .where((card) => !_cardRankSuppressed(card))
             .toList();
         if (liveCards.isNotEmpty) pool = liveCards;
       }
@@ -399,7 +507,7 @@ class WildcardScoringEngine {
   }
 
   int cardEffectiveRankForScoring(PlayingCard card) {
-    if (state.cardRankSuppressed(card)) return 0;
+    if (_cardRankSuppressed(card)) return 0;
     var value = _evaluationValue(card);
     for (final joker in _activeJokers) {
       value += _rankBonus(joker.definition.effect, card);
@@ -413,7 +521,7 @@ class WildcardScoringEngine {
         }.contains(card.rank)) {
       value *= 2;
     }
-    return value;
+    return _applyLevelRankFactor(value, card);
   }
 
   ScoreResult scoreHand(
@@ -434,7 +542,7 @@ class WildcardScoringEngine {
         if (analyzed.scoringCards.contains(cards[index])) index,
     ];
     final firstScoringIndex = scoringIndices.firstWhere(
-      (index) => !state.cardRankSuppressed(cards[index]),
+      (index) => !_cardRankSuppressed(cards[index]),
       orElse: () => -1,
     );
     final lastScoringIndex = scoringIndices.isEmpty ? -1 : scoringIndices.last;
@@ -448,26 +556,31 @@ class WildcardScoringEngine {
         continue;
       }
       var value = 0;
-      if (!state.cardRankSuppressed(card)) {
-        value = _evaluationValue(card);
+      if (!_cardRankSuppressed(card)) {
+        final levelRankFactor = levelOverride?.rankFactor(card) ?? 1;
+        value = _applyLevelRankFactor(_evaluationValue(card), card);
         rankSum += value;
         events.add(
           ScoreEvent(
             type: ScoreEventType.card,
             cardIndex: cardIndex,
             amount: value,
-            label: '+$value',
+            label: levelRankFactor == 1
+                ? '+$value'
+                : '${card.isRed ? 'RED' : 'BLACK'} '
+                      '×${_formatFactor(levelRankFactor)} +$value',
           ),
         );
         for (final joker in _activeJokers) {
-          final bonus = _rankBonus(
+          final rawBonus = _rankBonus(
             joker.definition.effect,
             card,
             cardIndex: cardIndex,
             firstScoringIndex: firstScoringIndex,
             lastScoringIndex: lastScoringIndex,
           );
-          if (bonus != 0) {
+          if (rawBonus != 0) {
+            final bonus = _applyLevelRankFactor(rawBonus, card);
             value += bonus;
             rankSum += bonus;
             events.add(
@@ -476,20 +589,25 @@ class WildcardScoringEngine {
                 cardIndex: cardIndex,
                 jokerIndex: joker.index,
                 amount: bonus,
-                label: '+$bonus Rank',
+                label: levelRankFactor == 1
+                    ? '+$bonus Rank'
+                    : 'RANK ×${_formatFactor(levelRankFactor)} +$bonus',
               ),
             );
           }
         }
         if (card.enhancement == CardEnhancement.gild) {
-          value += 8;
-          rankSum += 8;
+          final gildBonus = _applyLevelRankFactor(8, card);
+          value += gildBonus;
+          rankSum += gildBonus;
           events.add(
             ScoreEvent(
               type: ScoreEventType.card,
               cardIndex: cardIndex,
-              amount: 8,
-              label: 'GILD +8',
+              amount: gildBonus,
+              label: levelRankFactor == 1
+                  ? 'GILD +8'
+                  : 'GILD ×${_formatFactor(levelRankFactor)} +$gildBonus',
             ),
           );
         }
@@ -498,7 +616,7 @@ class WildcardScoringEngine {
           ScoreEvent(
             type: ScoreEventType.card,
             cardIndex: cardIndex,
-            label: '0',
+            label: _rankSuppressionLabel(card),
           ),
         );
       }
@@ -640,6 +758,51 @@ class WildcardScoringEngine {
       );
     }
 
+    final levelRules = levelOverride;
+    if (levelRules != null) {
+      void applyLevelFactor(double factor, String label) {
+        multiplier *= factor;
+        events.add(
+          ScoreEvent(
+            type: ScoreEventType.xMult,
+            jokerIndex: -1,
+            label: label,
+            amount: factor,
+            multiplier: multiplier,
+          ),
+        );
+      }
+
+      final previousCount = levelRules.previousCount(analyzed.type);
+      if (levelRules.highCardScoresZero && analyzed.type == HandType.highCard) {
+        applyLevelFactor(0, 'LEVEL RULE · HIGH CARD ×0');
+      } else if (levelRules.allowedHandTypes.isNotEmpty &&
+          !levelRules.allowedHandTypes.contains(analyzed.type)) {
+        applyLevelFactor(0, 'LEVEL RULE · HAND NOT ALLOWED ×0');
+      } else if (levelRules.repeatedHandsScoreZero && previousCount > 0) {
+        applyLevelFactor(0, 'LEVEL RULE · NO REPEAT ×0');
+      }
+
+      if (levelRules.repeatDecay > 0 && previousCount > 0) {
+        // The authored wording says each repeat loses a share of its current
+        // value, so decay compounds across prior occurrences. The supplied
+        // public package omits solver routes; route replay can lock this
+        // interpretation if that private validation artifact is recovered.
+        final factor = math
+            .pow(1 - levelRules.repeatDecay, previousCount)
+            .toDouble();
+        applyLevelFactor(factor, 'REPEAT DECAY ×${_formatFactor(factor)}');
+      }
+      final playFactor = levelRules.perPlayFactor;
+      if ((playFactor - 1).abs() > 0.0000001) {
+        applyLevelFactor(
+          playFactor,
+          'PLAY ${levelRules.playIndex + 1} '
+          '×${_formatFactor(playFactor)}',
+        );
+      }
+    }
+
     return ScoreResult(
       handType: analyzed.type,
       base: base,
@@ -754,9 +917,9 @@ class WildcardScoringEngine {
     for (final id in equippedSnapshot) {
       if (!state.isJokerActive(id)) continue;
       if (id == 'dividend') state.runCoins += 2;
-      if (id == 'safe_cracker' && state.modifiers.isNotEmpty) {
+      if (id == 'safe_cracker' && _effectiveModifierCount > 0) {
         state.jokerState['safecrack'] =
-            (state.jokerState['safecrack'] ?? 0) + state.modifiers.length;
+            (state.jokerState['safecrack'] ?? 0) + _effectiveModifierCount;
       }
       if (id == 'glass_joystick') {
         const key = 'glass_joystick_armed';
@@ -768,6 +931,38 @@ class WildcardScoringEngine {
         }
       }
     }
+  }
+
+  bool _cardRankSuppressed(PlayingCard card) =>
+      state.cardRankSuppressed(card) ||
+      (levelOverride?.suppressesRank(card) ?? false);
+
+  // Native rank chips are integer-valued. Round at each authored rank
+  // contribution so per-card chips, rankSum, rankScore, and the final equation
+  // all describe the exact same arithmetic.
+  int _applyLevelRankFactor(int value, PlayingCard card) =>
+      (value * (levelOverride?.rankFactor(card) ?? 1)).round();
+
+  String _rankSuppressionLabel(PlayingCard card) {
+    if (state.cardRankSuppressed(card)) return '0';
+    final rules = levelOverride;
+    if (rules == null) return '0';
+    if (rules.disabledSuit == card.suit) {
+      return '${card.suit.name.toUpperCase()} DISABLED · 0';
+    }
+    if (rules.faceRanksScoreZero &&
+        const <CardRank>{
+          CardRank.jack,
+          CardRank.queen,
+          CardRank.king,
+        }.contains(card.rank)) {
+      return 'FACE RANK · 0';
+    }
+    return switch (rules.scoringColor) {
+      LevelRankColor.red => 'RED CARDS ONLY · 0',
+      LevelRankColor.black => 'BLACK CARDS ONLY · 0',
+      null => 'LEVEL RULE · 0',
+    };
   }
 
   int _rankBonus(
@@ -874,7 +1069,7 @@ class WildcardScoringEngine {
     JokerEffect.hoarder => 0.03 * math.max(0, state.cards.length - 40),
     JokerEffect.ensemble => 0.12 * state.jokerIds.length,
     JokerEffect.warmUp => state.handsPlayedThisStage == 0 ? 0.60 : 0,
-    JokerEffect.chaosTheory => 0.50 * state.modifiers.length,
+    JokerEffect.chaosTheory => 0.50 * _effectiveModifierCount,
     JokerEffect.safeCracker => 0.35 * (state.jokerState['safecrack'] ?? 0),
     _ => 0,
   };
@@ -899,14 +1094,14 @@ class WildcardScoringEngine {
           : 1,
     JokerEffect.sniper => played.length == 1 ? 2.2 : 1,
     JokerEffect.boostFiend => (state.handLevels[handType] ?? 0) > 0 ? 1.3 : 1,
-    JokerEffect.moddedOut => state.hasAnyModifier ? 1.5 : 1,
+    JokerEffect.moddedOut => _hasEffectiveModifier ? 1.5 : 1,
     JokerEffect.tailor => _maxRankCount(state.cards) >= 5 ? 1.4 : 1,
-    JokerEffect.survivor => state.hasAnyModifier ? 2 : 1,
+    JokerEffect.survivor => _hasEffectiveModifier ? 2 : 1,
     JokerEffect.doubleDown => state.previousHandType == handType ? 2 : 1,
     JokerEffect.allIn => state.handsLeft == 1 ? 4 : 0.75,
     JokerEffect.frequencyMeter => _frequencyMeterTriggers(played) ? 1.4 : 1,
     JokerEffect.panicButton => state.discardsLeft == 0 ? 1.4 : 1,
-    JokerEffect.stormHarness => state.hasAnyModifier ? 1.4 : 1,
+    JokerEffect.stormHarness => _hasEffectiveModifier ? 1.4 : 1,
     JokerEffect.guillotine => state.cards.length < 42 ? 1.5 : 1,
     JokerEffect.redline => state.stageScore >= state.target * 0.55 ? 2.5 : 1,
     JokerEffect.masterClass =>
@@ -1004,6 +1199,11 @@ class _EquippedJoker {
 
   final int index;
   final JokerDefinition definition;
+}
+
+String _formatFactor(double factor) {
+  final fixed = factor.toStringAsFixed(2);
+  return fixed.endsWith('0') ? fixed.substring(0, fixed.length - 1) : fixed;
 }
 
 bool _sameInts(List<int> actual, List<int> expected) {

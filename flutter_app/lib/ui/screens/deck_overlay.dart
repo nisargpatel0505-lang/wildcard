@@ -17,6 +17,7 @@ class DeckOverlay extends StatelessWidget {
     required this.liveDrawCards,
     this.currentHand = const <PlayingCard>[],
     this.title = 'This Heat\'s Deck',
+    this.showBlockedCards = false,
     this.onClose,
     super.key,
   });
@@ -25,6 +26,7 @@ class DeckOverlay extends StatelessWidget {
   final List<PlayingCard> liveDrawCards;
   final List<PlayingCard> currentHand;
   final String title;
+  final bool showBlockedCards;
   final VoidCallback? onClose;
 
   @override
@@ -33,6 +35,7 @@ class DeckOverlay extends StatelessWidget {
     final total = allHeatCards.length;
     final live = liveDrawCards.length;
     final played = math.max(0, total - live - currentHand.length);
+    final blocked = showBlockedCards ? math.max(0, 52 - total) : null;
     final totalCounts = _counts(allHeatCards);
     final liveCounts = _counts(liveDrawCards);
 
@@ -99,7 +102,9 @@ class DeckOverlay extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Every rank is visible. Bright = live draw, dim = already out, split = some copies remain.',
+                          showBlockedCards
+                              ? 'Every rank is visible. Red-crossed cards were blocked by this authored layout.'
+                              : 'Every rank is visible. Bright = live draw, dim = already out, split = some copies remain.',
                           style: TextStyle(
                             color: tokens.creamDim,
                             fontSize: 11,
@@ -111,14 +116,16 @@ class DeckOverlay extends StatelessWidget {
                           live: live,
                           inHand: currentHand.length,
                           played: played,
+                          blocked: blocked,
                         ),
                         const SizedBox(height: 10),
                         _DeckMatrix(
                           totalCounts: totalCounts,
                           liveCounts: liveCounts,
+                          showBlockedCards: showBlockedCards,
                         ),
                         const SizedBox(height: 10),
-                        const _DeckLegend(),
+                        _DeckLegend(showBlockedCards: showBlockedCards),
                       ],
                     ),
                   ),
@@ -173,11 +180,13 @@ class _DeckSummary extends StatelessWidget {
     required this.live,
     required this.inHand,
     required this.played,
+    this.blocked,
   });
 
   final int live;
   final int inHand;
   final int played;
+  final int? blocked;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +203,12 @@ class _DeckSummary extends StatelessWidget {
         Expanded(
           child: _SummaryCell(value: '$played', label: 'PLAYED / OUT'),
         ),
+        if (blocked case final value?) ...[
+          const SizedBox(width: 5),
+          Expanded(
+            child: _SummaryCell(value: '$value', label: 'BLOCKED'),
+          ),
+        ],
       ],
     );
   }
@@ -244,10 +259,15 @@ class _SummaryCell extends StatelessWidget {
 }
 
 class _DeckMatrix extends StatelessWidget {
-  const _DeckMatrix({required this.totalCounts, required this.liveCounts});
+  const _DeckMatrix({
+    required this.totalCounts,
+    required this.liveCounts,
+    required this.showBlockedCards,
+  });
 
   final Map<(CardSuit, CardRank), int> totalCounts;
   final Map<(CardSuit, CardRank), int> liveCounts;
+  final bool showBlockedCards;
 
   static const _suits = <CardSuit>[
     CardSuit.spades,
@@ -304,6 +324,7 @@ class _DeckMatrix extends StatelessWidget {
                 cellHeight: cellHeight,
                 totalCounts: totalCounts,
                 liveCounts: liveCounts,
+                showBlockedCards: showBlockedCards,
                 gap: gap,
               ),
             ],
@@ -321,6 +342,7 @@ class _DeckSuitRow extends StatelessWidget {
     required this.cellHeight,
     required this.totalCounts,
     required this.liveCounts,
+    required this.showBlockedCards,
     required this.gap,
   });
 
@@ -329,6 +351,7 @@ class _DeckSuitRow extends StatelessWidget {
   final double cellHeight;
   final Map<(CardSuit, CardRank), int> totalCounts;
   final Map<(CardSuit, CardRank), int> liveCounts;
+  final bool showBlockedCards;
   final double gap;
 
   @override
@@ -359,6 +382,7 @@ class _DeckSuitRow extends StatelessWidget {
             ink: ink,
             total: totalCounts[(suit, rank)] ?? 0,
             live: liveCounts[(suit, rank)] ?? 0,
+            blocked: showBlockedCards && (totalCounts[(suit, rank)] ?? 0) == 0,
           ),
         ],
       ],
@@ -375,6 +399,7 @@ class _DeckCell extends StatelessWidget {
     required this.ink,
     required this.total,
     required this.live,
+    required this.blocked,
     super.key,
   });
 
@@ -385,18 +410,23 @@ class _DeckCell extends StatelessWidget {
   final Color ink;
   final int total;
   final int live;
+  final bool blocked;
 
   @override
   Widget build(BuildContext context) {
     final dead = live == 0;
     final partial = live > 0 && live < total;
-    final cardColor = dead
+    final cardColor = blocked
+        ? const Color(0xFF3B2027)
+        : dead
         ? const Color(0xFF323138)
         : partial
         ? const Color(0xFFF2E8CC)
         : const Color(0xFFFFFCF0);
     return Semantics(
-      label: '${rank.label} of ${suit.name}, $live of $total live',
+      label: blocked
+          ? '${rank.label} of ${suit.name}, blocked from this level'
+          : '${rank.label} of ${suit.name}, $live of $total live',
       child: ExcludeSemantics(
         child: Container(
           width: width,
@@ -405,7 +435,9 @@ class _DeckCell extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: dead
-                  ? context.wildcard.line.withValues(alpha: 0.38)
+                  ? blocked
+                        ? context.wildcard.coral.withValues(alpha: .72)
+                        : context.wildcard.line.withValues(alpha: 0.38)
                   : context.wildcard.mint.withValues(alpha: 0.68),
             ),
             gradient: partial
@@ -459,6 +491,20 @@ class _DeckCell extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (blocked)
+                Positioned(
+                  right: 1,
+                  top: 0,
+                  child: Text(
+                    'X',
+                    style: TextStyle(
+                      color: context.wildcard.coral,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -468,7 +514,9 @@ class _DeckCell extends StatelessWidget {
 }
 
 class _DeckLegend extends StatelessWidget {
-  const _DeckLegend();
+  const _DeckLegend({required this.showBlockedCards});
+
+  final bool showBlockedCards;
 
   @override
   Widget build(BuildContext context) {
@@ -476,10 +524,12 @@ class _DeckLegend extends StatelessWidget {
       alignment: WrapAlignment.center,
       spacing: 12,
       runSpacing: 5,
-      children: const [
-        _LegendItem(color: Color(0xFFFFFCF0), label: 'Live'),
-        _LegendItem(color: Color(0xFFF2E8CC), label: 'Some copies live'),
-        _LegendItem(color: Color(0xFF323138), label: 'Already out'),
+      children: [
+        const _LegendItem(color: Color(0xFFFFFCF0), label: 'Live'),
+        const _LegendItem(color: Color(0xFFF2E8CC), label: 'Some copies live'),
+        const _LegendItem(color: Color(0xFF323138), label: 'Already out'),
+        if (showBlockedCards)
+          const _LegendItem(color: Color(0xFF3B2027), label: 'Blocked at deal'),
       ],
     );
   }

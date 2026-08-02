@@ -5,13 +5,82 @@ import '../domain/cards.dart';
 import '../domain/economy.dart';
 import '../domain/game_rules.dart';
 import '../domain/joker_catalog.dart';
+import '../domain/level_mode/level_definition.dart';
 import '../domain/scoring_engine.dart';
 
 enum RunPhase { game, shop, revive, victory, ended }
 
-enum RunEndReason { defeated, abandoned, banked, dailyComplete, gauntletWon }
+enum RunEndReason {
+  defeated,
+  abandoned,
+  banked,
+  dailyComplete,
+  gauntletWon,
+  levelCleared,
+  levelFailed,
+}
+
+/// The authored, immutable inputs for one campaign table.
+@immutable
+class LevelAttemptConfig {
+  const LevelAttemptConfig({
+    required this.levelId,
+    required this.levelName,
+    required this.layoutId,
+    required this.rngSeed,
+    required this.objective,
+    required this.rules,
+    required this.temporaryJokerIds,
+    required this.deckOrder,
+    required this.hint,
+    required this.visibleModifiers,
+  });
+
+  factory LevelAttemptConfig.fromSelection({
+    required LevelDefinition level,
+    required LevelLayout layout,
+    required Iterable<String> selectedJokerIds,
+  }) => LevelAttemptConfig(
+    levelId: level.id,
+    levelName: level.name,
+    layoutId: layout.id,
+    rngSeed: layout.seed,
+    objective: level.objective,
+    rules: level.rules,
+    temporaryJokerIds: level.temporaryJokerIds(selectedJokerIds),
+    deckOrder: layout.deckOrder,
+    hint: level.hint,
+    visibleModifiers: level.visibleModifiers,
+  );
+
+  final int levelId;
+  final String levelName;
+  final String layoutId;
+  final int rngSeed;
+  final LevelObjective objective;
+  final LevelRules rules;
+  final List<String> temporaryJokerIds;
+  final List<PlayingCard> deckOrder;
+  final String hint;
+  final List<String> visibleModifiers;
+}
+
+@immutable
+class LevelResumeReference {
+  const LevelResumeReference({
+    required this.levelId,
+    required this.layoutId,
+    required this.temporaryJokerIds,
+  });
+
+  final int levelId;
+  final String layoutId;
+  final List<String> temporaryJokerIds;
+}
 
 enum HandSortMode { rank, suit }
+
+enum LevelResultAction { retry, select, next }
 
 enum RunCheckpoint {
   runStarted,
@@ -34,6 +103,8 @@ enum AccountMutationKind {
   stakeSettlement,
   rewardedDouble,
   runFinished,
+  levelAttemptStarted,
+  levelAttemptFinished,
 }
 
 /// An idempotent request to mutate the durable account save.
@@ -68,6 +139,9 @@ class AccountMutation {
     this.enhancedCount = 0,
     this.glassDouble = false,
     this.enteredEndless = false,
+    this.levelId,
+    this.levelScore,
+    this.levelCleared = false,
   });
 
   final String claimId;
@@ -95,6 +169,9 @@ class AccountMutation {
   final int enhancedCount;
   final bool glassDouble;
   final bool enteredEndless;
+  final int? levelId;
+  final int? levelScore;
+  final bool levelCleared;
 }
 
 typedef RunSaveWriter =
@@ -136,6 +213,9 @@ class GameRunConfig {
     this.stake = 0,
     this.guidedFirstRun = false,
     this.scoringPace = ScoringPace.normal,
+    this.levelAttempt,
+    this.highestUnlockedLevel = 1,
+    this.clearedLevelIds = const <int>{},
   });
 
   final int rngSeed;
@@ -151,6 +231,9 @@ class GameRunConfig {
   final int stake;
   final bool guidedFirstRun;
   final ScoringPace scoringPace;
+  final LevelAttemptConfig? levelAttempt;
+  final int highestUnlockedLevel;
+  final Set<int> clearedLevelIds;
 }
 
 class ScoringPacing {

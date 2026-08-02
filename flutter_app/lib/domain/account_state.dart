@@ -121,6 +121,9 @@ class EquippedCosmetics {
 /// The backend treats `accountJson` as an opaque payload. Unknown fields are
 /// retained on write so a Flutter update (or rollback) does not erase metadata.
 class AccountState {
+  static const int firstLevelId = 1;
+  static const int lastLevelId = 100;
+
   AccountState({
     this.savedAt = 0,
     this.coins = 0,
@@ -130,6 +133,10 @@ class AccountState {
     this.firstRunStarted = false,
     this.firstLossCoached = false,
     this.tutorialChestClaimed = false,
+    this.highestUnlockedLevel = firstLevelId,
+    Set<int>? clearedLevelIds,
+    Map<int, int>? levelBestScores,
+    Map<int, int>? levelAttempts,
     this.bestHeat = 0,
     this.bestScore = 0,
     this.muted = false,
@@ -175,7 +182,14 @@ class AccountState {
        runLog = runLog ?? <RunLogRecord>[],
        rewardClaims = rewardClaims ?? <String>[],
        purchaseClaims = purchaseClaims ?? <String, PurchaseClaim>{},
-       unknownFields = unknownFields ?? <String, Object?>{};
+       clearedLevelIds = Set<int>.from(clearedLevelIds ?? const <int>{}),
+       levelBestScores = Map<int, int>.from(
+         levelBestScores ?? const <int, int>{},
+       ),
+       levelAttempts = Map<int, int>.from(levelAttempts ?? const <int, int>{}),
+       unknownFields = unknownFields ?? <String, Object?>{} {
+    _normalizeLevelProgress();
+  }
 
   factory AccountState.decode(String encoded) {
     final value = jsonDecode(encoded);
@@ -204,6 +218,10 @@ class AccountState {
       'firstRunStarted',
       'firstLossCoached',
       'tutorialChestClaimed',
+      'highestUnlockedLevel',
+      'clearedLevelIds',
+      'levelBestScores',
+      'levelAttempts',
       'bestHeat',
       'bestScore',
       'muted',
@@ -252,6 +270,14 @@ class AccountState {
           : tutorialDone,
       firstLossCoached: json['firstLossCoached'] == true,
       tutorialChestClaimed: json['tutorialChestClaimed'] == true,
+      highestUnlockedLevel: _clampInt(
+        json['highestUnlockedLevel'],
+        min: firstLevelId,
+        max: lastLevelId,
+      ),
+      clearedLevelIds: _levelIds(json['clearedLevelIds']),
+      levelBestScores: _levelValueMap(json['levelBestScores']),
+      levelAttempts: _levelValueMap(json['levelAttempts']),
       bestHeat: rawBestHeat,
       bestScore: _clampInt(json['bestScore']),
       muted: muted,
@@ -309,6 +335,10 @@ class AccountState {
   bool firstRunStarted;
   bool firstLossCoached;
   bool tutorialChestClaimed;
+  int highestUnlockedLevel;
+  final Set<int> clearedLevelIds;
+  final Map<int, int> levelBestScores;
+  final Map<int, int> levelAttempts;
   int bestHeat;
   int bestScore;
   bool muted;
@@ -343,56 +373,192 @@ class AccountState {
   final Map<String, PurchaseClaim> purchaseClaims;
   final Map<String, Object?> unknownFields;
 
-  Map<String, Object?> toLegacyJson({int? savedAtOverride}) =>
-      <String, Object?>{
-        ...unknownFields,
-        '_savedAt': savedAtOverride ?? savedAt,
-        'coins': coins,
-        'unlocked': unlockedJokerIds.toList(),
-        'tutorialDone': tutorialDone,
-        'starterGiftClaimed': starterGiftClaimed,
-        'firstRunStarted': firstRunStarted,
-        'firstLossCoached': firstLossCoached,
-        'tutorialChestClaimed': tutorialChestClaimed,
-        'bestHeat': bestHeat,
-        'bestScore': bestScore,
-        'muted': muted,
-        'topRuns': topRuns.map((run) => run.toJson()).toList(),
-        'speed': speed.name,
-        'pacingVersion': 2,
-        'noAds': noAds,
-        'lastDaily': lastDaily,
-        'dailyStreak': dailyStreak,
-        'achievements': achievements,
-        'achievementClaimed': achievementClaimed,
-        'progressCounters': progressCounters,
-        'adDate': adDate,
-        'adViews': adViews,
-        'cosmeticsOwned': cosmeticsOwned.toList(),
-        'equipped': equipped.toJson(),
-        'title': title,
-        'missionWeek': missionWeek,
-        'missionStats': missionStats,
-        'missionClaimed': missionClaimed,
-        'missionSet': missionSet,
-        'missionRotation': missionRotation,
-        'missionRefreshDate': missionRefreshDate,
-        'dailyRunDate': dailyRunDate,
-        'dailyBest': dailyBest.toJson(),
-        'bestClearedHeat': bestClearedHeat,
-        'musicOn': musicOn,
-        'playerName': playerName,
-        'stats': stats.toJson(),
-        'runLog': runLog.map((record) => record.toJson()).toList(),
-        'rewardClaims': rewardClaims,
-        'purchaseClaims': <String, Object?>{
-          for (final entry in purchaseClaims.entries)
-            entry.key: entry.value.toJson(),
-        },
-      };
+  /// Merges only Level Mode progression from [other].
+  ///
+  /// Cloud reconciliation can safely call this before installing a chosen
+  /// account snapshot. Every Level Mode field is monotonic: unlocks and clears
+  /// are never removed, while scores and attempt counters retain their maximum
+  /// observed value rather than being added twice across devices.
+  bool mergeLevelProgressFrom(AccountState other) {
+    var changed = false;
+    final otherHighest = other.highestUnlockedLevel.clamp(
+      firstLevelId,
+      lastLevelId,
+    );
+    if (otherHighest > highestUnlockedLevel) {
+      highestUnlockedLevel = otherHighest;
+      changed = true;
+    }
+    for (final levelId in other.clearedLevelIds) {
+      if (_isValidLevelId(levelId) && clearedLevelIds.add(levelId)) {
+        changed = true;
+      }
+    }
+
+    bool mergeMaximums(Map<int, int> target, Map<int, int> source) {
+      var mapChanged = false;
+      for (final entry in source.entries) {
+        if (!_isValidLevelId(entry.key) || entry.value < 0) continue;
+        final current = target[entry.key] ?? 0;
+        if (entry.value > current) {
+          target[entry.key] = entry.value;
+          mapChanged = true;
+        }
+      }
+      return mapChanged;
+    }
+
+    changed = mergeMaximums(levelBestScores, other.levelBestScores) || changed;
+    changed = mergeMaximums(levelAttempts, other.levelAttempts) || changed;
+    return _normalizeLevelProgress() || changed;
+  }
+
+  Map<String, Object?> toLegacyJson({int? savedAtOverride}) {
+    _normalizeLevelProgress();
+    final sortedCleared = clearedLevelIds.toList()..sort();
+    return <String, Object?>{
+      ...unknownFields,
+      '_savedAt': savedAtOverride ?? savedAt,
+      'coins': coins,
+      'unlocked': unlockedJokerIds.toList(),
+      'tutorialDone': tutorialDone,
+      'starterGiftClaimed': starterGiftClaimed,
+      'firstRunStarted': firstRunStarted,
+      'firstLossCoached': firstLossCoached,
+      'tutorialChestClaimed': tutorialChestClaimed,
+      'highestUnlockedLevel': highestUnlockedLevel,
+      'clearedLevelIds': sortedCleared,
+      'levelBestScores': _sortedLevelValueJson(levelBestScores),
+      'levelAttempts': _sortedLevelValueJson(levelAttempts),
+      'bestHeat': bestHeat,
+      'bestScore': bestScore,
+      'muted': muted,
+      'topRuns': topRuns.map((run) => run.toJson()).toList(),
+      'speed': speed.name,
+      'pacingVersion': 2,
+      'noAds': noAds,
+      'lastDaily': lastDaily,
+      'dailyStreak': dailyStreak,
+      'achievements': achievements,
+      'achievementClaimed': achievementClaimed,
+      'progressCounters': progressCounters,
+      'adDate': adDate,
+      'adViews': adViews,
+      'cosmeticsOwned': cosmeticsOwned.toList(),
+      'equipped': equipped.toJson(),
+      'title': title,
+      'missionWeek': missionWeek,
+      'missionStats': missionStats,
+      'missionClaimed': missionClaimed,
+      'missionSet': missionSet,
+      'missionRotation': missionRotation,
+      'missionRefreshDate': missionRefreshDate,
+      'dailyRunDate': dailyRunDate,
+      'dailyBest': dailyBest.toJson(),
+      'bestClearedHeat': bestClearedHeat,
+      'musicOn': musicOn,
+      'playerName': playerName,
+      'stats': stats.toJson(),
+      'runLog': runLog.map((record) => record.toJson()).toList(),
+      'rewardClaims': rewardClaims,
+      'purchaseClaims': <String, Object?>{
+        for (final entry in purchaseClaims.entries)
+          entry.key: entry.value.toJson(),
+      },
+    };
+  }
 
   String encode({int? savedAtOverride}) =>
       jsonEncode(toLegacyJson(savedAtOverride: savedAtOverride));
+
+  bool _normalizeLevelProgress() {
+    var changed = false;
+    final normalizedHighest = highestUnlockedLevel.clamp(
+      firstLevelId,
+      lastLevelId,
+    );
+    if (normalizedHighest != highestUnlockedLevel) {
+      highestUnlockedLevel = normalizedHighest;
+      changed = true;
+    }
+
+    final invalidClears = clearedLevelIds
+        .where((levelId) => !_isValidLevelId(levelId))
+        .toList(growable: false);
+    if (invalidClears.isNotEmpty) {
+      clearedLevelIds.removeAll(invalidClears);
+      changed = true;
+    }
+
+    bool normalizeMap(Map<int, int> values) {
+      final invalidKeys = values.entries
+          .where((entry) => !_isValidLevelId(entry.key) || entry.value < 0)
+          .map((entry) => entry.key)
+          .toList(growable: false);
+      if (invalidKeys.isEmpty) return false;
+      for (final key in invalidKeys) {
+        values.remove(key);
+      }
+      return true;
+    }
+
+    changed = normalizeMap(levelBestScores) || changed;
+    changed = normalizeMap(levelAttempts) || changed;
+
+    for (final clearedLevelId in clearedLevelIds) {
+      final unlockedByClear = clearedLevelId >= lastLevelId
+          ? lastLevelId
+          : clearedLevelId + 1;
+      if (unlockedByClear > highestUnlockedLevel) {
+        highestUnlockedLevel = unlockedByClear;
+        changed = true;
+      }
+    }
+    return changed;
+  }
+}
+
+bool _isValidLevelId(int value) =>
+    value >= AccountState.firstLevelId && value <= AccountState.lastLevelId;
+
+Set<int> _levelIds(Object? value) {
+  if (value is! List) return <int>{};
+  return <int>{
+    for (final item in value)
+      if (_tryInt(item) case final parsed? when _isValidLevelId(parsed)) parsed,
+  };
+}
+
+Map<int, int> _levelValueMap(Object? value) {
+  if (value is! Map) return <int, int>{};
+  final result = <int, int>{};
+  for (final entry in value.entries) {
+    final levelId = _tryInt(entry.key);
+    if (levelId == null || !_isValidLevelId(levelId)) continue;
+    final amount = _clampInt(entry.value);
+    if (amount > 0) result[levelId] = amount;
+  }
+  return result;
+}
+
+Map<String, int> _sortedLevelValueJson(Map<int, int> values) {
+  final levelIds = values.keys.where(_isValidLevelId).toList()..sort();
+  return <String, int>{
+    for (final levelId in levelIds)
+      if (values[levelId]! >= 0) '$levelId': values[levelId]!,
+  };
+}
+
+int? _tryInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) {
+    if (!value.isFinite || value != value.truncate()) return null;
+    return value.toInt();
+  }
+  if (value is String && RegExp(r'^\d+$').hasMatch(value)) {
+    return int.tryParse(value);
+  }
+  return null;
 }
 
 List<TopRunRecord> _topRuns(Object? value) {

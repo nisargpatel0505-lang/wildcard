@@ -156,6 +156,16 @@ class _GameHostScreenState extends State<GameHostScreen> {
     if (current == RunPhase.victory && previous != RunPhase.victory) {
       _startVictorySequence();
     } else if (current == RunPhase.ended && previous != RunPhase.ended) {
+      if (game.isLevelMode) {
+        if (game.levelCleared) {
+          _sfx.play('clear');
+          _haptics.success();
+        } else {
+          _sfx.play('death');
+          _haptics.failure();
+        }
+        return;
+      }
       if (game.endReason == RunEndReason.defeated ||
           game.endReason == RunEndReason.abandoned) {
         // The arcade game-over jingle: descending run, minor stinger, sub thud.
@@ -434,7 +444,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
     _reactSly(
       mood: mood,
       expression: set.expression,
-      speech: set.pick(_slyRandom),
+      speech: game.isLevelMode ? game.levelObjectiveText : set.pick(_slyRandom),
       label: label ?? slyLabelFor(mood),
       priority: _slyPriority(mood),
       motion: _slyMotion(mood),
@@ -463,7 +473,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       mood: mood,
       priority: priority,
       expression: expression,
-      speech: speech,
+      speech: game.isLevelMode ? game.levelObjectiveText : speech,
       label: label,
       motion: motion,
       hold: hold,
@@ -560,7 +570,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   }
 
   Future<void> _showTerminalAdOnce() async {
-    if (_terminalAdAttempted || !mounted) return;
+    if (_terminalAdAttempted || !mounted || game.isLevelMode) return;
     _terminalAdAttempted = true;
     final finishedRuns = widget.appController.account.stats.runs;
     final firstRun =
@@ -623,6 +633,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
             );
           }
           if (inGame && _introVisible) {
+            final levelMode = game.isLevelMode;
             final boss = game.state.hasBossModifier;
             final mods = game.state.modifiers;
             final detail = mods.isEmpty
@@ -634,15 +645,20 @@ class _GameHostScreenState extends State<GameHostScreen> {
             layers.add(
               Positioned.fill(
                 child: RoundIntroOverlay(
-                  kicker: boss
+                  kicker: levelMode
+                      ? 'CAMPAIGN TABLE'
+                      : boss
                       ? 'BOSS TABLE'
                       : mods.isNotEmpty
                       ? 'MODIFIER ACTIVE'
                       : 'NEW DEAL',
-                  title:
-                      '${game.state.mode == RunMode.gauntlet ? 'GAUNTLET' : 'HEAT'}'
-                      ' ${game.state.stage}',
-                  subtitle: '${detail}Target ${game.state.target}',
+                  title: levelMode
+                      ? 'LEVEL ${game.levelAttempt!.levelId}'
+                      : '${game.state.mode == RunMode.gauntlet ? 'GAUNTLET' : 'HEAT'}'
+                            ' ${game.state.stage}',
+                  subtitle: levelMode
+                      ? '${game.levelAttempt!.levelName} · ${game.levelObjectiveText.replaceAll('\n', ' · ')}'
+                      : '${detail}Target ${game.state.target}',
                   boss: boss,
                   onFinished: () {
                     if (mounted) setState(() => _introVisible = false);
@@ -670,7 +686,13 @@ class _GameHostScreenState extends State<GameHostScreen> {
       _safeSetState(() => _introVisible = true);
       // Sly still greets in his bubble; a modifier table gets the warning.
       _beginSlyGeneration();
-      _saySly(game.state.hasAnyModifier ? SlyMood.modifier : SlyMood.greet);
+      _saySly(
+        game.isLevelMode
+            ? SlyMood.greet
+            : game.state.hasAnyModifier
+            ? SlyMood.modifier
+            : SlyMood.greet,
+      );
     });
   }
 
@@ -692,6 +714,10 @@ class _GameHostScreenState extends State<GameHostScreen> {
       score: score,
       scoringTimeline: game.scoringTimeline,
       slyReaction: _slyReaction,
+      stageLabel: game.isLevelMode ? 'LEVEL' : 'HEAT',
+      ruleBanner: game.isLevelMode ? _levelRuleBanner() : null,
+      lockSlySpeech: game.isLevelMode,
+      showRunCoins: !game.isLevelMode,
       stakeText: game.stake > 0
           ? '${game.stake} → ${game.stakePayoutAmount}'
           : null,
@@ -729,8 +755,10 @@ class _GameHostScreenState extends State<GameHostScreen> {
           ? () {
               _haptics.discard();
               _sfx.play('discard');
-              _beginSlyGeneration();
-              _saySly(SlyMood.discard);
+              if (!game.isLevelMode) {
+                _beginSlyGeneration();
+                _saySly(SlyMood.discard);
+              }
               unawaited(_act(game.discardSelected()));
             }
           : null,
@@ -867,6 +895,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   }
 
   Widget _buildResult() {
+    if (game.isLevelMode) return _buildLevelResult();
     final result = game.resultSummary;
     final defeated = result?.reason == RunEndReason.defeated;
     final abandoned = result?.reason == RunEndReason.abandoned;
@@ -950,6 +979,80 @@ class _GameHostScreenState extends State<GameHostScreen> {
           icon: const Icon(Icons.home_outlined),
           onPressed: () => Navigator.of(context).pop(),
           variant: WildcardButtonVariant.primary,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLevelResult() {
+    final attempt = game.levelAttempt!;
+    final cleared = game.levelCleared;
+    final tries =
+        widget.appController.account.levelAttempts[attempt.levelId] ?? 0;
+    return _PhaseScaffold(
+      title: cleared ? 'LEVEL CLEARED' : 'LEVEL FAILED',
+      subtitle: cleared
+          ? 'Level ${attempt.levelId} is complete. Your campaign progress is saved.'
+          : 'The objective was not complete when the final scoring hand ended.',
+      icon: cleared
+          ? Icons.check_circle_outline_rounded
+          : Icons.refresh_rounded,
+      danger: !cleared,
+      celebration: cleared,
+      children: [
+        _StatRow('Level', '${attempt.levelId} · ${attempt.levelName}'),
+        _StatRow('Score', '${game.totalScore} / ${game.levelDynamicTarget}'),
+        _StatRow(
+          'Scoring hands',
+          '${game.levelProgress?.scoringHandsPlayed ?? 0}',
+        ),
+        _StatRow('Attempts', '$tries'),
+        const SizedBox(height: 10),
+        Text(
+          game.levelObjectiveText,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: cleared ? context.wildcard.mint : context.wildcard.cream,
+            fontWeight: FontWeight.w700,
+            height: 1.3,
+          ),
+        ),
+        if (!cleared && tries >= 3) ...[
+          const SizedBox(height: 12),
+          Text(
+            'HINT · ${attempt.hint}',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.wildcard.gold,
+              fontSize: 12.5,
+              height: 1.3,
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        if (cleared && attempt.levelId < 100) ...[
+          WildcardButton(
+            label: 'Next Level',
+            icon: const Icon(Icons.arrow_forward_rounded),
+            onPressed: () => Navigator.of(context).pop(LevelResultAction.next),
+            variant: WildcardButtonVariant.primary,
+          ),
+          const SizedBox(height: 9),
+        ],
+        WildcardButton(
+          label: 'Retry Level',
+          icon: const Icon(Icons.refresh_rounded),
+          onPressed: () => Navigator.of(context).pop(LevelResultAction.retry),
+          variant: cleared
+              ? WildcardButtonVariant.secondary
+              : WildcardButtonVariant.primary,
+        ),
+        const SizedBox(height: 9),
+        WildcardButton(
+          label: 'Level Select',
+          icon: const Icon(Icons.map_outlined),
+          onPressed: () => Navigator.of(context).pop(LevelResultAction.select),
+          variant: WildcardButtonVariant.ghost,
         ),
       ],
     );
@@ -1080,6 +1183,10 @@ class _GameHostScreenState extends State<GameHostScreen> {
         allHeatCards: game.heatDeck.isEmpty ? game.state.cards : game.heatDeck,
         liveDrawCards: game.drawPile,
         currentHand: game.hand,
+        title: game.isLevelMode
+            ? 'Level ${game.levelAttempt!.levelId} Deck'
+            : 'This Heat\'s Deck',
+        showBlockedCards: game.isLevelMode,
         onClose: () => Navigator.pop(context),
       ),
     );
@@ -1141,7 +1248,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
       return;
     }
     if (await _confirm(
-      'Abandon this run? Account rewards already earned stay safe.',
+      game.isLevelMode
+          ? 'Leave this Level attempt? You can retry immediately for free.'
+          : 'Abandon this run? Account rewards already earned stay safe.',
     )) {
       await _act(game.abandon());
     }
@@ -1180,6 +1289,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   void _message(String message) => showWildcardToast(context, message);
 
   String _slySpeech(ScoreResult? score) {
+    if (game.isLevelMode) return game.levelObjectiveText;
     if (game.isBusy && game.scoringPresentation.activeEvent != null) {
       final event = game.scoringPresentation.activeEvent!;
       if (event.jokerIndex != null && event.jokerIndex! >= 0) {
@@ -1218,6 +1328,20 @@ class _GameHostScreenState extends State<GameHostScreen> {
     }
     if (score.handType == HandType.highCard) return SlyExpression.laughing;
     return SlyExpression.thoughtful;
+  }
+
+  String _levelRuleBanner() {
+    final attempt = game.levelAttempt!;
+    final parts = <String>[...attempt.visibleModifiers];
+    if (game.levelDisabledSuit case final suit?) {
+      parts.add('${suit.name.toUpperCase()} rank is disabled this hand');
+    }
+    final blocked = game.state.blockedJokerIds
+        .map((id) => jokersById[id]?.name ?? id)
+        .toList(growable: false);
+    if (blocked.isNotEmpty) parts.add('Joker off: ${blocked.join(', ')}');
+    if (parts.isEmpty) return 'AUTHORED LEVEL · Complete Sly’s objective';
+    return parts.join(' · ');
   }
 }
 

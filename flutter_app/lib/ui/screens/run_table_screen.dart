@@ -49,6 +49,10 @@ class RunTableScreen extends StatelessWidget {
     this.tableFeltId = 'felt_classic',
     this.guidedFirstRun = false,
     this.guideStep = 0,
+    this.stageLabel = 'HEAT',
+    this.ruleBanner,
+    this.lockSlySpeech = false,
+    this.showRunCoins = true,
     this.onToggleCard,
     this.onInspectJoker,
     this.onOpenHands,
@@ -97,6 +101,10 @@ class RunTableScreen extends StatelessWidget {
   final String tableFeltId;
   final bool guidedFirstRun;
   final int guideStep;
+  final String stageLabel;
+  final String? ruleBanner;
+  final bool lockSlySpeech;
+  final bool showRunCoins;
 
   final ValueChanged<int>? onToggleCard;
   final ValueChanged<JokerDefinition>? onInspectJoker;
@@ -126,7 +134,7 @@ class RunTableScreen extends StatelessWidget {
         asset: backgroundAsset,
         tintStrength: 0.78,
         energy: state.stageScore / math.max(1, state.target),
-        modifierActive: state.hasAnyModifier,
+        modifierActive: state.hasAnyModifier || ruleBanner != null,
         houseActive: state.hasBossModifier,
         child: SafeArea(
           minimum: const EdgeInsets.only(bottom: 4),
@@ -181,7 +189,9 @@ class RunTableScreen extends StatelessWidget {
                 return ValueListenableBuilder<SlyReaction?>(
                   valueListenable: reactions,
                   builder: (context, reaction, _) => _SlyHeader(
-                    speech: reaction?.speech ?? slySpeech,
+                    speech: lockSlySpeech
+                        ? slySpeech
+                        : reaction?.speech ?? slySpeech,
                     expression: reaction?.expression ?? slyExpression,
                     skin: slySkin,
                     height: metrics.slyHeight,
@@ -209,6 +219,8 @@ class RunTableScreen extends StatelessWidget {
                           state: state,
                           stakeText: stakeText,
                           compact: metrics.compact,
+                          stageLabel: stageLabel,
+                          showRunCoins: showRunCoins,
                         ),
                         SizedBox(height: metrics.outerGap),
                         withPresentation(
@@ -225,6 +237,13 @@ class RunTableScreen extends StatelessWidget {
                           SizedBox(height: metrics.outerGap),
                           _ModifierPanel(
                             state: state,
+                            compact: metrics.compact,
+                          ),
+                        ],
+                        if (ruleBanner case final banner?) ...[
+                          SizedBox(height: metrics.outerGap),
+                          _LevelRulePanel(
+                            text: banner,
                             compact: metrics.compact,
                           ),
                         ],
@@ -606,20 +625,24 @@ class _HeatHud extends StatelessWidget {
     required this.state,
     required this.stakeText,
     required this.compact,
+    required this.stageLabel,
+    required this.showRunCoins,
   });
 
   final ScoringState state;
   final String? stakeText;
   final bool compact;
+  final String stageLabel;
+  final bool showRunCoins;
 
   @override
   Widget build(BuildContext context) {
     final cells = <(String, String, _HudAccent)>[
-      ('HEAT', '${state.stage}', _HudAccent.cream),
+      (stageLabel, '${state.stage}', _HudAccent.cream),
       ('PLAYS', '${state.handsLeft}', _HudAccent.coral),
       ('DISCARDS', '${state.discardsLeft}', _HudAccent.coral),
       ('DECK', '${state.deckCardsLeft}', _HudAccent.violet),
-      ('RUN COINS', '${state.runCoins}', _HudAccent.gold),
+      if (showRunCoins) ('RUN COINS', '${state.runCoins}', _HudAccent.gold),
       if (stakeText != null && stakeText!.trim().isNotEmpty)
         ('STAKED', stakeText!, _HudAccent.gold),
     ];
@@ -849,6 +872,50 @@ class _ModifierPanel extends StatelessWidget {
               color: tokens.cream,
               fontSize: compact ? 9 : 10,
               height: 1.18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LevelRulePanel extends StatelessWidget {
+  const _LevelRulePanel({required this.text, required this.compact});
+
+  final String text;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.wildcard;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 7 : 9),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          tokens.violet.withValues(alpha: .14),
+          tokens.surfaceStrong,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: tokens.violet, width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.rule_rounded, color: tokens.gold, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: compact ? 3 : 4,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tokens.cream,
+                fontSize: compact ? 9.5 : 10.5,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

@@ -11,6 +11,8 @@ import '../domain/economy.dart';
 import '../domain/game_rules.dart';
 import '../domain/joker_catalog.dart';
 import '../domain/legacy_save_schema.dart';
+import '../domain/level_mode/level_definition.dart';
+import '../domain/level_mode/level_objective_engine.dart';
 import '../domain/random_streams.dart';
 import '../domain/scoring_engine.dart';
 import 'game_models.dart';
@@ -33,6 +35,9 @@ class GameController extends ChangeNotifier {
     required this.startBoostCost,
     required this.stake,
     required this.guidedFirstRun,
+    required this.levelAttempt,
+    required this.levelProgress,
+    required this.levelDynamicTarget,
     required Map<String, Object?> legacyBase,
     required this._wait,
   }) : unlockedJokerIds = Set<String>.from(unlockedJokerIds),
@@ -43,29 +48,49 @@ class GameController extends ChangeNotifier {
     required GamePersistenceCallbacks callbacks,
     ScoringWait? wait,
   }) async {
-    var deck = _withStableIds(config.initialDeck ?? baseCardSet(), 'c');
-    final integrity = normalizeDeckIntegrity(deck);
-    deck = _withStableIds(deck, 'c');
-    final initialJokers = config.initialJokerIds
-        .where(jokersById.containsKey)
-        .toSet()
-        .take(maxJokers)
-        .toList();
-    String? acceptedStartBoostId;
-    if (config.startBoostJokerId case final id?) {
-      if (jokersById.containsKey(id) &&
-          (config.unlockedJokerIds.contains(id) ||
-              (devJokerAvailable &&
-                  jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
-          !initialJokers.contains(id) &&
-          initialJokers.length < maxJokers) {
-        initialJokers.add(id);
-        acceptedStartBoostId = id;
+    final requestedLevel = config.levelAttempt?.levelId;
+    if (requestedLevel != null) {
+      if (requestedLevel < AccountState.firstLevelId ||
+          requestedLevel > AccountState.lastLevelId) {
+        throw StateError('Level $requestedLevel does not exist');
+      }
+      if (requestedLevel > config.highestUnlockedLevel &&
+          !config.clearedLevelIds.contains(requestedLevel)) {
+        throw StateError('Level $requestedLevel is locked');
       }
     }
-    final effectiveSeed = config.mode == RunMode.daily
-        ? dailySeed(config.dailyDate)
-        : config.rngSeed;
+    final levelAttempt = config.levelAttempt;
+    var deck = _withStableIds(
+      levelAttempt?.deckOrder ?? config.initialDeck ?? baseCardSet(),
+      'c',
+    );
+    final integrity = normalizeDeckIntegrity(deck);
+    deck = _withStableIds(deck, 'c');
+    final initialJokers =
+        (levelAttempt?.temporaryJokerIds ?? config.initialJokerIds)
+            .where(jokersById.containsKey)
+            .toSet()
+            .take(maxJokers)
+            .toList();
+    String? acceptedStartBoostId;
+    if (levelAttempt == null) {
+      if (config.startBoostJokerId case final id?) {
+        if (jokersById.containsKey(id) &&
+            (config.unlockedJokerIds.contains(id) ||
+                (devJokerAvailable &&
+                    jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
+            !initialJokers.contains(id) &&
+            initialJokers.length < maxJokers) {
+          initialJokers.add(id);
+          acceptedStartBoostId = id;
+        }
+      }
+    }
+    final effectiveSeed =
+        levelAttempt?.rngSeed ??
+        (config.mode == RunMode.daily
+            ? dailySeed(config.dailyDate)
+            : config.rngSeed);
     final state = ScoringState(
       rngSeed: effectiveSeed,
       mode: config.mode,
@@ -74,8 +99,20 @@ class GameController extends ChangeNotifier {
           : RunDifficulty.medium,
       jokerIds: initialJokers,
       cards: deck,
-      destroyedCount: integrity.destroyedCount,
-      copiedCount: integrity.copiedCount,
+      destroyedCount: levelAttempt?.rules.destroyed ?? integrity.destroyedCount,
+      copiedCount: levelAttempt?.rules.copied ?? integrity.copiedCount,
+      stage: levelAttempt?.rules.stage ?? 1,
+      targetOverride: levelAttempt?.objective.targetScore,
+      handsPerHeatOverride: levelAttempt?.rules.hands,
+      discardsOverride: levelAttempt?.rules.discards,
+      handSizeOverride: levelAttempt?.rules.handSize,
+      maxSelectOverride: levelAttempt?.rules.maxSelect,
+      handLevels: levelAttempt?.rules.handLevels,
+      runCoins: levelAttempt?.rules.runCoins ?? 0,
+      stagesCleared: levelAttempt?.rules.heatsCleared ?? 0,
+      modifierStack: levelAttempt == null
+          ? null
+          : _explicitLevelModifiers(levelAttempt.rules),
     );
     final runId = config.runId ?? _newRunId(effectiveSeed);
     final controller = GameController._(
@@ -89,13 +126,18 @@ class GameController extends ChangeNotifier {
       startBoostCost: acceptedStartBoostId == null
           ? 0
           : math.max(0, config.startBoostCost),
-      stake: math.max(0, config.stake),
+      stake: levelAttempt == null ? math.max(0, config.stake) : 0,
       guidedFirstRun: config.guidedFirstRun,
+      levelAttempt: levelAttempt,
+      levelProgress: levelAttempt == null ? null : LevelObjectiveProgress(),
+      levelDynamicTarget: levelAttempt?.objective.targetScore ?? 0,
       legacyBase: const <String, Object?>{},
       wait: wait ?? Future<void>.delayed,
     );
 
-    final entryCharge = controller.startBoostCost + controller.stake;
+    final entryCharge = levelAttempt == null
+        ? controller.startBoostCost + controller.stake
+        : 0;
     // Entry is a durable event even when it costs zero. Daily attempts and
     // first-run guidance both depend on this mutation; skipping it made every
     // free Daily replayable and caused every free Normal run to look like the
@@ -103,16 +145,23 @@ class GameController extends ChangeNotifier {
     final applied = await callbacks.mutateAccount(
       AccountMutation(
         claimId: '$runId:entry',
-        kind: AccountMutationKind.runEntry,
+        kind: levelAttempt == null
+            ? AccountMutationKind.runEntry
+            : AccountMutationKind.levelAttemptStarted,
         coinDelta: -entryCharge,
-        runMode: state.mode,
+        runMode: levelAttempt == null ? state.mode : null,
+        levelId: levelAttempt?.levelId,
       ),
     );
     if (!applied) {
       throw StateError('The run entry could not be saved');
     }
 
-    await controller._beginHeat(checkpoint: RunCheckpoint.runStarted);
+    if (levelAttempt == null) {
+      await controller._beginHeat(checkpoint: RunCheckpoint.runStarted);
+    } else {
+      await controller._beginLevel(checkpoint: RunCheckpoint.runStarted);
+    }
     return controller;
   }
 
@@ -122,10 +171,36 @@ class GameController extends ChangeNotifier {
     Set<String> unlockedJokerIds = const <String>{},
     ScoringPace pace = ScoringPace.normal,
     ScoringWait? wait,
+    LevelAttemptConfig? levelAttempt,
   }) async {
     final save = LegacyRunSave.decode(encoded);
     final state = save.toScoringState();
     final raw = save.raw;
+    final hasSavedLevel = raw['levelAttempt'] is Map;
+    if (hasSavedLevel && levelAttempt == null) {
+      throw const FormatException(
+        'The saved Level attempt needs its catalog definition',
+      );
+    }
+    if (hasSavedLevel && levelAttempt != null) {
+      final saved = _objectMapOrNull(raw['levelAttempt'])!;
+      if (_integer(saved['levelId']) != levelAttempt.levelId ||
+          _string(saved['layoutId']) != levelAttempt.layoutId) {
+        throw const FormatException('Saved Level catalog reference changed');
+      }
+    }
+    if (levelAttempt != null) {
+      state
+        ..stage = levelAttempt.rules.stage
+        ..targetOverride = _integer(
+          raw['levelDynamicTarget'],
+          fallback: levelAttempt.objective.targetScore,
+        )
+        ..handsPerHeatOverride = levelAttempt.rules.hands
+        ..discardsOverride = levelAttempt.rules.discards
+        ..handSizeOverride = levelAttempt.rules.handSize
+        ..maxSelectOverride = levelAttempt.rules.maxSelect;
+    }
     final controller = GameController._(
       state: state,
       runId: _string(raw['runId'], fallback: _newRunId(state.rngSeed)),
@@ -137,11 +212,39 @@ class GameController extends ChangeNotifier {
       startBoostCost: _integer(raw['startBoostCost']),
       stake: _integer(raw['stake']),
       guidedFirstRun: raw['guidedFirstRun'] == true,
+      levelAttempt: levelAttempt,
+      levelProgress: levelAttempt == null
+          ? null
+          : LevelObjectiveProgress.fromJson(raw['levelProgress']),
+      levelDynamicTarget: levelAttempt == null
+          ? 0
+          : _integer(
+              raw['levelDynamicTarget'],
+              fallback: levelAttempt.objective.targetScore,
+            ),
       legacyBase: raw,
       wait: wait ?? Future<void>.delayed,
     );
     controller._restore(raw, save.phase);
     return controller;
+  }
+
+  /// Reads only the catalog keys needed to reconstruct a saved Level attempt.
+  /// No public solver data or full level definition is copied into the save.
+  static LevelResumeReference? levelResumeReference(String encoded) {
+    final save = LegacyRunSave.decode(encoded);
+    final raw = _objectMapOrNull(save.raw['levelAttempt']);
+    if (raw == null) return null;
+    final levelId = _integer(raw['levelId']);
+    final layoutId = _string(raw['layoutId']);
+    if (levelId < 1 || levelId > 100 || layoutId.isEmpty) {
+      throw const FormatException('Saved Level reference is invalid');
+    }
+    return LevelResumeReference(
+      levelId: levelId,
+      layoutId: layoutId,
+      temporaryJokerIds: _stringList(raw['temporaryJokerIds']),
+    );
   }
 
   final ScoringState state;
@@ -153,8 +256,15 @@ class GameController extends ChangeNotifier {
   final int startBoostCost;
   final int stake;
   final bool guidedFirstRun;
+  final LevelAttemptConfig? levelAttempt;
+  final LevelObjectiveProgress? levelProgress;
+  int levelDynamicTarget;
   final Map<String, Object?> _legacyBase;
   final ScoringWait _wait;
+
+  final Set<String> levelFadedJokerIds = <String>{};
+  int levelDiscardsUsed = 0;
+  CardSuit? levelDisabledSuit;
 
   ScoringPace pace;
   int guideStep = 0;
@@ -202,10 +312,44 @@ class GameController extends ChangeNotifier {
   final Map<String, int> jokerScore = <String, int>{};
   final List<String> accountRewardIds = <String>[];
 
-  WildcardScoringEngine get scoringEngine => WildcardScoringEngine(state);
+  WildcardScoringEngine get scoringEngine =>
+      WildcardScoringEngine(state, levelOverride: _levelScoringOverride);
+  LevelScoringOverride? get _levelScoringOverride {
+    if (!isLevelMode) return null;
+    final rules = levelAttempt!.rules;
+    return LevelScoringOverride(
+      highCardScoresZero: rules.highCardZero,
+      allowedHandTypes: rules.allowedHandTypes,
+      faceRanksScoreZero: rules.faceRankZero,
+      scoringColor: switch (rules.scoreColor) {
+        LevelCardColor.red => LevelRankColor.red,
+        LevelCardColor.black => LevelRankColor.black,
+        null => null,
+      },
+      redRankFactor: rules.colorRankMultipliers[LevelCardColor.red] ?? 1,
+      blackRankFactor: rules.colorRankMultipliers[LevelCardColor.black] ?? 1,
+      previousHandCounts: levelProgress?.handCounts ?? const <HandType, int>{},
+      repeatDecay: rules.repeatDecay,
+      repeatedHandsScoreZero: rules.noRepeat,
+      playIndex: levelProgress?.scoringHandsPlayed ?? 0,
+      perPlayScoreFactors: rules.handScoreMultipliers,
+      disabledSuit: levelDisabledSuit,
+      hasAuthoredModifier: rules.hasModifier,
+      authoredModifierCount: rules.modifierCount,
+    );
+  }
+
+  bool get isLevelMode => levelAttempt != null;
+  bool get levelCleared => endReason == RunEndReason.levelCleared;
+  String get levelObjectiveText =>
+      levelProgress?.progressText(
+        levelAttempt!.objective,
+        dynamicTarget: levelDynamicTarget,
+      ) ??
+      '';
   ScoringPacing get pacing =>
       pace == ScoringPace.fast ? ScoringPacing.fast : ScoringPacing.normal;
-  int get target => state.target;
+  int get target => isLevelMode ? levelDynamicTarget : state.target;
   bool get canPlay =>
       phase == RunPhase.game &&
       !isBusy &&
@@ -244,8 +388,11 @@ class GameController extends ChangeNotifier {
   ScoreResult? previewSelected() {
     final cards = selectedCards;
     if (cards.isEmpty || cards.length > state.effectiveMaxSelect) return null;
-    return scoringEngine.scoreHand(cards);
+    return _scoreCards(cards);
   }
+
+  ScoreResult _scoreCards(List<PlayingCard> cards, {bool commit = false}) =>
+      scoringEngine.scoreHand(cards, commit: commit);
 
   Future<GameActionResult> sortHand(HandSortMode mode) async {
     if (phase != RunPhase.game || isBusy) {
@@ -298,6 +445,14 @@ class GameController extends ChangeNotifier {
     hand.removeWhere(selected.contains);
     selectedCardIds.clear();
     state.discardsLeft--;
+    if (isLevelMode) {
+      levelDiscardsUsed++;
+      final tax = levelAttempt!.rules.discardTargetTax;
+      if (tax > 0) {
+        levelDynamicTarget += tax;
+        state.targetOverride = levelDynamicTarget;
+      }
+    }
     _refillHand();
     state.deckCardsLeft = drawPile.length;
     if (guidedFirstRun && guideStep < 2) guideStep = 2;
@@ -353,7 +508,7 @@ class GameController extends ChangeNotifier {
     notifyListeners();
     await _save(RunCheckpoint.scoringPrepared);
 
-    final result = scoringEngine.scoreHand(played, commit: true);
+    final result = _scoreCards(played, commit: true);
     if (guidedFirstRun && guideStep == 0) guideStep = 1;
     final timeline = const ScoringTimelineBuilder().build(
       handSnapshot: handSnapshot,
@@ -373,6 +528,13 @@ class GameController extends ChangeNotifier {
     state.handsPlayedThisStage++;
     handTypeCounts[result.handType] =
         (handTypeCounts[result.handType] ?? 0) + 1;
+    if (isLevelMode) {
+      levelProgress!.record(
+        objective: levelAttempt!.objective,
+        handType: result.handType,
+        score: result.total,
+      );
+    }
     if (result.total > bestPlay) {
       bestPlay = result.total;
       bestPlayType = result.handType;
@@ -387,9 +549,19 @@ class GameController extends ChangeNotifier {
     final playedIdentity = played.toSet();
     hand.removeWhere(playedIdentity.contains);
     selectedCardIds.clear();
+    if (isLevelMode) {
+      _applyLevelPostScoreRules(played, result.scoringFlags);
+    }
     _refillHand();
     state.deckCardsLeft = drawPile.length;
-    if (state.stageScore >= state.target) {
+    final levelObjectiveComplete =
+        isLevelMode &&
+        levelProgress!.isComplete(
+          levelAttempt!.objective,
+          dynamicTarget: levelDynamicTarget,
+        );
+    if (levelObjectiveComplete ||
+        (!isLevelMode && state.stageScore >= state.target)) {
       pendingTransition = <String, Object?>{
         'kind': 'clear',
         'stage': state.stage,
@@ -402,6 +574,7 @@ class GameController extends ChangeNotifier {
       };
     } else {
       pendingTransition = null;
+      if (isLevelMode) _prepareLevelTurnRules();
     }
     await _save(RunCheckpoint.scoringCommitted);
     notifyListeners();
@@ -417,6 +590,45 @@ class GameController extends ChangeNotifier {
       notifyListeners();
     }
     return const GameActionResult.success();
+  }
+
+  void _applyLevelPostScoreRules(
+    List<PlayingCard> played,
+    List<bool> scoringFlags,
+  ) {
+    final rules = levelAttempt!.rules;
+    if (rules.burnPlayedCards || rules.burnScoringCards) {
+      final burnedIds = <String>{
+        if (rules.burnPlayedCards) ...played.map(_cardId),
+        if (rules.burnScoringCards)
+          for (var index = 0; index < played.length; index++)
+            if (scoringFlags[index]) _cardId(played[index]),
+      };
+      state.cards.removeWhere((card) => burnedIds.contains(_cardId(card)));
+    }
+    if (rules.burnPlayedRanks) {
+      final ranks = played.map((card) => card.rank).toSet();
+      bool sharesRank(PlayingCard card) => ranks.contains(card.rank);
+      hand.removeWhere(sharesRank);
+      drawPile.removeWhere(sharesRank);
+      state.cards.removeWhere(sharesRank);
+    }
+
+    if (rules.fadingJokers && state.jokerIds.isNotEmpty) {
+      final next = state.jokerIds.firstWhere(
+        (id) => !levelFadedJokerIds.contains(id),
+        orElse: () => '',
+      );
+      if (next.isNotEmpty) levelFadedJokerIds.add(next);
+    }
+
+    if (rules.shrinkingDiscards) {
+      final allowance = math.max(
+        0,
+        rules.discards - (levelProgress?.scoringHandsPlayed ?? 0),
+      );
+      state.discardsLeft = math.min(state.discardsLeft, allowance);
+    }
   }
 
   /// Replays a force-killed scoring action with the same selected cards and RNG
@@ -713,17 +925,19 @@ class GameController extends ChangeNotifier {
         'Wait for the current score to finish before folding.',
       );
     }
-    final saved = await _finish(
-      RunEndReason.abandoned,
-      won: false,
-      abandoned: true,
-    );
+    final saved = isLevelMode
+        ? await _finishLevel(cleared: false, abandoned: true)
+        : await _finish(RunEndReason.abandoned, won: false, abandoned: true);
     return saved
         ? const GameActionResult.success()
         : const GameActionResult.failure('The fold could not be saved yet.');
   }
 
   Future<void> _beginHeat({required RunCheckpoint checkpoint}) async {
+    if (isLevelMode) {
+      await _beginLevel(checkpoint: checkpoint);
+      return;
+    }
     phase = RunPhase.game;
     terminalPending = false;
     failureReason = '';
@@ -752,6 +966,86 @@ class GameController extends ChangeNotifier {
     state.deckCardsLeft = drawPile.length;
     await _save(checkpoint);
     notifyListeners();
+  }
+
+  Future<void> _beginLevel({required RunCheckpoint checkpoint}) async {
+    final attempt = levelAttempt!;
+    phase = RunPhase.game;
+    terminalPending = false;
+    failureReason = '';
+    pendingTransition = null;
+    scoringTimeline.clear();
+    selectedCardIds.clear();
+    state
+      ..stage = attempt.rules.stage
+      ..endless = false
+      ..setModifiers(_explicitLevelModifiers(attempt.rules))
+      ..stageScore = levelProgress?.totalScore ?? 0
+      ..handsPlayedThisStage = levelProgress?.scoringHandsPlayed ?? 0
+      ..handsLeft = attempt.rules.hands
+      ..discardsLeft = attempt.rules.discards
+      ..targetOverride = levelDynamicTarget
+      ..handsPerHeatOverride = attempt.rules.hands
+      ..discardsOverride = attempt.rules.discards
+      ..handSizeOverride = attempt.rules.handSize
+      ..maxSelectOverride = attempt.rules.maxSelect;
+    state.handLevels
+      ..clear()
+      ..addAll(attempt.rules.handLevels);
+    levelFadedJokerIds.clear();
+    levelDiscardsUsed = 0;
+    _prepareLevelTurnRules();
+
+    // The authored deck order is the deal order. The controller draws from
+    // the end of [drawPile], so reverse it once and never shuffle it.
+    drawPile
+      ..clear()
+      ..addAll(
+        state.cards.reversed.map((card) => card.copyWith(selected: false)),
+      );
+    heatDeck
+      ..clear()
+      ..addAll(state.cards.map((card) => card.copyWith(selected: false)));
+    hand.clear();
+
+    // Persist the validated catalog and layout reference before the opening
+    // deal. If the process is killed between this checkpoint and the dealt
+    // hand checkpoint below, resume restores this exact draw pile and refills
+    // from it rather than selecting another layout.
+    state.deckCardsLeft = drawPile.length;
+    await _save(checkpoint);
+
+    _refillHand();
+    state.deckCardsLeft = drawPile.length;
+    await _save(RunCheckpoint.selectionChanged);
+    notifyListeners();
+  }
+
+  void _prepareLevelTurnRules() {
+    if (!isLevelMode) return;
+    final attempt = levelAttempt!;
+    final playIndex = levelProgress?.scoringHandsPlayed ?? 0;
+    final rotation = attempt.rules.disabledSuitRotation;
+    levelDisabledSuit = rotation.isEmpty
+        ? null
+        : rotation[playIndex % rotation.length];
+
+    state.blockedJokerIds
+      ..clear()
+      ..addAll(levelFadedJokerIds);
+    if (attempt.rules.jokerBlackout && state.jokerIds.isNotEmpty) {
+      state.blockedJokerIds.add(
+        state.jokerIds[playIndex % state.jokerIds.length],
+      );
+    }
+    if (attempt.rules.rotatingJoker && state.jokerIds.length > 1) {
+      final activeIndex = playIndex % state.jokerIds.length;
+      for (var index = 0; index < state.jokerIds.length; index++) {
+        if (index != activeIndex) {
+          state.blockedJokerIds.add(state.jokerIds[index]);
+        }
+      }
+    }
   }
 
   void _shuffle(List<PlayingCard> cards) {
@@ -790,6 +1084,10 @@ class GameController extends ChangeNotifier {
   ScoreBeatCallback? onScoreBeat;
 
   Future<void> _clearHeat() async {
+    if (isLevelMode) {
+      await _finishLevel(cleared: true);
+      return;
+    }
     pendingTransition = null;
     state.stagesCleared++;
     final heat = state.stage;
@@ -1060,6 +1358,10 @@ class GameController extends ChangeNotifier {
   Future<void> _offerOrFinishFailure(String reason) async {
     pendingTransition = null;
     failureReason = reason;
+    if (isLevelMode) {
+      await _finishLevel(cleared: false);
+      return;
+    }
     final reviveAvailable =
         reason == 'plays' && !state.isDaily && !reviveUsed && hand.isNotEmpty;
     if (reviveAvailable) {
@@ -1071,6 +1373,51 @@ class GameController extends ChangeNotifier {
       return;
     }
     await _finish(RunEndReason.defeated, won: false);
+  }
+
+  Future<bool> _finishLevel({
+    required bool cleared,
+    bool abandoned = false,
+  }) async {
+    final attempt = levelAttempt!;
+    isBusy = true;
+    final saved = await callbacks.mutateAccount(
+      AccountMutation(
+        claimId: '$runId:level-finished',
+        kind: AccountMutationKind.levelAttemptFinished,
+        levelId: attempt.levelId,
+        levelScore: totalScore,
+        levelCleared: cleared,
+        abandoned: abandoned,
+        leaderboardEligible: false,
+      ),
+    );
+    if (!saved) {
+      isBusy = false;
+      notifyListeners();
+      return false;
+    }
+    phase = RunPhase.ended;
+    endReason = cleared
+        ? RunEndReason.levelCleared
+        : abandoned
+        ? RunEndReason.abandoned
+        : RunEndReason.levelFailed;
+    terminalPending = false;
+    pendingTransition = null;
+    resultSummary = RunResultSummary(
+      reason: endReason!,
+      heatsCleared: cleared ? 1 : 0,
+      totalScore: totalScore,
+      accountCoinsEarned: 0,
+      stake: 0,
+      stakePayout: 0,
+      jokerIds: List<String>.unmodifiable(state.jokerIds),
+    );
+    await callbacks.clearRun();
+    isBusy = false;
+    notifyListeners();
+    return true;
   }
 
   Future<bool> _settleStake() async {
@@ -1329,6 +1676,25 @@ class GameController extends ChangeNotifier {
       'guidedFirstRun': guidedFirstRun,
       'guideStep': guideStep,
       'shopGuideShown': shopGuideShown,
+      if (levelAttempt != null)
+        'levelAttempt': <String, Object?>{
+          'levelId': levelAttempt!.levelId,
+          'levelName': levelAttempt!.levelName,
+          'layoutId': levelAttempt!.layoutId,
+          'temporaryJokerIds': List<String>.from(
+            levelAttempt!.temporaryJokerIds,
+          ),
+          'hint': levelAttempt!.hint,
+        },
+      if (levelAttempt != null) 'levelProgress': levelProgress!.toJson(),
+      if (levelAttempt != null) 'levelDynamicTarget': levelDynamicTarget,
+      if (levelAttempt != null) 'levelDiscardsUsed': levelDiscardsUsed,
+      if (levelAttempt != null)
+        'levelFadedJokerIds': List<String>.from(levelFadedJokerIds),
+      if (levelAttempt != null)
+        'levelDisabledSuit': levelDisabledSuit == null
+            ? null
+            : LevelCardCodec.suitCode(levelDisabledSuit!),
       'heat12SequenceStarted': _legacyBase['heat12SequenceStarted'] == true,
       'heat12InterstitialAttempted':
           _legacyBase['heat12InterstitialAttempted'] == true,
@@ -1383,6 +1749,26 @@ class GameController extends ChangeNotifier {
     failureReason = _string(raw['failureReason']);
     guideStep = math.max(0, math.min(4, _integer(raw['guideStep'])));
     shopGuideShown = raw['shopGuideShown'] == true;
+    if (isLevelMode) {
+      levelDynamicTarget = math.max(
+        levelAttempt!.objective.targetScore,
+        _integer(
+          raw['levelDynamicTarget'],
+          fallback: levelAttempt!.objective.targetScore,
+        ),
+      );
+      state.targetOverride = levelDynamicTarget;
+      levelDiscardsUsed = math.max(0, _integer(raw['levelDiscardsUsed']));
+      levelFadedJokerIds
+        ..clear()
+        ..addAll(
+          _stringList(raw['levelFadedJokerIds']).where(state.jokerIds.contains),
+        );
+      final suitCode = _nullableString(raw['levelDisabledSuit']);
+      levelDisabledSuit = suitCode == null
+          ? null
+          : LevelCardCodec.decode('2$suitCode').suit;
+    }
     sortMode = raw['sortMode'] == HandSortMode.suit.name
         ? HandSortMode.suit
         : HandSortMode.rank;
@@ -1462,6 +1848,7 @@ class GameController extends ChangeNotifier {
     }
     if (hand.isEmpty && phase == RunPhase.game && drawPile.isNotEmpty) {
       _refillHand();
+      state.deckCardsLeft = drawPile.length;
     }
     if (terminalPending) phase = RunPhase.revive;
   }
@@ -1492,6 +1879,12 @@ class GameController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+List<HeatModifier> _explicitLevelModifiers(LevelRules rules) => <HeatModifier>[
+  if (rules.nullField) HeatModifier.nullField,
+  if (rules.deadAir) HeatModifier.deadAir,
+  if (rules.bossModifier) HeatModifier.theHouse,
+];
 
 String _newRunId(int seed) =>
     '${DateTime.now().millisecondsSinceEpoch}-${seed.toUnsigned(32).toRadixString(16)}';

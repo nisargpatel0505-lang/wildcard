@@ -1,0 +1,101 @@
+level,name,targetScore,targetClearRate,observedClearRate,layouts,solverPassed,allSolverPassed,recommendedLoadout
+1,First Pair,0,0.95,1.0,12,12,True,
+2,Pair Practice,0,0.94,1.0,12,12,True,
+3,Two at Once,0,0.93,1.0,12,12,True,
+4,Double Two,0,0.92,0.9896,12,12,True,
+5,Triple Two,0,0.9,0.9167,12,12,True,
+6,Three Together,0,0.9,1.0,12,12,True,
+7,Run It,0,0.89,1.0,12,12,True,
+8,Same Suit,0,0.88,1.0,12,12,True,
+9,Full House,0,0.86,0.8438,12,12,True,
+10,First Score Test,515,0.85,0.8333,12,12,True,
+11,Pair Chain,145,0.837,0.875,12,12,True,
+12,Two Pair Chain,240,0.824,0.8125,12,12,True,
+13,Mixed Set,305,0.811,0.8438,12,12,True,
+14,Straight Practice,455,0.798,0.7708,12,12,True,
+15,Flush Practice,530,0.785,0.7812,12,12,True,
+16,House Party,425,0.772,0.7812,12,12,True,
+17,Four Strong,600,0.759,0.75,12,12,True,
+18,Variety Pack,550,0.746,0.7639,12,12,True,
+19,No Waste,450,0.733,0.7604,12,12,True,
+20,Basics Final,535,0.72,0.7396,12,12,True,
+21,No High Cards,380,0.7405,0.7812,12,12,True,
+22,Pairs Only,245,0.731,0.6979,12,12,True,
+23,Red Heat,430,0.7215,0.7292,12,12,True,
+24,Blackout,480,0.712,0.7292,12,12,True,
+25,Face Off,410,0.7025,0.7188,12,12,True,
+26,Ace Lock,485,0.693,0.7125,20,20,True,
+27,Repeat Tax,435,0.6835,0.6562,12,12,True,
+28,Costly Discards,480,0.674,0.6562,12,12,True,
+29,Final Hand,410,0.6645,0.6562,12,12,True,
+30,Modifier Checkpoint,450,0.655,0.6042,12,12,True,
+31,One of Each,460,0.6455,0.6458,12,12,True,
+32,In Order,300,0.636,0.5625,12,12,True,
+33,Even Lock,625,0.6265,0.6438,20,20,True,
+34,Odd Lock,610,0.617,0.6375,20,20,True,
+35,Suit Shift,455,0.6075,0.5729,12,12,True,
+36,Shrinking Discards,485,0.598,0.625,12,12,True,
+37,Four Hands,370,0.5885,0.5833,12,12,True,
+38,Two Discards,480,0.579,0.5521,12,12,True,
+39,Rising Pressure,375,0.5695,0.6944,12,12,True,
+40,Modifier Final,420,0.56,0.7014,12,12,True,
+41,Quarter Blocked,445,0.6405,0.6,20,20,True,
+42,Pairs Through It,335,0.631,0.6062,20,20,True,
+43,Double Pair,360,0.6215,0.6375,20,20,True,
+44,Broken Run,380,0.612,0.6312,20,20,True,
+45,Thin Suit,410,0.6025,0.5938,20,20,True,
+46,Forty Down,450,0.593,0.6125,20,20,True,
+47,Adapt,515,0.5835,0.5875,20,20,True,
+48,Half Deck,385,0.574,0.575,20,20,True,
+49,Find a Route,395,0.5645,0.5625,20,20,True,
+50,Half-Deck Final,420,0.555,0.6,20,20,True,
+51,Half and No High,405,0.5455,0.5312,20,20,True,
+52,Half and Tight,475,0.536,0.5,20,20,True,
+53,Half and Faceless,385,0.5265,0.5687,20,20,True,
+54,Red Rescue,395,0.517,0.5375,20,20,True,
+55,Black Rescue,395,0.5075,0.5,20,20,True,
+56,Half Variety,415,0.498,0.4938,20,20,True,
+57,Half Sequence,320,0.4885,0.5062,20,20,True,
+58,Half Pressure,525,0.479,0.4688,20,20,True,
+59,Shifting Suit,410,0.4695,0.525,20,20,True,
+60,Restricted Final,400,0.46,0.4313,20,20,True,
+61,Copper Chip,495,0.5905,0.5938,12,12,True,Copper Chip
+62,Pair Polisher,660,0.581,0.5729,12,12,True,Pair Polisher
+63,Chips Times Mult,800,0.5715,0.5833,12,12,True,Copper Chip + Pair Polisher
+64,Royal Engine,680,0.562,0.5729,12,12,True,Royal Retainer + Royal Scam + Face Value
+65,Glass Cannon,1275,0.5525,0.5521,12,12,True,Glass Joystick
+66,Pair Build,695,0.543,0.5833,12,12,True,Pair Polisher + Metronome + Twin Flame
+67,Straight Build,1170,0.5335,0.5,12,12,True,Straight Wire + Gap Filler + Full Table
+68,Flush Build,1400,0.524,0.691,12,12,True,Flush Fund + Pocket Flush + Suit Swap
+69,Choose Three,1720,0.5145,0.4792,12,12,True,Pair Polisher + Marathoner + Rainbow
+70,Joker Checkpoint,5350,0.505,0.4583,12,12,True,Danger Music + Glass Joystick + Rarity Hunter
+71,Pair Architect,850,0.4955,0.4792,12,12,True,Pair Polisher + Double Down + Metronome
+72,Straight Architect,1545,0.486,0.4896,12,12,True,Straight Wire + Shortcut + Trident
+73,Flush Architect,1425,0.4765,0.4792,12,12,True,Flush Fund + Pocket Flush + Suit Uniform
+74,Rank Architect,875,0.467,0.4271,12,12,True,Royal Scam + Face Value + Ace In The Hole
+75,Dead Slot,1320,0.4575,0.4792,12,12,True,Dividend + Marathoner + Rainbow
+76,Rising Power,1025,0.448,0.4167,12,12,True,Danger Music
+77,Joker Blackout,1125,0.4385,0.4375,12,12,True,Pair Polisher + Marathoner + Rainbow
+78,Quarter Block Build,1420,0.429,0.425,20,20,True,Guillotine + Twin Study + Pair Polisher
+79,Half Block Build,1200,0.4195,0.5792,20,20,True,Cleaner + Guillotine + Pocket Flush
+80,Build Final,4600,0.41,0.4479,12,12,True,Danger Music + Glass Joystick + All In
+81,Double Trouble,2550,0.482,0.5208,12,12,True,Chaos Theory + Survivor + Modded Out
+82,No Repeat Build,3300,0.464,0.4236,12,12,True,Rainbow + Glass Joystick + Purist
+83,Black Build,1520,0.446,0.4444,12,12,True,Pair Polisher + Rainbow + Purist
+84,Red Build,1525,0.428,0.4306,12,12,True,Pair Polisher + Rainbow + Purist
+85,Expensive Discards,1725,0.41,0.4306,12,12,True,Marathoner + Pair Polisher + Purist
+86,Scorched Ranks,3700,0.392,0.5312,12,12,True,Purist + Rainbow + Marathoner
+87,Combo Ladder,710,0.374,0.3542,12,12,True,Comboist + Pair Polisher + Straight Wire
+88,Four Styles,2950,0.356,0.3889,12,12,True,Rainbow + Glass Joystick + Purist
+89,Half-Deck Blackout,1795,0.338,0.3375,20,20,True,Guillotine + Glass Joystick + Pair Polisher
+90,Expert Final,2500,0.32,0.3472,12,12,True,Chaos Theory + Glass Joystick + Danger Music
+91,Open Build,6100,0.38,0.4028,12,12,True,Rarity Hunter + Danger Music + Glass Joystick
+92,Half-Deck Power,1475,0.36,0.4417,20,20,True,Guillotine + Twin Study + Pocket Flush
+93,Half-Deck Variety,3300,0.34,0.4125,20,20,True,Rainbow + Marathoner + Glass Joystick
+94,Minimal Discards,1970,0.32,0.3125,12,12,True,Marathoner + Pair Polisher + Purist
+95,Faceless Build,1000,0.3,0.3,20,20,True,Low Ball + Number Station + Pair Polisher
+96,Low-Card Lock,2100,0.28,0.3917,20,20,True,Face Value + Ace In The Hole + Pair Polisher
+97,Decay,4400,0.26,0.2778,12,12,True,Comboist + Glass Joystick + Danger Music
+98,Fading Jokers,1695,0.24,0.5139,12,12,True,Glass Joystick + High Roller + Marathoner
+99,The Wall,3500,0.22,0.4542,20,20,True,Guillotine + Rainbow + Glass Joystick
+100,Master Level,5345,0.22,0.2118,24,24,True,Chaos Theory + Glass Joystick + Danger Music

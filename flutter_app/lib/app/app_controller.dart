@@ -866,6 +866,19 @@ class AppController extends ChangeNotifier {
     final nextCoins = account.coins + mutation.coinDelta;
     if (nextCoins < 0 || nextCoins > 9999999) return false;
 
+    final levelMutation =
+        mutation.kind == AccountMutationKind.levelAttemptStarted ||
+        mutation.kind == AccountMutationKind.levelAttemptFinished;
+    final levelId = mutation.levelId;
+    if (levelMutation) {
+      if (levelId == null || levelId < 1 || levelId > 100) return false;
+      final unlocked =
+          account.clearedLevelIds.contains(levelId) ||
+          levelId <= account.highestUnlockedLevel;
+      if (!unlocked) return false;
+      if (mutation.coinDelta != 0 || mutation.runMode != null) return false;
+    }
+
     // A Daily attempt is consumed together with its run-entry mutation. The
     // controller immediately writes a resumable checkpoint, so an app/process
     // restart resumes the same deterministic deal instead of burning the day.
@@ -884,6 +897,30 @@ class AppController extends ChangeNotifier {
     account.rewardClaims.add(claim);
     if (account.rewardClaims.length > 256) {
       account.rewardClaims.removeRange(0, account.rewardClaims.length - 256);
+    }
+
+    if (levelMutation) {
+      if (mutation.kind == AccountMutationKind.levelAttemptStarted) {
+        account.levelAttempts[levelId!] =
+            (account.levelAttempts[levelId] ?? 0) + 1;
+      } else {
+        final score = math.max(0, mutation.levelScore ?? 0);
+        account.levelBestScores[levelId!] = math.max(
+          account.levelBestScores[levelId] ?? 0,
+          score,
+        );
+        if (mutation.levelCleared) {
+          account.clearedLevelIds.add(levelId);
+          account.highestUnlockedLevel = math.max(
+            account.highestUnlockedLevel,
+            math.min(100, levelId + 1),
+          );
+        }
+      }
+      // Level Mode intentionally does not touch coins, missions, Arcade
+      // statistics, achievements, Daily state or leaderboard services.
+      await persistAccount();
+      return true;
     }
 
     if (mutation.kind == AccountMutationKind.runEntry &&
@@ -1637,6 +1674,9 @@ class AppController extends ChangeNotifier {
     final paidNoAds = account.noAds;
     final paidClaims = Map<String, PurchaseClaim>.from(account.purchaseClaims);
     final installed = AccountState.decode(accountRaw);
+    // Campaign progress is monotonic across devices even when the cloud
+    // resolver selects one complete account snapshot as authoritative.
+    installed.mergeLevelProgressFrom(account);
     // Starter discovery is an account invariant in v8.5, including an older
     // cloud save created before the tutorial was completed.
     installed.unlockedJokerIds.addAll(tutorialStarterJokerIds);
