@@ -636,10 +636,14 @@ class _GameHostScreenState extends State<GameHostScreen> {
             final levelMode = game.isLevelMode;
             final boss = game.state.hasBossModifier;
             final mods = game.state.modifiers;
+            final houseRule = game.state.houseRule;
             final detail = mods.isEmpty
                 ? ''
                 : '${mods.map((m) => m.displayName).join(' + ')} — '
                       '${mods.first.description} · ';
+            final houseDetail = houseRule == null
+                ? ''
+                : '${houseRule.name} — ${houseRule.tableSummary(stage: game.state.stage, handsPlayedThisStage: game.state.handsPlayedThisStage, targetTax: game.state.houseRuleTargetTax)} · ';
             // The Sly deal sprite was removed at the player's request — it read
             // as messy at the start of each Heat. Only the intro card remains.
             layers.add(
@@ -648,7 +652,11 @@ class _GameHostScreenState extends State<GameHostScreen> {
                   kicker: levelMode
                       ? 'CAMPAIGN TABLE'
                       : boss
-                      ? 'BOSS TABLE'
+                      ? houseRule == null
+                            ? 'BOSS TABLE'
+                            : 'BOSS + HOUSE RULE'
+                      : houseRule != null
+                      ? 'HOUSE RULE ACTIVE'
                       : mods.isNotEmpty
                       ? 'MODIFIER ACTIVE'
                       : 'NEW DEAL',
@@ -658,7 +666,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
                             ' ${game.state.stage}',
                   subtitle: levelMode
                       ? '${game.levelAttempt!.levelName} · ${game.levelObjectiveText.replaceAll('\n', ' · ')}'
-                      : '${detail}Target ${game.state.target}',
+                      : '$houseDetail${detail}Target ${game.state.target}',
                   boss: boss,
                   onFinished: () {
                     if (mounted) setState(() => _introVisible = false);
@@ -689,7 +697,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       _saySly(
         game.isLevelMode
             ? SlyMood.greet
-            : game.state.hasAnyModifier
+            : game.state.hasAnyModifier || game.state.houseRule != null
             ? SlyMood.modifier
             : SlyMood.greet,
       );
@@ -722,7 +730,14 @@ class _GameHostScreenState extends State<GameHostScreen> {
       scoreLabel: game.isLevelMode ? 'Level score' : 'Heat score',
       showScoreTarget: !game.isLevelMode || game.levelDynamicTarget > 0,
       objectiveText: game.isLevelMode ? _levelObjectiveTrackerText() : null,
-      levelRules: game.isLevelMode ? _levelRuleItems() : const <String>[],
+      levelRules: game.isLevelMode
+          ? _levelRuleItems()
+          : game.state.houseRule == null
+          ? const <String>[]
+          : <String>[
+              '${game.state.houseRule!.name.toUpperCase()} · '
+                  '${game.state.houseRule!.tableSummary(stage: game.state.stage, handsPlayedThisStage: game.state.handsPlayedThisStage, targetTax: game.state.houseRuleTargetTax)}',
+            ],
       compactJokerSlots: game.isLevelMode,
       showRunCoins: !game.isLevelMode,
       stakeText: game.stake > 0
@@ -1263,7 +1278,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(joker.name.toUpperCase()),
-        content: Text('${joker.description}\n\n$heatStatus'),
+        content: Text(
+          '${game.isLevelMode ? joker.levelDescription : joker.description}\n\n$heatStatus',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1339,6 +1356,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
         return '${score.handType.legacyName}. It might be enough.';
       }
       return 'High Card. The target will not pity you.';
+    }
+    if (game.state.houseRule != null) {
+      return 'The House changed the rules. Adapt or fold.';
     }
     if (game.state.hasAnyModifier) {
       return 'The modifier is active. Build around it.';

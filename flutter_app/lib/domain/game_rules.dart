@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'arcade_house_rules.dart';
 import 'cards.dart';
 import 'random_streams.dart';
 
@@ -264,6 +265,9 @@ class ScoringState {
     this.discardsOverride,
     this.handSizeOverride,
     this.maxSelectOverride,
+    this.houseRule,
+    this.houseRuleTargetTax = 0,
+    this.legacyJokerEffects = false,
   }) : rngCounters = rngCounters ?? RandomCounters(),
        // Both of these are live, mutating run state: Jokers are bought and
        // sold, cards are cut and copied. A caller handing in a fixed-length
@@ -319,6 +323,12 @@ class ScoringState {
   int? handSizeOverride;
   int? maxSelectOverride;
 
+  /// A single optional challenge layered over the normal Arcade loop.
+  /// Level Mode deliberately never sets this field.
+  ArcadeHouseRule? houseRule;
+  int houseRuleTargetTax;
+  bool legacyJokerEffects;
+
   bool get isGauntlet => mode == RunMode.gauntlet;
   bool get isDaily => mode == RunMode.daily;
 
@@ -352,7 +362,27 @@ class ScoringState {
   bool cardRankSuppressed(PlayingCard card) =>
       (hasModifier(HeatModifier.heartless) && card.suit == CardSuit.hearts) ||
       (hasModifier(HeatModifier.frostbite) && card.suit == CardSuit.spades) ||
-      (hasModifier(HeatModifier.counterfeit) && card.copied);
+      (hasModifier(HeatModifier.counterfeit) && card.copied) ||
+      (!legacyJokerEffects && isJokerActive('rose_tint') && !card.isRed) ||
+      _houseRuleSuppressesRank(card);
+
+  bool _houseRuleSuppressesRank(PlayingCard card) => switch (houseRule) {
+    ArcadeHouseRule.paupersTable => const <CardRank>{
+      CardRank.jack,
+      CardRank.queen,
+      CardRank.king,
+    }.contains(card.rank),
+    ArcadeHouseRule.royalCourt => !const <CardRank>{
+      CardRank.jack,
+      CardRank.queen,
+      CardRank.king,
+      CardRank.ace,
+    }.contains(card.rank),
+    ArcadeHouseRule.colourBlind => stage.isOdd ? !card.isRed : card.isRed,
+    ArcadeHouseRule.suitCarousel =>
+      card.suit == houseRule!.disabledSuitForPlay(handsPlayedThisStage),
+    _ => false,
+  };
 
   String? cardRankSuppressionLabel(PlayingCard card) {
     final causes = <String>[
@@ -362,13 +392,20 @@ class ScoringState {
         HeatModifier.frostbite.displayName,
       if (hasModifier(HeatModifier.counterfeit) && card.copied)
         HeatModifier.counterfeit.displayName,
+      if (_houseRuleSuppressesRank(card)) houseRule!.name,
+      if (!legacyJokerEffects && isJokerActive('rose_tint') && !card.isRed)
+        'Rose Tint',
     ];
     return causes.isEmpty ? null : causes.join(' + ');
   }
 
-  int get effectiveDiscards =>
-      discardsOverride ??
-      (discardsPerHeat - (hasModifier(HeatModifier.cold) ? 1 : 0));
+  int get effectiveDiscards {
+    if (discardsOverride case final value?) return value;
+    return math.max(
+      0,
+      discardsPerHeat - (hasModifier(HeatModifier.cold) ? 1 : 0),
+    );
+  }
 
   int get effectiveHandSize =>
       handSizeOverride ??
@@ -376,14 +413,15 @@ class ScoringState {
           (hasModifier(HeatModifier.shortStack) ? 1 : 0) -
           (hasModifier(HeatModifier.famine) ? 2 : 0));
 
-  int get effectiveHandsPerHeat =>
-      handsPerHeatOverride ??
-      math.max(
-        1,
-        handsPerHeat -
-            (hasModifier(HeatModifier.closingTime) ? 1 : 0) -
-            (isJokerActive('overclock') ? 1 : 0),
-      );
+  int get effectiveHandsPerHeat {
+    if (handsPerHeatOverride case final value?) return value;
+    return math.max(
+      1,
+      handsPerHeat -
+          (hasModifier(HeatModifier.closingTime) ? 1 : 0) -
+          (isJokerActive('overclock') ? 1 : 0),
+    );
+  }
 
   int get effectiveMaxSelect {
     if (maxSelectOverride case final value?) return value;
@@ -411,7 +449,7 @@ class ScoringState {
       result = (result * 1.40).round();
     }
     if (hasBossModifier) result = (result * 1.10).round();
-    return result;
+    return result + math.max(0, houseRuleTargetTax);
   }
 
   int handBase(HandType type) {
@@ -454,6 +492,8 @@ class ModifierSelector {
       selected = _gauntletModifiers();
     } else if (state.stage == 12 && !state.endless) {
       selected = const <HeatModifier>[HeatModifier.theHouse];
+    } else if (state.houseRule == ArcadeHouseRule.modifierMarathon) {
+      selected = _drawDistinct(1, eligibilityStage: math.max(3, state.stage));
     } else if (state.endless && state.stage > 50) {
       selected = _drawDistinct(2, requireHard: true);
     } else if (state.stage > 0 && state.stage % 3 == 0) {
@@ -482,8 +522,14 @@ class ModifierSelector {
     return <HeatModifier>[chosen];
   }
 
-  List<HeatModifier> _drawDistinct(int count, {bool requireHard = false}) {
-    final pool = eligibleModifiers(state.stage).toList(growable: true);
+  List<HeatModifier> _drawDistinct(
+    int count, {
+    bool requireHard = false,
+    int? eligibilityStage,
+  }) {
+    final pool = eligibleModifiers(
+      eligibilityStage ?? state.stage,
+    ).toList(growable: true);
     final result = <HeatModifier>[];
     if (requireHard) {
       final hard = pool.where((modifier) => modifier.isHard).toList();

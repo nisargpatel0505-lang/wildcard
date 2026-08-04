@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../domain/account_state.dart';
+import '../domain/arcade_house_rules.dart';
 import '../domain/cards.dart';
 import '../domain/deck_integrity.dart';
 import '../domain/economy.dart';
@@ -48,6 +49,12 @@ class GameController extends ChangeNotifier {
     required GamePersistenceCallbacks callbacks,
     ScoringWait? wait,
   }) async {
+    if (config.houseRule != null &&
+        (config.levelAttempt != null || config.mode != RunMode.normal)) {
+      throw ArgumentError(
+        'House Rules are only valid for a normal Arcade run.',
+      );
+    }
     final requestedLevel = config.levelAttempt?.levelId;
     if (requestedLevel != null) {
       if (requestedLevel < AccountState.firstLevelId ||
@@ -113,6 +120,8 @@ class GameController extends ChangeNotifier {
       modifierStack: levelAttempt == null
           ? null
           : _explicitLevelModifiers(levelAttempt.rules),
+      houseRule: levelAttempt == null ? config.houseRule : null,
+      legacyJokerEffects: levelAttempt != null,
     );
     final runId = config.runId ?? _newRunId(effectiveSeed);
     final controller = GameController._(
@@ -126,7 +135,9 @@ class GameController extends ChangeNotifier {
       startBoostCost: acceptedStartBoostId == null
           ? 0
           : math.max(0, config.startBoostCost),
-      stake: levelAttempt == null ? math.max(0, config.stake) : 0,
+      stake: levelAttempt == null && config.houseRule == null
+          ? math.max(0, config.stake)
+          : 0,
       guidedFirstRun: config.guidedFirstRun,
       levelAttempt: levelAttempt,
       levelProgress: levelAttempt == null ? null : LevelObjectiveProgress(),
@@ -134,6 +145,7 @@ class GameController extends ChangeNotifier {
       legacyBase: const <String, Object?>{},
       wait: wait ?? Future<void>.delayed,
     );
+    if (config.houseRule != null) controller.leaderboardEligible = false;
 
     final entryCharge = levelAttempt == null
         ? controller.startBoostCost + controller.stake
@@ -176,6 +188,13 @@ class GameController extends ChangeNotifier {
     final save = LegacyRunSave.decode(encoded);
     final state = save.toScoringState();
     final raw = save.raw;
+    final savedHouseRuleId = _nullableString(raw['houseRuleId']);
+    if (savedHouseRuleId != null && state.houseRule == null) {
+      throw const FormatException('Saved House Rule is not supported');
+    }
+    if (state.houseRule != null && state.mode != RunMode.normal) {
+      throw const FormatException('House Rules require a normal Arcade run');
+    }
     final hasSavedLevel = raw['levelAttempt'] is Map;
     if (hasSavedLevel && levelAttempt == null) {
       throw const FormatException(
@@ -191,6 +210,7 @@ class GameController extends ChangeNotifier {
     }
     if (levelAttempt != null) {
       state
+        ..legacyJokerEffects = true
         ..stage = levelAttempt.rules.stage
         ..targetOverride = _integer(
           raw['levelDynamicTarget'],
@@ -308,14 +328,30 @@ class GameController extends ChangeNotifier {
   HandSortMode sortMode = HandSortMode.rank;
 
   final Map<HandType, int> handTypeCounts = <HandType, int>{};
+  final Map<HandType, int> houseRuleHandCounts = <HandType, int>{};
   final List<String> modifiersSurvived = <String>[];
   final Map<String, int> jokerScore = <String, int>{};
   final List<String> accountRewardIds = <String>[];
 
   WildcardScoringEngine get scoringEngine =>
-      WildcardScoringEngine(state, levelOverride: _levelScoringOverride);
-  LevelScoringOverride? get _levelScoringOverride {
-    if (!isLevelMode) return null;
+      WildcardScoringEngine(state, levelOverride: _scoringRuleOverride);
+  LevelScoringOverride? get _scoringRuleOverride {
+    if (!isLevelMode) {
+      final rule = state.houseRule;
+      if (rule == null) return null;
+      return LevelScoringOverride(
+        previousHandCounts: houseRuleHandCounts,
+        repeatDecay: rule == ArcadeHouseRule.echoTable ? .35 : 0,
+        // A House Rule changes the table, but it is not a Heat modifier.
+        // Counting it here incorrectly activated modifier-dependent Jokers
+        // such as Survivor and Safe Cracker on every House Rule run. Real
+        // modifiers remain available through [state.modifiers].
+        hasAuthoredModifier: false,
+        authoredModifierCount: 0,
+        ruleLabel: 'HOUSE RULE',
+        useLegacyJokerEffects: false,
+      );
+    }
     final rules = levelAttempt!.rules;
     return LevelScoringOverride(
       highCardScoresZero: rules.highCardZero,
@@ -444,6 +480,13 @@ class GameController extends ChangeNotifier {
     final selected = selectedCards.toSet();
     hand.removeWhere(selected.contains);
     selectedCardIds.clear();
+    if (state.houseRule == ArcadeHouseRule.discardDuty) {
+      final untaxedTarget = math.max(
+        1,
+        state.target - state.houseRuleTargetTax,
+      );
+      state.houseRuleTargetTax += math.max(1, (untaxedTarget * .05).round());
+    }
     state.discardsLeft--;
     if (isLevelMode) {
       levelDiscardsUsed++;
@@ -528,6 +571,14 @@ class GameController extends ChangeNotifier {
     state.handsPlayedThisStage++;
     handTypeCounts[result.handType] =
         (handTypeCounts[result.handType] ?? 0) + 1;
+    if (state.houseRule != null) {
+      houseRuleHandCounts[result.handType] =
+          (houseRuleHandCounts[result.handType] ?? 0) + 1;
+      if (state.houseRule == ArcadeHouseRule.closingWindow &&
+          state.discardsLeft > 0) {
+        state.discardsLeft--;
+      }
+    }
     if (isLevelMode) {
       levelProgress!.record(
         objective: levelAttempt!.objective,
@@ -541,6 +592,11 @@ class GameController extends ChangeNotifier {
     }
     _attributeJokerScore(result);
     scoringEngine.applyOnScored(result);
+    if (!isLevelMode) {
+      // Copy the Ace before Glass resolution so the proc event and the
+      // durable card mutation always refer to the same scoring Ace.
+      _applyArcadePostScoreJokerHooks(played, result.scoringFlags);
+    }
     final glassResult = scoringEngine.resolveGlassCardShatters(
       played,
       result.scoringFlags,
@@ -590,6 +646,41 @@ class GameController extends ChangeNotifier {
       notifyListeners();
     }
     return const GameActionResult.success();
+  }
+
+  void _applyArcadePostScoreJokerHooks(
+    List<PlayingCard> played,
+    List<bool> scoringFlags,
+  ) {
+    if (!state.isJokerActive('acemag') ||
+        (state.jokerState['ace_magnet_heat'] ?? 0) > 0) {
+      return;
+    }
+    for (var index = 0; index < played.length; index++) {
+      final card = played[index];
+      if (!scoringFlags[index] ||
+          card.rank != CardRank.ace ||
+          state.cardRankSuppressed(card) ||
+          (state.isJokerActive('rose_tint') && !card.isRed)) {
+        continue;
+      }
+      if (exactCardCount(state.cards, card.rank, card.suit) >=
+          maximumExactCardCopies) {
+        continue;
+      }
+      state.cards.add(
+        card.copyWith(
+          clearEnhancement: true,
+          copied: true,
+          uid: _nextCardId(),
+          selected: false,
+          isNew: true,
+        ),
+      );
+      state.copiedCount = state.cards.where((item) => item.copied).length;
+      state.jokerState['ace_magnet_heat'] = 1;
+      return;
+    }
   }
 
   void _applyLevelPostScoreRules(
@@ -945,6 +1036,8 @@ class GameController extends ChangeNotifier {
     scoringTimeline.clear();
     selectedCardIds.clear();
     state.endless = state.endless || state.stage > 12;
+    state.houseRuleTargetTax = 0;
+    houseRuleHandCounts.clear();
     ModifierSelector(state).assignForCurrentHeat();
     scoringEngine.ensureBossBlocks();
     scoringEngine.prepareHeatJokerState();
@@ -1113,8 +1206,8 @@ class GameController extends ChangeNotifier {
         suffix: 'heat:$heat',
         amount: accountCoins,
         kind: AccountMutationKind.heatReward,
-        bestHeat: heat,
-        bestClearedHeat: heat,
+        bestHeat: state.houseRule == null ? heat : null,
+        bestClearedHeat: state.houseRule == null ? heat : null,
       );
     }
     await _save(RunCheckpoint.heatCleared);
@@ -1131,9 +1224,9 @@ class GameController extends ChangeNotifier {
               : 'completion:standard',
           amount: standardCompletionBonus,
           kind: AccountMutationKind.completionReward,
-          bestHeat: state.stage,
-          bestClearedHeat: state.stage,
-          bestScore: totalScore,
+          bestHeat: state.houseRule == null ? state.stage : null,
+          bestClearedHeat: state.houseRule == null ? state.stage : null,
+          bestScore: state.houseRule == null ? totalScore : null,
         );
       }
       await _settleStake();
@@ -1468,11 +1561,16 @@ class GameController extends ChangeNotifier {
       AccountMutation(
         claimId: '$runId:finished',
         kind: AccountMutationKind.runFinished,
-        bestHeat: state.isDaily || state.isGauntlet ? null : state.stage,
-        bestClearedHeat: state.isDaily || state.isGauntlet
+        bestHeat: state.isDaily || state.isGauntlet || state.houseRule != null
+            ? null
+            : state.stage,
+        bestClearedHeat:
+            state.isDaily || state.isGauntlet || state.houseRule != null
             ? null
             : state.stagesCleared,
-        bestScore: state.isDaily ? null : totalScore,
+        bestScore: state.isDaily || state.houseRule != null ? null : totalScore,
+        displayScore: totalScore,
+        arcadeHouseRuleId: state.houseRule?.id,
         runMode: state.mode,
         dailyDate: state.isDaily ? dailyDate : null,
         dailyScore: state.isDaily ? totalScore : null,
@@ -1597,6 +1695,12 @@ class GameController extends ChangeNotifier {
       'runId': runId,
       'telemetryMode': state.mode.name,
       'dailyDate': dailyDate,
+      'houseRuleId': state.houseRule?.id,
+      'houseRuleTargetTax': state.houseRuleTargetTax,
+      'houseRuleHandCounts': <String, int>{
+        for (final entry in houseRuleHandCounts.entries)
+          entry.key.legacyName: entry.value,
+      },
       'difficulty': state.difficulty.legacyId,
       'rngSeed': state.rngSeed,
       'rngCounters': state.rngCounters.toJson(),
@@ -1741,7 +1845,10 @@ class GameController extends ChangeNotifier {
     stakeNet = _integer(raw['stakeNet']);
     stakePaid = raw['stakePaid'] == true;
     reviveUsed = raw['reviveUsed'] == true;
-    leaderboardEligible = raw['leaderboardEligible'] != false;
+    // House Rule scores never enter the classic leaderboard. Fail closed for
+    // older/incomplete checkpoints where the eligibility field is absent.
+    leaderboardEligible =
+        state.houseRule == null && raw['leaderboardEligible'] != false;
     inflationForShop = raw['inflation'] == true;
     lastWildPityForced = raw['lastWildPityForced'] == true;
     glassDouble = raw['glassDouble'] == true;
@@ -1786,6 +1893,10 @@ class GameController extends ChangeNotifier {
     _restoreIntMap(raw['handTypeCounts'], (key, value) {
       final type = _parseHandType(key);
       if (type != null) handTypeCounts[type] = value;
+    });
+    _restoreIntMap(raw['houseRuleHandCounts'], (key, value) {
+      final type = _parseHandType(key);
+      if (type != null) houseRuleHandCounts[type] = value;
     });
     _restoreIntMap(raw['jokerScore'], (key, value) {
       if (jokersById.containsKey(key)) jokerScore[key] = value;

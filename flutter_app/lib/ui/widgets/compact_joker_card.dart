@@ -23,6 +23,7 @@ class CompactJokerCard extends StatelessWidget {
     this.triggerSequence = 0,
     this.onTap,
     this.height = 58,
+    this.useLegacyLevelDescription = false,
     super.key,
   });
 
@@ -37,6 +38,10 @@ class CompactJokerCard extends StatelessWidget {
   final int triggerSequence;
   final VoidCallback? onTap;
   final double height;
+  final bool useLegacyLevelDescription;
+
+  String get _description =>
+      useLegacyLevelDescription ? joker!.levelDescription : joker!.description;
 
   Color _rarityColor(WildcardThemeTokens tokens) => switch (joker?.rarity) {
     JokerRarity.common => tokens.gold,
@@ -112,7 +117,7 @@ class CompactJokerCard extends StatelessWidget {
       enabled: onTap != null,
       liveRegion: activeHighlight && label?.isNotEmpty == true,
       label:
-          '${joker!.name}. ${joker!.description}'
+          '${joker!.name}. $_description'
           '${inactive ? '. $statusText' : ''}'
           '${activeHighlight && label?.isNotEmpty == true ? '. Triggered $label' : ''}',
       onTap: onTap,
@@ -267,9 +272,7 @@ class CompactJokerCard extends StatelessWidget {
                                       ),
                                     )
                                   : Text(
-                                      inactive
-                                          ? statusText
-                                          : joker!.description,
+                                      inactive ? statusText : _description,
                                       key: ValueKey(
                                         inactive
                                             ? 'joker-modifier-status-$statusText'
@@ -285,7 +288,7 @@ class CompactJokerCard extends StatelessWidget {
                                             : multiplierSuppressed
                                             ? tokens.gold
                                             : tokens.creamDim,
-                                        fontSize: inactive ? 8.5 : 8,
+                                        fontSize: inactive ? 9 : 8.75,
                                         fontWeight: inactive
                                             ? FontWeight.w700
                                             : FontWeight.w400,

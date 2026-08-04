@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/account_state.dart';
+import '../domain/arcade_house_rules.dart';
 import '../domain/cards.dart';
 import '../domain/economy.dart';
 import '../domain/game_rules.dart';
@@ -120,6 +121,8 @@ class AccountMutation {
     this.bestHeat,
     this.bestClearedHeat,
     this.bestScore,
+    this.displayScore,
+    this.arcadeHouseRuleId,
     this.runMode,
     this.dailyDate,
     this.dailyScore,
@@ -150,6 +153,13 @@ class AccountMutation {
   final int? bestHeat;
   final int? bestClearedHeat;
   final int? bestScore;
+
+  /// Terminal score shown in run history without promoting it to a Classic
+  /// personal best or submitting it to a leaderboard.
+  final int? displayScore;
+
+  /// Transient Arcade House Rule identity for history and anonymous analytics.
+  final String? arcadeHouseRuleId;
   final RunMode? runMode;
   final String? dailyDate;
   final int? dailyScore;
@@ -216,6 +226,7 @@ class GameRunConfig {
     this.levelAttempt,
     this.highestUnlockedLevel = 1,
     this.clearedLevelIds = const <int>{},
+    this.houseRule,
   });
 
   final int rngSeed;
@@ -234,6 +245,7 @@ class GameRunConfig {
   final LevelAttemptConfig? levelAttempt;
   final int highestUnlockedLevel;
   final Set<int> clearedLevelIds;
+  final ArcadeHouseRule? houseRule;
 }
 
 class ScoringPacing {

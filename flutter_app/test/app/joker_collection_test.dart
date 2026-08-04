@@ -56,7 +56,7 @@ void main() {
     expect(
       publicUnlockedJokerCount(<String>{rare.id, 'developer_test_joker'}),
       1,
-      reason: 'legacy developer IDs must not produce 103 / 102',
+      reason: 'legacy developer IDs must not inflate active collection totals',
     );
   });
 

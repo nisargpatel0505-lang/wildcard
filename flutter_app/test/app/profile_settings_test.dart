@@ -7,6 +7,11 @@ import 'package:wildcard/domain/progression_catalog.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
+  test('Cabinet labels House Rule run history explicitly', () {
+    expect(cabinetRunModeLabel('H'), 'House Rule');
+    expect(cabinetRunModeLabel('S'), 'Run');
+  });
+
   test('Cabinet summary preserves v7.1 metrics and legacy title names', () {
     final account = AccountState(
       bestHeat: 13,

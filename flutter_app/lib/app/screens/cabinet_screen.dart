@@ -9,6 +9,13 @@ import '../../domain/progression_catalog.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
 
+String cabinetRunModeLabel(String modeCode) => switch (modeCode) {
+  'G' => 'Gauntlet',
+  'D' => 'Daily',
+  'H' => 'House Rule',
+  _ => 'Run',
+};
+
 class CabinetScreen extends StatefulWidget {
   const CabinetScreen({required this.controller, super.key});
 
@@ -396,11 +403,7 @@ class _CabinetScreenState extends State<CabinetScreen> {
   }
 
   Widget _recentRun(RunLogRecord run) {
-    final mode = switch (run.modeCode) {
-      'G' => 'Gauntlet',
-      'D' => 'Daily',
-      _ => 'Run',
-    };
+    final mode = cabinetRunModeLabel(run.modeCode);
     final outcome = run.won
         ? 'WIN'
         : run.abandoned

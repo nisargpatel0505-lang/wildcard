@@ -4,7 +4,7 @@ import 'package:wildcard/domain/joker_catalog.dart';
 
 void main() {
   test('owner DEV card stays isolated from the public catalogue', () {
-    expect(jokerCatalog, hasLength(102));
+    expect(jokerCatalog, hasLength(89));
     expect(
       jokerCatalog.map((joker) => joker.id),
       isNot(contains(devTwentyXJoker.id)),

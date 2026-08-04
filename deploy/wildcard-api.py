@@ -83,9 +83,23 @@ MAX_ANALYTICS_FILE_BYTES = 262_144
 MAX_COUNTER = 1_000_000_000
 
 ANALYTICS_EVENTS = frozenset(("app_open", "run_start", "run_end"))
-ANALYTICS_VERSIONS = frozenset(("6.9.10", "6.9.11", "6.9.12", "6.9.13", "6.9.14"))
+ANALYTICS_VERSIONS = frozenset((
+    "6.9.10", "6.9.11", "6.9.12", "6.9.13", "6.9.14",
+    "8.0.0", "8.2.0", "8.3.0", "8.4.0", "8.4.1",
+    "8.5.0", "8.5.1", "8.5.2", "8.6.0", "8.6.1", "8.6.2", "8.7.0",
+))
 ANALYTICS_PLATFORMS = frozenset(("android", "web"))
-ANALYTICS_MODES = frozenset(("normal", "daily", "gauntlet"))
+ANALYTICS_MODES = frozenset((
+    "normal", "daily", "gauntlet",
+    "house-paupers_table",
+    "house-royal_court",
+    "house-colour_blind",
+    "house-suit_carousel",
+    "house-echo_table",
+    "house-discard_duty",
+    "house-closing_window",
+    "house-modifier_marathon",
+))
 ANALYTICS_OUTCOMES = frozenset(("won", "lost", "terminated"))
 ANALYTICS_HEAT_BANDS = frozenset(("1-3", "4-6", "7-9", "10-12", "13+"))
 

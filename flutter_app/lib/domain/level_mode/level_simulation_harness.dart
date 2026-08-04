@@ -865,6 +865,7 @@ class _LevelSimulationSession {
          cards: layout.deckOrder,
          handLevels: Map<HandType, int>.from(level.rules.handLevels),
          jokerIds: level.temporaryJokerIds(selectedJokerIds),
+         legacyJokerEffects: true,
          modifierStack: <HeatModifier>[
            if (level.rules.nullField) HeatModifier.nullField,
            if (level.rules.deadAir) HeatModifier.deadAir,

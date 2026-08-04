@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'cards.dart';
+import 'deck_integrity.dart';
 import 'game_rules.dart';
 import 'joker_catalog.dart';
 import 'random_streams.dart';
@@ -30,6 +31,8 @@ class LevelScoringOverride {
     this.disabledSuit,
     this.hasAuthoredModifier = false,
     this.authoredModifierCount = 0,
+    this.ruleLabel = 'LEVEL RULE',
+    this.useLegacyJokerEffects = true,
   }) : allowedHandTypes = Set<HandType>.unmodifiable(allowedHandTypes),
        previousHandCounts = Map<HandType, int>.unmodifiable(previousHandCounts),
        perPlayScoreFactors = List<double>.unmodifiable(perPlayScoreFactors) {
@@ -76,6 +79,8 @@ class LevelScoringOverride {
   /// Jokers work without injecting fake Heat modifiers and their side effects.
   final bool hasAuthoredModifier;
   final int authoredModifierCount;
+  final String ruleLabel;
+  final bool useLegacyJokerEffects;
 
   int previousCount(HandType type) => previousHandCounts[type] ?? 0;
 
@@ -195,6 +200,8 @@ class JokerModifierStatus {
 
 const Set<JokerEffect> _additiveMultiplierEffects = <JokerEffect>{
   JokerEffect.copperChip,
+  JokerEffect.suitPresser,
+  JokerEffect.royalRetainer,
   JokerEffect.momentum,
   JokerEffect.suitUniform,
   JokerEffect.pairTrainer,
@@ -223,10 +230,31 @@ const Set<JokerEffect> _additiveMultiplierEffects = <JokerEffect>{
   JokerEffect.warmUp,
   JokerEffect.chaosTheory,
   JokerEffect.safeCracker,
+  JokerEffect.unionBoss,
+};
+
+/// These Jokers were converted from printed-rank bonuses to additive
+/// multiplier effects for Arcade. Authored Levels deliberately retain their
+/// original effects, so multiplier-jamming modifiers must not grey them out
+/// there while their rank bonuses are still live.
+const Set<JokerEffect> _arcadeOnlyAdditiveMultiplierEffects = <JokerEffect>{
+  JokerEffect.suitPresser,
+  JokerEffect.royalRetainer,
+  JokerEffect.unionBoss,
 };
 
 const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
   JokerEffect.devTwentyX,
+  JokerEffect.evenOdds,
+  JokerEffect.inkTrade,
+  JokerEffect.tripleThreat,
+  JokerEffect.numberStation,
+  JokerEffect.gravedigger,
+  JokerEffect.oddJob,
+  JokerEffect.primeTime,
+  JokerEffect.kingpin,
+  JokerEffect.closer,
+  JokerEffect.theCheat,
   JokerEffect.pairPolisher,
   JokerEffect.flushFund,
   JokerEffect.straightWire,
@@ -273,6 +301,35 @@ const Set<JokerEffect> _multiplicativeMultiplierEffects = <JokerEffect>{
   JokerEffect.ruleBreaker,
 };
 
+/// Arcade-only multiplier reworks whose legacy Level effects live in the
+/// printed-rank or hand-shape channels instead.
+const Set<JokerEffect> _arcadeOnlyMultiplicativeMultiplierEffects =
+    <JokerEffect>{
+      JokerEffect.evenOdds,
+      JokerEffect.inkTrade,
+      JokerEffect.tripleThreat,
+      JokerEffect.numberStation,
+      JokerEffect.gravedigger,
+      JokerEffect.oddJob,
+      JokerEffect.primeTime,
+      JokerEffect.kingpin,
+      JokerEffect.closer,
+      JokerEffect.theCheat,
+    };
+
+bool _hasAdditiveMultiplierEffect(ScoringState state, JokerEffect effect) =>
+    _additiveMultiplierEffects.contains(effect) &&
+    (!state.legacyJokerEffects ||
+        !_arcadeOnlyAdditiveMultiplierEffects.contains(effect));
+
+bool _hasMultiplicativeMultiplierEffect(
+  ScoringState state,
+  JokerEffect effect,
+) =>
+    _multiplicativeMultiplierEffects.contains(effect) &&
+    (!state.legacyJokerEffects ||
+        !_arcadeOnlyMultiplicativeMultiplierEffects.contains(effect));
+
 /// Presentation status derived from the same rule channels used by scoring.
 ///
 /// `multiplierSuppressed` is intentionally distinct from a full block: Pair
@@ -306,7 +363,8 @@ JokerModifierStatus jokerModifierStatus(
       'REDUNDANT UNDER LOW CEILING',
     );
   }
-  if (state.hasModifier(HeatModifier.heartless) &&
+  if (state.legacyJokerEffects &&
+      state.hasModifier(HeatModifier.heartless) &&
       joker.effect == JokerEffect.suitPresser) {
     return const JokerModifierStatus(
       JokerModifierVisualState.blocked,
@@ -314,15 +372,15 @@ JokerModifierStatus jokerModifierStatus(
     );
   }
   if (state.hasModifier(HeatModifier.nullField) &&
-      (_additiveMultiplierEffects.contains(joker.effect) ||
-          _multiplicativeMultiplierEffects.contains(joker.effect))) {
+      (_hasAdditiveMultiplierEffect(state, joker.effect) ||
+          _hasMultiplicativeMultiplierEffect(state, joker.effect))) {
     return const JokerModifierStatus(
       JokerModifierVisualState.multiplierSuppressed,
       'MULT OFF',
     );
   }
   if (state.hasModifier(HeatModifier.deadAir) &&
-      _multiplicativeMultiplierEffects.contains(joker.effect)) {
+      _hasMultiplicativeMultiplierEffect(state, joker.effect)) {
     return const JokerModifierStatus(
       JokerModifierVisualState.multiplierSuppressed,
       '×MULT JAMMED',
@@ -336,6 +394,9 @@ class WildcardScoringEngine {
 
   final ScoringState state;
   final LevelScoringOverride? levelOverride;
+
+  bool get _usesArcadeJokerEffects =>
+      levelOverride?.useLegacyJokerEffects != true;
 
   List<_EquippedJoker> get _activeJokers => <_EquippedJoker>[
     for (var index = 0; index < state.jokerIds.length; index++)
@@ -546,6 +607,12 @@ class WildcardScoringEngine {
       orElse: () => -1,
     );
     final lastScoringIndex = scoringIndices.isEmpty ? -1 : scoringIndices.last;
+    final firstScoringDiamondIndex = scoringIndices.firstWhere(
+      (index) =>
+          cards[index].suit == CardSuit.diamonds &&
+          !_cardRankSuppressed(cards[index]),
+      orElse: () => -1,
+    );
 
     for (var cardIndex = 0; cardIndex < cards.length; cardIndex++) {
       final card = cards[cardIndex];
@@ -640,6 +707,36 @@ class WildcardScoringEngine {
           ),
         );
       }
+      if (_usesArcadeJokerEffects && value > 0) {
+        void retrigger(String jokerId, String label) {
+          rankSum += value;
+          events.add(
+            ScoreEvent(
+              type: ScoreEventType.retrigger,
+              cardIndex: cardIndex,
+              jokerIndex: state.jokerIds.indexOf(jokerId),
+              amount: value,
+              label: '$label +$value',
+            ),
+          );
+        }
+
+        if (hasJoker('lowball') && card.value <= 6) {
+          retrigger('lowball', 'LOW BALL AGAIN');
+        }
+        if (hasJoker('ice_pick') && cardIndex == firstScoringDiamondIndex) {
+          retrigger('ice_pick', 'ICE PICK AGAIN');
+        }
+        if (hasJoker('rose_tint') && card.isRed) {
+          retrigger('rose_tint', 'ROSE TINT AGAIN');
+        }
+        if (hasJoker('kingpin') && card.rank == CardRank.king) {
+          retrigger('kingpin', 'KINGPIN AGAIN');
+        }
+        if (hasJoker('leadoff') && cardIndex == firstScoringIndex) {
+          retrigger('leadoff', 'LEADOFF AGAIN');
+        }
+      }
       if (value > 0 &&
           hasJoker('lucky7') &&
           card.rank == CardRank.seven &&
@@ -656,6 +753,29 @@ class WildcardScoringEngine {
             hit: hit,
           ),
         );
+      }
+    }
+
+    if (_usesArcadeJokerEffects &&
+        commit &&
+        hasJoker('acemag') &&
+        (state.jokerState['ace_magnet_heat'] ?? 0) == 0) {
+      for (final cardIndex in scoringIndices) {
+        final card = cards[cardIndex];
+        if (card.rank != CardRank.ace || _cardRankSuppressed(card)) continue;
+        if (exactCardCount(state.cards, card.rank, card.suit) >=
+            maximumExactCardCopies) {
+          continue;
+        }
+        events.add(
+          ScoreEvent(
+            type: ScoreEventType.rankJoker,
+            cardIndex: cardIndex,
+            jokerIndex: state.jokerIds.indexOf('acemag'),
+            label: 'ACE MAGNET · ACE COPIED',
+          ),
+        );
+        break;
       }
     }
 
@@ -689,6 +809,7 @@ class WildcardScoringEngine {
           joker.definition.effect,
           analyzed.type,
           cards,
+          analyzed.scoringCards,
         );
         multiplier += additive;
         if (additive > 0.001) {
@@ -711,6 +832,7 @@ class WildcardScoringEngine {
           joker.definition.effect,
           analyzed.type,
           cards,
+          scoring: analyzed.scoringCards,
           commit: commit,
         );
         multiplier *= factor;
@@ -775,12 +897,12 @@ class WildcardScoringEngine {
 
       final previousCount = levelRules.previousCount(analyzed.type);
       if (levelRules.highCardScoresZero && analyzed.type == HandType.highCard) {
-        applyLevelFactor(0, 'LEVEL RULE · HIGH CARD ×0');
+        applyLevelFactor(0, '${levelRules.ruleLabel} · HIGH CARD ×0');
       } else if (levelRules.allowedHandTypes.isNotEmpty &&
           !levelRules.allowedHandTypes.contains(analyzed.type)) {
-        applyLevelFactor(0, 'LEVEL RULE · HAND NOT ALLOWED ×0');
+        applyLevelFactor(0, '${levelRules.ruleLabel} · HAND NOT ALLOWED ×0');
       } else if (levelRules.repeatedHandsScoreZero && previousCount > 0) {
-        applyLevelFactor(0, 'LEVEL RULE · NO REPEAT ×0');
+        applyLevelFactor(0, '${levelRules.ruleLabel} · NO REPEAT ×0');
       }
 
       if (levelRules.repeatDecay > 0 && previousCount > 0) {
@@ -819,6 +941,9 @@ class WildcardScoringEngine {
 
   /// Resets state that is explicitly scoped to one Heat.
   void prepareHeatJokerState() {
+    if (_usesArcadeJokerEffects && state.jokerIds.contains('acemag')) {
+      state.jokerState['ace_magnet_heat'] = 0;
+    }
     if (state.jokerIds.contains('metronome')) {
       state.jokerState['metronome'] = 0;
     }
@@ -856,7 +981,10 @@ class WildcardScoringEngine {
     if (hasJoker('fragile_genius')) {
       final hadPrevious = state.jokerState.containsKey('fragile');
       final previous = state.jokerState['fragile'] ?? 0;
-      if (hadPrevious && result.total < previous) {
+      final breaks = _usesArcadeJokerEffects
+          ? hadPrevious && result.total < previous * .5
+          : hadPrevious && result.total < previous;
+      if (breaks) {
         state.jokerIds.removeWhere((id) => id == 'fragile_genius');
         state.jokerState.remove('fragile');
       } else {
@@ -935,6 +1063,7 @@ class WildcardScoringEngine {
 
   bool _cardRankSuppressed(PlayingCard card) =>
       state.cardRankSuppressed(card) ||
+      (_usesArcadeJokerEffects && hasJoker('rose_tint') && !card.isRed) ||
       (levelOverride?.suppressesRank(card) ?? false);
 
   // Native rank chips are integer-valued. Round at each authored rank
@@ -944,7 +1073,11 @@ class WildcardScoringEngine {
       (value * (levelOverride?.rankFactor(card) ?? 1)).round();
 
   String _rankSuppressionLabel(PlayingCard card) {
-    if (state.cardRankSuppressed(card)) return '0';
+    if (_usesArcadeJokerEffects && hasJoker('rose_tint') && !card.isRed) {
+      return 'ROSE TINT · BLACK 0';
+    }
+    final stateCause = state.cardRankSuppressionLabel(card);
+    if (stateCause != null) return '${stateCause.toUpperCase()} · 0';
     final rules = levelOverride;
     if (rules == null) return '0';
     if (rules.disabledSuit == card.suit) {
@@ -961,7 +1094,7 @@ class WildcardScoringEngine {
     return switch (rules.scoringColor) {
       LevelRankColor.red => 'RED CARDS ONLY · 0',
       LevelRankColor.black => 'BLACK CARDS ONLY · 0',
-      null => 'LEVEL RULE · 0',
+      null => '${rules.ruleLabel} · 0',
     };
   }
 
@@ -971,64 +1104,102 @@ class WildcardScoringEngine {
     int cardIndex = -1,
     int firstScoringIndex = -1,
     int lastScoringIndex = -1,
-  }) => switch (effect) {
-    JokerEffect.suitPresser => card.suit == CardSuit.hearts ? 4 : 0,
-    JokerEffect.royalRetainer =>
-      const <CardRank>{
-            CardRank.jack,
-            CardRank.queen,
-            CardRank.king,
-          }.contains(card.rank)
-          ? 5
-          : 0,
-    JokerEffect.evenOdds => card.value.isEven ? 3 : 0,
-    JokerEffect.aceMagnet => card.rank == CardRank.ace ? 10 : 0,
-    JokerEffect.lowBall => card.value <= 6 ? card.value : 0,
-    JokerEffect.inkTrade => !card.isRed ? 3 : 0,
-    JokerEffect.tripleThreat =>
-      card.rank == CardRank.three ? card.value * 2 : 0,
-    JokerEffect.numberStation =>
-      const <CardRank>{
-            CardRank.two,
-            CardRank.three,
-            CardRank.four,
-          }.contains(card.rank)
-          ? 4
-          : 0,
-    JokerEffect.icePick => card.suit == CardSuit.diamonds ? 4 : 0,
-    JokerEffect.unionBoss => card.suit == CardSuit.clubs ? 4 : 0,
-    JokerEffect.gravedigger => card.suit == CardSuit.spades ? 4 : 0,
-    JokerEffect.roseTint => card.isRed ? 3 : 0,
-    JokerEffect.oddJob => card.value.isOdd ? 3 : 0,
-    JokerEffect.primeTime =>
-      const <CardRank>{
-            CardRank.two,
-            CardRank.three,
-            CardRank.five,
-            CardRank.seven,
-          }.contains(card.rank)
-          ? 4
-          : 0,
-    JokerEffect.kingpin => card.rank == CardRank.king ? 8 : 0,
-    JokerEffect.glazier =>
-      card.enhancement == CardEnhancement.glass
-          ? _evaluationValue(card) * 2
-          : 0,
-    JokerEffect.closer =>
-      cardIndex >= 0 && cardIndex == lastScoringIndex
-          ? _evaluationValue(card) * 2
-          : 0,
-    JokerEffect.leadoff =>
-      cardIndex >= 0 && cardIndex == firstScoringIndex ? 6 : 0,
-    _ => 0,
-  };
+  }) {
+    if (_usesArcadeJokerEffects &&
+        const <JokerEffect>{
+          JokerEffect.suitPresser,
+          JokerEffect.royalRetainer,
+          JokerEffect.evenOdds,
+          JokerEffect.aceMagnet,
+          JokerEffect.lowBall,
+          JokerEffect.inkTrade,
+          JokerEffect.tripleThreat,
+          JokerEffect.numberStation,
+          JokerEffect.icePick,
+          JokerEffect.unionBoss,
+          JokerEffect.gravedigger,
+          JokerEffect.roseTint,
+          JokerEffect.oddJob,
+          JokerEffect.primeTime,
+          JokerEffect.kingpin,
+          JokerEffect.closer,
+          JokerEffect.leadoff,
+        }.contains(effect)) {
+      return 0;
+    }
+    return switch (effect) {
+      JokerEffect.suitPresser => card.suit == CardSuit.hearts ? 4 : 0,
+      JokerEffect.royalRetainer =>
+        const <CardRank>{
+              CardRank.jack,
+              CardRank.queen,
+              CardRank.king,
+            }.contains(card.rank)
+            ? 5
+            : 0,
+      JokerEffect.evenOdds => card.value.isEven ? 3 : 0,
+      JokerEffect.aceMagnet => card.rank == CardRank.ace ? 10 : 0,
+      JokerEffect.lowBall => card.value <= 6 ? card.value : 0,
+      JokerEffect.inkTrade => !card.isRed ? 3 : 0,
+      JokerEffect.tripleThreat =>
+        card.rank == CardRank.three ? card.value * 2 : 0,
+      JokerEffect.numberStation =>
+        const <CardRank>{
+              CardRank.two,
+              CardRank.three,
+              CardRank.four,
+            }.contains(card.rank)
+            ? 4
+            : 0,
+      JokerEffect.icePick => card.suit == CardSuit.diamonds ? 4 : 0,
+      JokerEffect.unionBoss => card.suit == CardSuit.clubs ? 4 : 0,
+      JokerEffect.gravedigger => card.suit == CardSuit.spades ? 4 : 0,
+      JokerEffect.roseTint => card.isRed ? 3 : 0,
+      JokerEffect.oddJob => card.value.isOdd ? 3 : 0,
+      JokerEffect.primeTime =>
+        const <CardRank>{
+              CardRank.two,
+              CardRank.three,
+              CardRank.five,
+              CardRank.seven,
+            }.contains(card.rank)
+            ? 4
+            : 0,
+      JokerEffect.kingpin => card.rank == CardRank.king ? 8 : 0,
+      JokerEffect.glazier =>
+        card.enhancement == CardEnhancement.glass
+            ? _evaluationValue(card) * 2
+            : 0,
+      JokerEffect.closer =>
+        cardIndex >= 0 && cardIndex == lastScoringIndex
+            ? _evaluationValue(card) * 2
+            : 0,
+      JokerEffect.leadoff =>
+        cardIndex >= 0 && cardIndex == firstScoringIndex ? 6 : 0,
+      _ => 0,
+    };
+  }
 
   double _additiveMultiplier(
     JokerEffect effect,
     HandType handType,
     List<PlayingCard> played,
+    Set<PlayingCard> scoring,
   ) => switch (effect) {
     JokerEffect.copperChip => 0.20,
+    JokerEffect.suitPresser when _usesArcadeJokerEffects =>
+      0.15 * scoring.where((card) => card.suit == CardSuit.hearts).length,
+    JokerEffect.royalRetainer when _usesArcadeJokerEffects =>
+      0.12 *
+          scoring
+              .where(
+                (card) => const <CardRank>{
+                  CardRank.jack,
+                  CardRank.queen,
+                  CardRank.king,
+                }.contains(card.rank),
+              )
+              .length,
     JokerEffect.momentum => 0.10 * state.handsPlayedThisStage,
     JokerEffect.suitUniform => _allSameColor(played) ? 0.50 : 0,
     JokerEffect.pairTrainer => state.jokerState['trainer'] ?? 0,
@@ -1071,6 +1242,16 @@ class WildcardScoringEngine {
     JokerEffect.warmUp => state.handsPlayedThisStage == 0 ? 0.60 : 0,
     JokerEffect.chaosTheory => 0.50 * _effectiveModifierCount,
     JokerEffect.safeCracker => 0.35 * (state.jokerState['safecrack'] ?? 0),
+    JokerEffect.unionBoss when _usesArcadeJokerEffects =>
+      0.12 *
+          math.min(
+            10,
+            math.max(
+              0,
+              state.cards.where((card) => card.suit == CardSuit.clubs).length -
+                  13,
+            ),
+          ),
     _ => 0,
   };
 
@@ -1078,9 +1259,62 @@ class WildcardScoringEngine {
     JokerEffect effect,
     HandType handType,
     List<PlayingCard> played, {
+    required Set<PlayingCard> scoring,
     required bool commit,
   }) => switch (effect) {
     JokerEffect.devTwentyX => 20,
+    JokerEffect.evenOdds when _usesArcadeJokerEffects =>
+      played.length >= 3 && played.every((card) => card.value.isEven) ? 1.5 : 1,
+    JokerEffect.inkTrade when _usesArcadeJokerEffects =>
+      played.length >= 3 && played.every((card) => !card.isRed) ? 1.7 : 1,
+    JokerEffect.tripleThreat when _usesArcadeJokerEffects =>
+      state.handsPlayedThisStage == 2 ? 2.5 : 1,
+    JokerEffect.numberStation when _usesArcadeJokerEffects =>
+      math
+          .pow(
+            1.2,
+            played
+                .where(
+                  (card) => const <CardRank>{
+                    CardRank.two,
+                    CardRank.three,
+                    CardRank.four,
+                  }.contains(card.rank),
+                )
+                .map((card) => card.rank)
+                .toSet()
+                .length,
+          )
+          .toDouble(),
+    JokerEffect.gravedigger when _usesArcadeJokerEffects =>
+      math.pow(1.10, math.min(5, state.destroyedCount)).toDouble(),
+    JokerEffect.oddJob when _usesArcadeJokerEffects =>
+      played.length >= 3 && played.every((card) => card.value.isOdd) ? 1.6 : 1,
+    JokerEffect.primeTime when _usesArcadeJokerEffects =>
+      math
+          .pow(
+            1.12,
+            scoring
+                .where(
+                  (card) => const <CardRank>{
+                    CardRank.two,
+                    CardRank.three,
+                    CardRank.five,
+                    CardRank.seven,
+                  }.contains(card.rank),
+                )
+                .length,
+          )
+          .toDouble(),
+    JokerEffect.kingpin when _usesArcadeJokerEffects =>
+      played.any((card) => card.rank == CardRank.king) &&
+              played.any((card) => card.rank == CardRank.ace)
+          ? 1.5
+          : 1,
+    JokerEffect.closer when _usesArcadeJokerEffects =>
+      state.handsLeft == 1 ? math.pow(1.15, state.discardsLeft).toDouble() : 1,
+    JokerEffect.theCheat when _usesArcadeJokerEffects =>
+      played.length == 6 ? 1.25 : 1,
     JokerEffect.pairPolisher => handType != HandType.highCard ? 1.4 : 1,
     JokerEffect.flushFund => handType.legacyName.contains('Flush') ? 1.8 : 1,
     JokerEffect.straightWire =>
@@ -1099,10 +1333,23 @@ class WildcardScoringEngine {
     JokerEffect.survivor => _hasEffectiveModifier ? 2 : 1,
     JokerEffect.doubleDown => state.previousHandType == handType ? 2 : 1,
     JokerEffect.allIn => state.handsLeft == 1 ? 4 : 0.75,
-    JokerEffect.frequencyMeter => _frequencyMeterTriggers(played) ? 1.4 : 1,
+    JokerEffect.frequencyMeter =>
+      _frequencyMeterTriggers(played)
+          ? (_usesArcadeJokerEffects ? 1.8 : 1.4)
+          : 1,
     JokerEffect.panicButton => state.discardsLeft == 0 ? 1.4 : 1,
     JokerEffect.stormHarness => _hasEffectiveModifier ? 1.4 : 1,
-    JokerEffect.guillotine => state.cards.length < 42 ? 1.5 : 1,
+    JokerEffect.guillotine =>
+      _usesArcadeJokerEffects
+          ? math
+                .pow(
+                  1.15,
+                  math.min(5, math.max(0, (52 - state.cards.length) ~/ 5)),
+                )
+                .toDouble()
+          : state.cards.length < 42
+          ? 1.5
+          : 1,
     JokerEffect.redline => state.stageScore >= state.target * 0.55 ? 2.5 : 1,
     JokerEffect.masterClass =>
       math.pow(1.15, state.handLevels[handType] ?? 0).toDouble(),
@@ -1157,6 +1404,9 @@ class WildcardScoringEngine {
           .pow(
             1.25,
             state.jokerIds.where((id) {
+              if (_usesArcadeJokerEffects && id == 'rarity_hunter') {
+                return false;
+              }
               final rarity = jokersById[id]?.rarity;
               return rarity == JokerRarity.rare || rarity == JokerRarity.wild;
             }).length,
@@ -1165,7 +1415,8 @@ class WildcardScoringEngine {
     JokerEffect.overclock => 2.4,
     JokerEffect.roulette =>
       commit ? (state.nextRandom(RandomStream.luck) < .5 ? 2.5 : .6) : 1.55,
-    JokerEffect.bloodMoney => 1.8,
+    JokerEffect.bloodMoney =>
+      !_usesArcadeJokerEffects || state.runCoins > 0 ? 1.8 : 1,
     JokerEffect.fragileGenius => 4,
     JokerEffect.highWire =>
       state.discardsLeft == 0 && state.handsLeft == 1 ? 2.2 : 1,
@@ -1177,6 +1428,9 @@ class WildcardScoringEngine {
     final counts = <CardRank, int>{};
     for (final card in state.cards) {
       counts[card.rank] = (counts[card.rank] ?? 0) + 1;
+    }
+    if (_usesArcadeJokerEffects) {
+      return played.any((card) => (counts[card.rank] ?? 0) >= 5);
     }
     CardRank? best;
     var bestCount = -1;

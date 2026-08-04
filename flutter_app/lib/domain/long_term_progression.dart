@@ -1,3 +1,5 @@
+import 'joker_catalog.dart';
+
 /// Durable lifetime counters used by v8.5's sequential badge tracks.
 ///
 /// These keys are intentionally stable save-schema identifiers. Weekly
@@ -330,8 +332,8 @@ const List<TieredAchievementDefinition> tieredAchievementCatalog =
         family: LongTermFamily.jokerDiscovery,
         tier: LongTermTier.wild,
         name: 'Every Trick',
-        description: 'Discover 100 Jokers.',
-        threshold: 100,
+        description: 'Discover all $activePublicJokerCount active Jokers.',
+        threshold: activePublicJokerCount,
         rewardCoins: 30,
       ),
       TieredAchievementDefinition(

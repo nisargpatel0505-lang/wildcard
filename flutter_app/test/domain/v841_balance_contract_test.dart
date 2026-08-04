@@ -175,10 +175,10 @@ void main() {
   });
 
   group('public catalogue isolation', () {
-    test('102 public Jokers remain unique', () {
-      expect(jokerCatalog, hasLength(102));
-      expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(102));
-      expect(jokerCatalog.map((joker) => joker.effect).toSet(), hasLength(102));
+    test('89 active public Jokers remain unique', () {
+      expect(jokerCatalog, hasLength(89));
+      expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(89));
+      expect(jokerCatalog.map((joker) => joker.effect).toSet(), hasLength(89));
       expect(
         <JokerRarity, int>{
           for (final rarity in JokerRarity.values)
@@ -187,16 +187,20 @@ void main() {
                 .length,
         },
         const <JokerRarity, int>{
-          JokerRarity.common: 36,
-          JokerRarity.uncommon: 36,
+          JokerRarity.common: 30,
+          JokerRarity.uncommon: 29,
           JokerRarity.rare: 23,
           JokerRarity.wild: 7,
         },
       );
     });
 
-    test('runtime selection contains only the public catalogue', () {
-      expect(jokersById.keys, unorderedEquals(jokerCatalog.map((j) => j.id)));
+    test('lookup includes legacy Jokers while selection excludes them', () {
+      final lookupIds = <String>{
+        ...jokerCatalog.map((joker) => joker.id),
+        ...legacyJokerCatalog.map((joker) => joker.id),
+      };
+      expect(jokersById.keys, unorderedEquals(lookupIds));
       expect(selectableJokers, orderedEquals(jokerCatalog));
     });
 
@@ -205,10 +209,11 @@ void main() {
       expect(
         publicUnlockedJokerCount(<String>{
           ...publicIds,
+          ...legacyJokerCatalog.map((joker) => joker.id),
           'legacy_developer_test_joker',
           'unknown_joker',
         }),
-        102,
+        89,
       );
     });
   });

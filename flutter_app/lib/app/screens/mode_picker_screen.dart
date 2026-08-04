@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/developer_access.dart';
 import '../../core/daily_utc_date.dart';
 import '../../domain/account_state.dart';
+import '../../domain/arcade_house_rules.dart';
 import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
@@ -17,12 +18,14 @@ class RunLaunchRequest {
     required this.difficulty,
     required this.stake,
     this.startJokerId,
+    this.houseRule,
   });
 
   final RunMode mode;
   final RunDifficulty difficulty;
   final int stake;
   final String? startJokerId;
+  final ArcadeHouseRule? houseRule;
 }
 
 class ModePickerScreen extends StatefulWidget {
@@ -46,6 +49,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   RunDifficulty difficulty = RunDifficulty.medium;
   int stake = 0;
   String? startJokerId;
+  ArcadeHouseRule? houseRule;
 
   ProgressionGates get gates => ProgressionGates(
     tutorialDone: widget.account.tutorialDone,
@@ -62,7 +66,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   bool get gauntletAvailable =>
       gates.gauntletUnlocked || developerGauntletUnlocked(widget.account);
 
-  int get maxStake => mode == RunMode.daily
+  int get maxStake => mode == RunMode.daily || houseRule != null
       ? 0
       : maximumStake(widget.account.coins, gauntlet: mode == RunMode.gauntlet);
 
@@ -143,13 +147,23 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
               onSelectionChanged: (selection) =>
                   setState(() => difficulty = selection.first),
             ),
+            const ScreenSectionTitle('House Rules'),
+            _houseRulePicker(),
           ],
           if (mode != RunMode.daily) ...[
             const ScreenSectionTitle('Starter Joker'),
             _starterPicker(),
           ],
           const ScreenSectionTitle("Sly's contract"),
-          if (mode == RunMode.daily)
+          if (houseRule != null)
+            const WildcardCard(
+              accent: WildcardCardAccent.neutral,
+              child: Text(
+                'HOUSE RULE TABLE · NO STAKE\nModified runs are kept off the Classic leaderboards.',
+                textAlign: TextAlign.center,
+              ),
+            )
+          else if (mode == RunMode.daily)
             const WildcardCard(
               accent: WildcardCardAccent.neutral,
               child: Text(
@@ -196,6 +210,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
               }
               if (mode != RunMode.normal) {
                 difficulty = RunDifficulty.medium;
+                houseRule = null;
               }
             }),
       child: Row(
@@ -214,6 +229,83 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _houseRulePicker() {
+    final unlocked =
+        widget.account.bestClearedHeat >= arcadeHouseRuleUnlockHeat ||
+        developerGauntletUnlocked(widget.account);
+    if (!unlocked) {
+      return const WildcardCard(
+        accent: WildcardCardAccent.neutral,
+        child: Row(
+          children: [
+            Icon(Icons.lock_outline_rounded),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Clear Heat 12 once to unlock optional Arcade House Rules.',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    final selected = houseRule;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<ArcadeHouseRule?>(
+          key: const Key('house-rule-picker'),
+          initialValue: selected,
+          isExpanded: true,
+          hint: const Text('Classic Rules'),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Optional table rule',
+          ),
+          items: <DropdownMenuItem<ArcadeHouseRule?>>[
+            const DropdownMenuItem(value: null, child: Text('Classic Rules')),
+            for (final rule in ArcadeHouseRule.values)
+              DropdownMenuItem(
+                value: rule,
+                child: Text('${rule.icon}  ${rule.name}'),
+              ),
+          ],
+          onChanged: (value) => setState(() {
+            houseRule = value;
+            if (value != null) stake = 0;
+          }),
+        ),
+        if (selected != null) ...[
+          const SizedBox(height: 8),
+          WildcardCard(
+            selected: true,
+            accent: WildcardCardAccent.violet,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(selected.icon, style: const TextStyle(fontSize: 22)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.name.toUpperCase(),
+                        style: _heading(context, context.wildcard.violet),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(selected.summary),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -335,23 +427,24 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
               Semantics(
                 button: true,
                 label: 'View contract payout by difficulty',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: _showPayoutInfo,
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: _showPayoutInfo,
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.payments_outlined,
-                          size: 17,
+                          size: 18,
                           color: context.wildcard.gold,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 3),
                         Icon(
                           Icons.info_outline_rounded,
-                          size: 15,
+                          size: 16,
                           color: context.wildcard.creamDim,
                         ),
                       ],
@@ -518,6 +611,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
         difficulty: mode == RunMode.normal ? difficulty : RunDifficulty.medium,
         stake: launchStake,
         startJokerId: startJokerId,
+        houseRule: mode == RunMode.normal ? houseRule : null,
       ),
     );
   }

@@ -704,7 +704,7 @@ class _JokerChoiceCard extends StatelessWidget {
       button: !locked,
       selected: selected,
       label:
-          '${joker.name}, $badge, ${joker.rarity.name}, ${joker.description}',
+          '${joker.name}, $badge, ${joker.rarity.name}, ${joker.levelDescription}',
       child: WildcardCard(
         accent: accent,
         selected: selected && !forcedBurden,
@@ -755,7 +755,7 @@ class _JokerChoiceCard extends StatelessWidget {
             ),
             const SizedBox(height: 7),
             Text(
-              joker.description,
+              joker.levelDescription,
               style: TextStyle(
                 color: context.wildcard.cream,
                 fontSize: 11.5,
@@ -796,7 +796,7 @@ class _JokerBadge extends StatelessWidget {
 }
 
 String _jokerRole(JokerDefinition joker) {
-  final description = joker.description.toLowerCase();
+  final description = joker.levelDescription.toLowerCase();
   if (description.contains('coin')) return 'ECONOMY';
   if (description.contains('modifier') || description.contains('heat')) {
     return 'ADAPTER';

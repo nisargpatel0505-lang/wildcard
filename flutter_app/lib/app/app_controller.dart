@@ -929,7 +929,8 @@ class AppController extends ChangeNotifier {
     }
 
     // Daily and Gauntlet results are isolated from standard Best Heat/score.
-    if (mutation.runMode == RunMode.normal) {
+    if (mutation.runMode == RunMode.normal &&
+        mutation.arcadeHouseRuleId?.trim().isNotEmpty != true) {
       if (mutation.bestHeat case final value?) {
         account.bestHeat = math.max(account.bestHeat, value);
       }
@@ -1044,14 +1045,20 @@ class AppController extends ChangeNotifier {
       _bumpMission('bosskill', 1);
     }
 
-    final modeCode = mode == RunMode.gauntlet ? 'G' : 'S';
+    final houseRuleId = mutation.arcadeHouseRuleId?.trim();
+    final isHouseRule = houseRuleId != null && houseRuleId.isNotEmpty;
+    final modeCode = isHouseRule
+        ? 'H'
+        : mode == RunMode.gauntlet
+        ? 'G'
+        : 'S';
     account.runLog.insert(
       0,
       RunLogRecord(
         date: _todayString(),
         heat: math.max(1, mutation.bestHeat ?? mutation.stagesCleared + 1),
         cleared: mutation.stagesCleared,
-        score: mutation.bestScore ?? 0,
+        score: mutation.displayScore ?? mutation.bestScore ?? 0,
         modeCode: modeCode,
         won: recordedWin,
         abandoned: mutation.abandoned,
@@ -1061,7 +1068,9 @@ class AppController extends ChangeNotifier {
       account.runLog.removeRange(10, account.runLog.length);
     }
 
-    if (mode == RunMode.normal && (mutation.bestScore ?? 0) > 0) {
+    if (mode == RunMode.normal &&
+        !isHouseRule &&
+        (mutation.bestScore ?? 0) > 0) {
       account.topRuns.add(
         TopRunRecord(
           score: mutation.bestScore!,
@@ -1161,13 +1170,17 @@ class AppController extends ChangeNotifier {
 
   void _sendFinishedRunServices(AccountMutation mutation) {
     final mode = mutation.runMode ?? RunMode.normal;
+    final houseRuleId = mutation.arcadeHouseRuleId?.trim();
+    final serviceMode = houseRuleId != null && houseRuleId.isNotEmpty
+        ? 'house-$houseRuleId'
+        : mode.name;
     final outcome = mutation.abandoned
         ? 'terminated'
         : mutation.won == true
         ? 'won'
         : 'lost';
     pi.queueRunEnd(
-      mode: mode.name,
+      mode: serviceMode,
       outcome: outcome,
       heat: math.max(1, mutation.bestHeat ?? mutation.stagesCleared + 1),
     );
@@ -1175,6 +1188,7 @@ class AppController extends ChangeNotifier {
     final score = mutation.bestScore ?? mutation.dailyScore ?? 0;
     if (!developerToolsUnlocked(account) &&
         mode == RunMode.normal &&
+        (houseRuleId == null || houseRuleId.isEmpty) &&
         score > 0 &&
         mutation.leaderboardEligible &&
         playGames.signedIn) {

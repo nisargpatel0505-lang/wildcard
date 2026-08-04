@@ -3,14 +3,20 @@ import 'package:wildcard/domain/game_rules.dart';
 import 'package:wildcard/domain/joker_catalog.dart';
 
 void main() {
-  test('Joker catalogue mirrors all 102 public definitions', () {
-    expect(jokerCatalog, hasLength(102));
-    expect(jokerCatalog.map((joker) => joker.id).toSet(), hasLength(102));
-    expect(jokerCatalog.map((joker) => joker.name).toSet(), hasLength(102));
+  test('Joker catalogue mirrors all 89 active public definitions', () {
+    expect(jokerCatalog, hasLength(activePublicJokerCount));
+    expect(
+      jokerCatalog.map((joker) => joker.id).toSet(),
+      hasLength(activePublicJokerCount),
+    );
+    expect(
+      jokerCatalog.map((joker) => joker.name).toSet(),
+      hasLength(activePublicJokerCount),
+    );
     expect(
       jokerCatalog.map((joker) => joker.effect).toSet(),
-      hasLength(102),
-      reason: 'every public Joker must own one distinct gameplay effect',
+      hasLength(activePublicJokerCount),
+      reason: 'every active public Joker must own one distinct gameplay effect',
     );
     final starters = jokerCatalog.where((joker) => joker.starter).toList();
     expect(starters, hasLength(10));
@@ -20,8 +26,8 @@ void main() {
           rarity: jokerCatalog.where((joker) => joker.rarity == rarity).length,
       },
       const <JokerRarity, int>{
-        JokerRarity.common: 36,
-        JokerRarity.uncommon: 36,
+        JokerRarity.common: 30,
+        JokerRarity.uncommon: 29,
         JokerRarity.rare: 23,
         JokerRarity.wild: 7,
       },
@@ -47,10 +53,6 @@ void main() {
     expect(jokersById['polish']!.rarity, JokerRarity.rare);
     expect(jokersById['roller']!.rarity, JokerRarity.rare);
     expect(
-      jokersById['warm_up']!.rarity.index,
-      greaterThanOrEqualTo(JokerRarity.uncommon.index),
-    );
-    expect(
       jokersById['marathoner']!.rarity.index,
       greaterThanOrEqualTo(JokerRarity.uncommon.index),
     );
@@ -69,6 +71,51 @@ void main() {
     }
   });
 
+  test('retired Jokers leave public pools but remain lookup-compatible', () {
+    const replacements = <String, String>{
+      'color_wash': 'uniform',
+      'storm_harness': 'survivor',
+      'warm_up': 'opening_act',
+      'frontrunner': 'redline',
+      'collector': 'printer',
+      'cold_adapter': 'modded',
+      'rehearsal_tape': 'opening_act',
+      'modded': 'survivor',
+      'encore': 'doubledown',
+      'cleaner': 'guillotine',
+      'clutch_gear': 'lastcall',
+      'twin_flame': 'trident',
+      'quartet': 'fulltable',
+    };
+    final activeIds = jokerCatalog.map((joker) => joker.id).toSet();
+    final legacyIds = legacyJokerCatalog.map((joker) => joker.id).toSet();
+
+    expect(legacyJokerCatalog, hasLength(13));
+    expect(legacyIds, replacements.keys.toSet());
+    expect(activeIds.intersection(legacyIds), isEmpty);
+    expect(retiredJokerReplacementIds, replacements);
+    expect(legacyIds.every(jokersById.containsKey), isTrue);
+    expect(publicUnlockedJokerCount(legacyIds), 0);
+
+    for (final retiredId in legacyIds) {
+      final visited = <String>{retiredId};
+      var replacementId = replacements[retiredId]!;
+      while (replacements.containsKey(replacementId)) {
+        expect(
+          visited.add(replacementId),
+          isTrue,
+          reason: 'cycle at $retiredId',
+        );
+        replacementId = replacements[replacementId]!;
+      }
+      expect(
+        activeIds,
+        contains(replacementId),
+        reason: '$retiredId must ultimately map to an active Joker',
+      );
+    }
+  });
+
   test('the only permanent free discoveries are the ten starters', () {
     final starters = jokerCatalog.where((joker) => joker.starter).toList();
     final vaultDiscoveries = jokerCatalog
@@ -76,7 +123,7 @@ void main() {
         .toList();
     expect(starters.map((joker) => joker.id).toSet(), starterJokerIds.toSet());
     expect(starters, hasLength(10));
-    expect(vaultDiscoveries, hasLength(92));
+    expect(vaultDiscoveries, hasLength(79));
     expect(vaultDiscoveries.every((joker) => !joker.starter), isTrue);
   });
 
