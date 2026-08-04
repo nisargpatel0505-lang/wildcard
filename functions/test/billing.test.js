@@ -24,6 +24,14 @@ test("purchase tokens use deterministic non-reversible ledger keys", () => {
   assert.match(__test.hashToken(token), /^[a-f0-9]{64}$/);
 });
 
+test("cloud diagnostics retain only a bounded client app version", () => {
+  assert.equal(__test.sanitizeClientAppVersion("8.0.0-dev.1"), "8.0.0-dev.1");
+  assert.equal(__test.sanitizeClientAppVersion(" 8.0.0+47 "), "8.0.0+47");
+  assert.equal(__test.sanitizeClientAppVersion("8.0.0<script>"), "6.9.14");
+  assert.equal(__test.sanitizeClientAppVersion("x".repeat(33)), "6.9.14");
+  assert.equal(__test.sanitizeClientAppVersion(null), "6.9.14");
+});
+
 test("Firebase UIDs map to the plugin's deterministic Play account UUID", () => {
   const value = __test.obfuscatedAccountId("firebase-user-123");
   assert.match(

@@ -4,9 +4,9 @@ Deterministic 180-day progression model generated from the live `www/index.html`
 
 ## Live inputs
 
-- Source SHA-256: `116d1878b733667b2fdb87c28e9ed38b5f8010288894e11bbebe9cf9a4c81521`
+- Source SHA-256: `499c1ebe75a5346e7fe3c06cf0b0328cc29e32e90d62a77b237071ffeaa2bab9`
 - Model script SHA-256: `43d40d7109d56429790ab89ede2e29cda4f3b51921a2a4ab5ceb54f580660345`
-- Source UI version label: 6.9.10
+- Source UI version label: 6.9.13
 - Gameplay depth input: `docs/release/wildcard-v6.9.10-sim-results.json` · SHA-256 `962eca3bd84ecd0f7ec562472433a7270e98933cd4a4c38de9e09e6ac4515fd0` (1500 all-unlocked runs; 700 starter-pool runs)
 - Economy trials: 1,000 per cohort, route and scenario (12,000 total player timelines)
 - Free / paid Jokers: 10 / 47

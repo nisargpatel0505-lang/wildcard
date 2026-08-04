@@ -1,0 +1,6861 @@
+{
+  "formatVersion": 1,
+  "catalog": {
+    "path": "assets/data/levels-v8.5.2.generated.json",
+    "schemaVersion": 2,
+    "sourceGameVersion": "8.5.2",
+    "sourceCommit": "39f038295879a332eb83ba76554512edf63d2389",
+    "sourceBranch": "agent/flutter-v8.5.2-suit-kingdom-themes",
+    "shippingLevels": 100,
+    "shippingLayouts": 1460
+  },
+  "configuration": {
+    "policies": [
+      "adaptivePlanning"
+    ],
+    "maxLevels": null,
+    "maxLayoutsPerLevel": null,
+    "solverPath": null
+  },
+  "competentPolicyReport": {
+    "policies": [
+      "adaptivePlanning"
+    ],
+    "attempts": 1460,
+    "clears": 1079,
+    "clearRate": 0.739041095890411,
+    "medianScore": 556,
+    "uniqueLayoutFailures": [
+      "100:L100-01",
+      "100:L100-02",
+      "100:L100-03",
+      "100:L100-04",
+      "100:L100-05",
+      "100:L100-06",
+      "100:L100-07",
+      "100:L100-08",
+      "100:L100-09",
+      "100:L100-10",
+      "100:L100-11",
+      "100:L100-12",
+      "100:L100-13",
+      "100:L100-14",
+      "100:L100-15",
+      "100:L100-16",
+      "100:L100-17",
+      "100:L100-18",
+      "100:L100-19",
+      "100:L100-20",
+      "100:L100-22",
+      "100:L100-23",
+      "100:L100-24",
+      "11:L011-09",
+      "12:L012-06",
+      "13:L013-01",
+      "13:L013-07",
+      "15:L015-03",
+      "22:L022-01",
+      "22:L022-02",
+      "22:L022-03",
+      "22:L022-04",
+      "22:L022-05",
+      "22:L022-06",
+      "22:L022-08",
+      "22:L022-09",
+      "22:L022-10",
+      "22:L022-12",
+      "23:L023-11",
+      "27:L027-06",
+      "28:L028-01",
+      "28:L028-02",
+      "28:L028-03",
+      "28:L028-05",
+      "28:L028-06",
+      "28:L028-08",
+      "28:L028-09",
+      "28:L028-11",
+      "28:L028-12",
+      "31:L031-03",
+      "31:L031-06",
+      "31:L031-11",
+      "32:L032-01",
+      "32:L032-02",
+      "32:L032-03",
+      "32:L032-04",
+      "32:L032-05",
+      "32:L032-06",
+      "32:L032-07",
+      "32:L032-08",
+      "32:L032-09",
+      "32:L032-10",
+      "32:L032-11",
+      "33:L033-06",
+      "33:L033-07",
+      "33:L033-12",
+      "33:L033-15",
+      "34:L034-02",
+      "36:L036-04",
+      "36:L036-09",
+      "37:L037-03",
+      "37:L037-06",
+      "38:L038-04",
+      "38:L038-05",
+      "38:L038-06",
+      "41:L041-02",
+      "41:L041-05",
+      "42:L042-01",
+      "42:L042-04",
+      "42:L042-05",
+      "42:L042-07",
+      "42:L042-08",
+      "42:L042-09",
+      "42:L042-14",
+      "42:L042-15",
+      "42:L042-16",
+      "43:L043-06",
+      "43:L043-07",
+      "43:L043-08",
+      "43:L043-11",
+      "43:L043-16",
+      "43:L043-18",
+      "43:L043-19",
+      "44:L044-01",
+      "44:L044-05",
+      "44:L044-06",
+      "44:L044-08",
+      "44:L044-16",
+      "44:L044-18",
+      "44:L044-19",
+      "45:L045-02",
+      "45:L045-03",
+      "45:L045-05",
+      "45:L045-06",
+      "45:L045-10",
+      "45:L045-11",
+      "45:L045-14",
+      "45:L045-15",
+      "45:L045-16",
+      "45:L045-17",
+      "46:L046-04",
+      "46:L046-06",
+      "46:L046-09",
+      "46:L046-11",
+      "47:L047-01",
+      "47:L047-03",
+      "47:L047-04",
+      "47:L047-12",
+      "47:L047-17",
+      "47:L047-19",
+      "48:L048-04",
+      "48:L048-05",
+      "48:L048-06",
+      "48:L048-09",
+      "49:L049-01",
+      "49:L049-02",
+      "49:L049-07",
+      "49:L049-09",
+      "49:L049-11",
+      "49:L049-12",
+      "49:L049-13",
+      "49:L049-14",
+      "49:L049-17",
+      "49:L049-19",
+      "50:L050-01",
+      "50:L050-02",
+      "50:L050-03",
+      "50:L050-04",
+      "50:L050-07",
+      "50:L050-10",
+      "50:L050-12",
+      "50:L050-13",
+      "51:L051-03",
+      "51:L051-06",
+      "51:L051-13",
+      "51:L051-16",
+      "52:L052-02",
+      "52:L052-03",
+      "52:L052-04",
+      "52:L052-05",
+      "52:L052-06",
+      "52:L052-08",
+      "52:L052-09",
+      "52:L052-10",
+      "52:L052-11",
+      "52:L052-12",
+      "53:L053-03",
+      "53:L053-05",
+      "53:L053-07",
+      "53:L053-10",
+      "53:L053-11",
+      "53:L053-13",
+      "53:L053-19",
+      "54:L054-03",
+      "54:L054-04",
+      "54:L054-05",
+      "54:L054-08",
+      "54:L054-13",
+      "54:L054-16",
+      "55:L055-01",
+      "55:L055-02",
+      "55:L055-03",
+      "55:L055-06",
+      "55:L055-11",
+      "55:L055-12",
+      "55:L055-14",
+      "55:L055-16",
+      "55:L055-20",
+      "56:L056-01",
+      "56:L056-05",
+      "56:L056-07",
+      "56:L056-10",
+      "56:L056-11",
+      "56:L056-19",
+      "57:L057-01",
+      "57:L057-02",
+      "57:L057-03",
+      "57:L057-04",
+      "57:L057-05",
+      "57:L057-06",
+      "57:L057-07",
+      "57:L057-08",
+      "57:L057-09",
+      "57:L057-10",
+      "57:L057-11",
+      "57:L057-12",
+      "57:L057-13",
+      "57:L057-14",
+      "57:L057-15",
+      "57:L057-16",
+      "57:L057-17",
+      "57:L057-18",
+      "57:L057-19",
+      "57:L057-20",
+      "58:L058-03",
+      "58:L058-05",
+      "58:L058-07",
+      "58:L058-08",
+      "58:L058-12",
+      "58:L058-13",
+      "58:L058-14",
+      "58:L058-17",
+      "58:L058-19",
+      "59:L059-02",
+      "59:L059-03",
+      "59:L059-08",
+      "59:L059-11",
+      "59:L059-12",
+      "59:L059-13",
+      "60:L060-01",
+      "60:L060-04",
+      "60:L060-05",
+      "60:L060-08",
+      "60:L060-09",
+      "60:L060-12",
+      "60:L060-14",
+      "60:L060-18",
+      "60:L060-19",
+      "67:L067-03",
+      "67:L067-10",
+      "68:L068-02",
+      "68:L068-08",
+      "68:L068-10",
+      "69:L069-01",
+      "69:L069-02",
+      "6:L006-12",
+      "70:L070-02",
+      "70:L070-03",
+      "70:L070-05",
+      "70:L070-12",
+      "71:L071-11",
+      "71:L071-12",
+      "72:L072-03",
+      "72:L072-06",
+      "73:L073-03",
+      "73:L073-10",
+      "74:L074-09",
+      "76:L076-01",
+      "76:L076-04",
+      "76:L076-07",
+      "78:L078-03",
+      "79:L079-03",
+      "79:L079-04",
+      "79:L079-05",
+      "79:L079-06",
+      "79:L079-07",
+      "79:L079-08",
+      "79:L079-10",
+      "79:L079-12",
+      "7:L007-02",
+      "80:L080-01",
+      "80:L080-05",
+      "80:L080-07",
+      "80:L080-08",
+      "80:L080-09",
+      "80:L080-10",
+      "80:L080-12",
+      "82:L082-05",
+      "83:L083-03",
+      "83:L083-10",
+      "84:L084-01",
+      "85:L085-01",
+      "85:L085-02",
+      "85:L085-03",
+      "85:L085-04",
+      "85:L085-05",
+      "85:L085-06",
+      "85:L085-07",
+      "85:L085-08",
+      "85:L085-09",
+      "85:L085-10",
+      "86:L086-01",
+      "86:L086-02",
+      "86:L086-03",
+      "86:L086-04",
+      "86:L086-08",
+      "86:L086-09",
+      "86:L086-10",
+      "86:L086-12",
+      "87:L087-01",
+      "87:L087-02",
+      "87:L087-03",
+      "87:L087-04",
+      "87:L087-05",
+      "87:L087-06",
+      "87:L087-07",
+      "87:L087-08",
+      "87:L087-09",
+      "87:L087-10",
+      "87:L087-11",
+      "87:L087-12",
+      "89:L089-01",
+      "89:L089-02",
+      "89:L089-03",
+      "89:L089-05",
+      "89:L089-08",
+      "89:L089-09",
+      "89:L089-10",
+      "89:L089-12",
+      "89:L089-13",
+      "89:L089-14",
+      "89:L089-15",
+      "89:L089-16",
+      "89:L089-18",
+      "90:L090-03",
+      "90:L090-05",
+      "90:L090-06",
+      "90:L090-07",
+      "90:L090-11",
+      "91:L091-01",
+      "91:L091-06",
+      "91:L091-09",
+      "91:L091-10",
+      "91:L091-12",
+      "92:L092-01",
+      "92:L092-02",
+      "92:L092-04",
+      "92:L092-05",
+      "92:L092-06",
+      "92:L092-08",
+      "92:L092-09",
+      "92:L092-10",
+      "92:L092-11",
+      "92:L092-18",
+      "93:L093-03",
+      "93:L093-06",
+      "93:L093-07",
+      "93:L093-08",
+      "93:L093-12",
+      "93:L093-16",
+      "93:L093-20",
+      "94:L094-01",
+      "94:L094-05",
+      "94:L094-07",
+      "94:L094-09",
+      "94:L094-12",
+      "95:L095-01",
+      "95:L095-03",
+      "96:L096-01",
+      "96:L096-04",
+      "96:L096-06",
+      "96:L096-09",
+      "96:L096-12",
+      "96:L096-15",
+      "96:L096-16",
+      "97:L097-01",
+      "97:L097-02",
+      "97:L097-04",
+      "97:L097-07",
+      "97:L097-10",
+      "97:L097-11",
+      "98:L098-01",
+      "98:L098-03",
+      "98:L098-04",
+      "98:L098-06",
+      "99:L099-01",
+      "99:L099-02",
+      "99:L099-03",
+      "99:L099-04",
+      "99:L099-05",
+      "99:L099-06",
+      "99:L099-07",
+      "99:L099-09",
+      "99:L099-11",
+      "99:L099-12",
+      "99:L099-13",
+      "99:L099-14",
+      "99:L099-16",
+      "99:L099-17",
+      "99:L099-18",
+      "9:L009-02"
+    ],
+    "recommendedLoadoutFrequency": [
+      {
+        "jokerIds": [],
+        "layoutCount": 904,
+        "attempts": 904
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "danger_music",
+          "glass_joystick"
+        ],
+        "layoutCount": 22,
+        "attempts": 22
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "glass_joystick",
+          "rarity_hunter"
+        ],
+        "layoutCount": 21,
+        "attempts": 21
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "guillotine",
+          "rainbow"
+        ],
+        "layoutCount": 18,
+        "attempts": 18
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "polish",
+          "purist"
+        ],
+        "layoutCount": 18,
+        "attempts": 18
+      },
+      {
+        "jokerIds": [
+          "polish",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 18,
+        "attempts": 18
+      },
+      {
+        "jokerIds": [
+          "ace_in_the_hole",
+          "face_value",
+          "polish"
+        ],
+        "layoutCount": 17,
+        "attempts": 17
+      },
+      {
+        "jokerIds": [
+          "face_value",
+          "retainer",
+          "royalscam"
+        ],
+        "layoutCount": 15,
+        "attempts": 15
+      },
+      {
+        "jokerIds": [
+          "flushfund",
+          "pocketflush",
+          "suit_swap"
+        ],
+        "layoutCount": 15,
+        "attempts": 15
+      },
+      {
+        "jokerIds": [
+          "allin",
+          "danger_music",
+          "glass_joystick"
+        ],
+        "layoutCount": 14,
+        "attempts": 14
+      },
+      {
+        "jokerIds": [
+          "fulltable",
+          "gap_filler",
+          "wire"
+        ],
+        "layoutCount": 14,
+        "attempts": 14
+      },
+      {
+        "jokerIds": [
+          "guillotine",
+          "polish",
+          "twin_study"
+        ],
+        "layoutCount": 14,
+        "attempts": 14
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "polish",
+          "rainbow"
+        ],
+        "layoutCount": 14,
+        "attempts": 14
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "guillotine",
+          "pocketflush"
+        ],
+        "layoutCount": 13,
+        "attempts": 13
+      },
+      {
+        "jokerIds": [
+          "copper"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "copper",
+          "polish"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "danger_music"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "glass_joystick"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "metronome",
+          "polish",
+          "twin_flame"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "polish"
+        ],
+        "layoutCount": 12,
+        "attempts": 12
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 11,
+        "attempts": 11
+      },
+      {
+        "jokerIds": [
+          "guillotine",
+          "pocketflush",
+          "twin_study"
+        ],
+        "layoutCount": 11,
+        "attempts": 11
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "marathoner",
+          "purist"
+        ],
+        "layoutCount": 10,
+        "attempts": 10
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "marathoner",
+          "rainbow"
+        ],
+        "layoutCount": 10,
+        "attempts": 10
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "marathoner",
+          "roller"
+        ],
+        "layoutCount": 10,
+        "attempts": 10
+      },
+      {
+        "jokerIds": [
+          "shortcut",
+          "trident",
+          "wire"
+        ],
+        "layoutCount": 9,
+        "attempts": 9
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "glass_joystick",
+          "rainbow"
+        ],
+        "layoutCount": 8,
+        "attempts": 8
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "guillotine",
+          "twin_study"
+        ],
+        "layoutCount": 7,
+        "attempts": 7
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "modded",
+          "survivor"
+        ],
+        "layoutCount": 6,
+        "attempts": 6
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "guillotine",
+          "monochrome"
+        ],
+        "layoutCount": 6,
+        "attempts": 6
+      },
+      {
+        "jokerIds": [
+          "doubledown",
+          "metronome",
+          "polish"
+        ],
+        "layoutCount": 6,
+        "attempts": 6
+      },
+      {
+        "jokerIds": [
+          "ace_in_the_hole",
+          "face_value",
+          "royalscam"
+        ],
+        "layoutCount": 5,
+        "attempts": 5
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "danger_music",
+          "glass_joystick"
+        ],
+        "layoutCount": 5,
+        "attempts": 5
+      },
+      {
+        "jokerIds": [
+          "dividend",
+          "marathoner",
+          "rainbow"
+        ],
+        "layoutCount": 5,
+        "attempts": 5
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "guillotine",
+          "polish"
+        ],
+        "layoutCount": 5,
+        "attempts": 5
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "guillotine",
+          "twin_study"
+        ],
+        "layoutCount": 5,
+        "attempts": 5
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "glass_joystick",
+          "purist"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "face_value",
+          "marathoner",
+          "rainbow"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "flushfund",
+          "pocketflush",
+          "uniform"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "flushfund",
+          "suit_swap",
+          "uniform"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "lowball",
+          "number_station",
+          "polish"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "lowball",
+          "polish",
+          "prime_time"
+        ],
+        "layoutCount": 4,
+        "attempts": 4
+      },
+      {
+        "jokerIds": [
+          "ace_in_the_hole",
+          "face_value",
+          "retainer"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "glass_joystick",
+          "rarity_hunter"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "polish",
+          "survivor"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "storm_harness",
+          "survivor"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "glass_joystick",
+          "guillotine"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "guillotine",
+          "polish"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "polish",
+          "wire"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "glass_joystick",
+          "marathoner"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "dividend",
+          "marathoner",
+          "polish"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "face_value",
+          "polish",
+          "royalscam"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "guillotine",
+          "monochrome",
+          "pocketflush"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "polish",
+          "rainbow",
+          "roller"
+        ],
+        "layoutCount": 3,
+        "attempts": 3
+      },
+      {
+        "jokerIds": [
+          "allin",
+          "danger_music",
+          "lastcall"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "glass_joystick",
+          "monochrome"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "glass_joystick",
+          "twin_study"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "gap_filler",
+          "polish"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "polish",
+          "trident"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "copper",
+          "polish",
+          "rainbow"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "ensemble",
+          "glass_joystick"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "glass_joystick",
+          "rainbow"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "glass_joystick",
+          "survivor"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "dividend",
+          "face_value",
+          "rainbow"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "doubledown",
+          "polish",
+          "trainer"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "doubledown",
+          "polish",
+          "twin_flame"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "even",
+          "lowball",
+          "polish"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "gap_filler",
+          "trident",
+          "wire"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "polish",
+          "twin_study"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "inktrade",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "lowball",
+          "odd_job",
+          "polish"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "purist",
+          "roller"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "number_station",
+          "odd_job",
+          "polish"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "odd_job",
+          "polish",
+          "prime_time"
+        ],
+        "layoutCount": 2,
+        "attempts": 2
+      },
+      {
+        "jokerIds": [
+          "ace_in_the_hole",
+          "face_value",
+          "kingpin"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "allin",
+          "danger_music",
+          "rarity_hunter"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "allin",
+          "glass_joystick",
+          "lastcall"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "allin",
+          "glass_joystick",
+          "rarity_hunter"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "ensemble",
+          "glass_joystick"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "chaos_theory",
+          "glass_joystick",
+          "survivor"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "gap_filler",
+          "guillotine"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "cleaner",
+          "polish",
+          "twin_study"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "gap_filler",
+          "wire"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "glass_joystick",
+          "guillotine"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "comboist",
+          "trident",
+          "wire"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "danger_music",
+          "glass_joystick",
+          "lastcall"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "dividend",
+          "face_value",
+          "marathoner"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "dividend",
+          "polish",
+          "rainbow"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "ensemble",
+          "glass_joystick",
+          "marathoner"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "ensemble",
+          "glass_joystick",
+          "rainbow"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "even",
+          "number_station",
+          "polish"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "even",
+          "odd_job",
+          "polish"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "even",
+          "polish",
+          "prime_time"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "flushfund",
+          "monochrome",
+          "suit_swap"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "fulltable",
+          "polish",
+          "purist"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "fulltable",
+          "purist",
+          "roller"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "gap_filler",
+          "polish",
+          "trident"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "lastcall",
+          "marathoner"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "lastcall",
+          "rarity_hunter"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "monochrome",
+          "twin_study"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "perfectionist",
+          "rarity_hunter"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "glass_joystick",
+          "roller",
+          "warm_up"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "gravedigger",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "guillotine",
+          "monochrome",
+          "twin_study"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "inktrade",
+          "polish",
+          "rainbow"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "polish",
+          "roller"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "polish",
+          "warm_up"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "marathoner",
+          "rainbow",
+          "roller"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "metronome",
+          "polish",
+          "trainer"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "monochrome",
+          "purist",
+          "rainbow"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "number_station",
+          "polish",
+          "prime_time"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "polish",
+          "trainer",
+          "twin_flame"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "polish",
+          "trident",
+          "wire"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      },
+      {
+        "jokerIds": [
+          "purist",
+          "rainbow",
+          "rose_tint"
+        ],
+        "layoutCount": 1,
+        "attempts": 1
+      }
+    ],
+    "chapters": [
+      {
+        "chapter": "1 · Basic Hands",
+        "levelIds": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "attempts": 120,
+        "clears": 117,
+        "clearRate": 0.975,
+        "medianScore": 123,
+        "uniqueLayoutFailures": [
+          "6:L006-12",
+          "7:L007-02",
+          "9:L009-02"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 120,
+            "attempts": 120
+          }
+        ]
+      },
+      {
+        "chapter": "2 · Hand Planning",
+        "levelIds": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "attempts": 120,
+        "clears": 115,
+        "clearRate": 0.9583333333333334,
+        "medianScore": 527,
+        "uniqueLayoutFailures": [
+          "11:L011-09",
+          "12:L012-06",
+          "13:L013-01",
+          "13:L013-07",
+          "15:L015-03"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 120,
+            "attempts": 120
+          }
+        ]
+      },
+      {
+        "chapter": "3 · Modifier Introduction",
+        "levelIds": [
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "attempts": 128,
+        "clears": 107,
+        "clearRate": 0.8359375,
+        "medianScore": 497,
+        "uniqueLayoutFailures": [
+          "22:L022-01",
+          "22:L022-02",
+          "22:L022-03",
+          "22:L022-04",
+          "22:L022-05",
+          "22:L022-06",
+          "22:L022-08",
+          "22:L022-09",
+          "22:L022-10",
+          "22:L022-12",
+          "23:L023-11",
+          "27:L027-06",
+          "28:L028-01",
+          "28:L028-02",
+          "28:L028-03",
+          "28:L028-05",
+          "28:L028-06",
+          "28:L028-08",
+          "28:L028-09",
+          "28:L028-11",
+          "28:L028-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 128,
+            "attempts": 128
+          }
+        ]
+      },
+      {
+        "chapter": "4 · Modifier Mastery",
+        "levelIds": [
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40
+        ],
+        "attempts": 136,
+        "clears": 110,
+        "clearRate": 0.8088235294117647,
+        "medianScore": 538,
+        "uniqueLayoutFailures": [
+          "31:L031-03",
+          "31:L031-06",
+          "31:L031-11",
+          "32:L032-01",
+          "32:L032-02",
+          "32:L032-03",
+          "32:L032-04",
+          "32:L032-05",
+          "32:L032-06",
+          "32:L032-07",
+          "32:L032-08",
+          "32:L032-09",
+          "32:L032-10",
+          "32:L032-11",
+          "33:L033-06",
+          "33:L033-07",
+          "33:L033-12",
+          "33:L033-15",
+          "34:L034-02",
+          "36:L036-04",
+          "36:L036-09",
+          "37:L037-03",
+          "37:L037-06",
+          "38:L038-04",
+          "38:L038-05",
+          "38:L038-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 136,
+            "attempts": 136
+          }
+        ]
+      },
+      {
+        "chapter": "5 · Blocked Decks",
+        "levelIds": [
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50
+        ],
+        "attempts": 200,
+        "clears": 133,
+        "clearRate": 0.665,
+        "medianScore": 440,
+        "uniqueLayoutFailures": [
+          "41:L041-02",
+          "41:L041-05",
+          "42:L042-01",
+          "42:L042-04",
+          "42:L042-05",
+          "42:L042-07",
+          "42:L042-08",
+          "42:L042-09",
+          "42:L042-14",
+          "42:L042-15",
+          "42:L042-16",
+          "43:L043-06",
+          "43:L043-07",
+          "43:L043-08",
+          "43:L043-11",
+          "43:L043-16",
+          "43:L043-18",
+          "43:L043-19",
+          "44:L044-01",
+          "44:L044-05",
+          "44:L044-06",
+          "44:L044-08",
+          "44:L044-16",
+          "44:L044-18",
+          "44:L044-19",
+          "45:L045-02",
+          "45:L045-03",
+          "45:L045-05",
+          "45:L045-06",
+          "45:L045-10",
+          "45:L045-11",
+          "45:L045-14",
+          "45:L045-15",
+          "45:L045-16",
+          "45:L045-17",
+          "46:L046-04",
+          "46:L046-06",
+          "46:L046-09",
+          "46:L046-11",
+          "47:L047-01",
+          "47:L047-03",
+          "47:L047-04",
+          "47:L047-12",
+          "47:L047-17",
+          "47:L047-19",
+          "48:L048-04",
+          "48:L048-05",
+          "48:L048-06",
+          "48:L048-09",
+          "49:L049-01",
+          "49:L049-02",
+          "49:L049-07",
+          "49:L049-09",
+          "49:L049-11",
+          "49:L049-12",
+          "49:L049-13",
+          "49:L049-14",
+          "49:L049-17",
+          "49:L049-19",
+          "50:L050-01",
+          "50:L050-02",
+          "50:L050-03",
+          "50:L050-04",
+          "50:L050-07",
+          "50:L050-10",
+          "50:L050-12",
+          "50:L050-13"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 200,
+            "attempts": 200
+          }
+        ]
+      },
+      {
+        "chapter": "6 · Restricted Decks",
+        "levelIds": [
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60
+        ],
+        "attempts": 200,
+        "clears": 114,
+        "clearRate": 0.57,
+        "medianScore": 410,
+        "uniqueLayoutFailures": [
+          "51:L051-03",
+          "51:L051-06",
+          "51:L051-13",
+          "51:L051-16",
+          "52:L052-02",
+          "52:L052-03",
+          "52:L052-04",
+          "52:L052-05",
+          "52:L052-06",
+          "52:L052-08",
+          "52:L052-09",
+          "52:L052-10",
+          "52:L052-11",
+          "52:L052-12",
+          "53:L053-03",
+          "53:L053-05",
+          "53:L053-07",
+          "53:L053-10",
+          "53:L053-11",
+          "53:L053-13",
+          "53:L053-19",
+          "54:L054-03",
+          "54:L054-04",
+          "54:L054-05",
+          "54:L054-08",
+          "54:L054-13",
+          "54:L054-16",
+          "55:L055-01",
+          "55:L055-02",
+          "55:L055-03",
+          "55:L055-06",
+          "55:L055-11",
+          "55:L055-12",
+          "55:L055-14",
+          "55:L055-16",
+          "55:L055-20",
+          "56:L056-01",
+          "56:L056-05",
+          "56:L056-07",
+          "56:L056-10",
+          "56:L056-11",
+          "56:L056-19",
+          "57:L057-01",
+          "57:L057-02",
+          "57:L057-03",
+          "57:L057-04",
+          "57:L057-05",
+          "57:L057-06",
+          "57:L057-07",
+          "57:L057-08",
+          "57:L057-09",
+          "57:L057-10",
+          "57:L057-11",
+          "57:L057-12",
+          "57:L057-13",
+          "57:L057-14",
+          "57:L057-15",
+          "57:L057-16",
+          "57:L057-17",
+          "57:L057-18",
+          "57:L057-19",
+          "57:L057-20",
+          "58:L058-03",
+          "58:L058-05",
+          "58:L058-07",
+          "58:L058-08",
+          "58:L058-12",
+          "58:L058-13",
+          "58:L058-14",
+          "58:L058-17",
+          "58:L058-19",
+          "59:L059-02",
+          "59:L059-03",
+          "59:L059-08",
+          "59:L059-11",
+          "59:L059-12",
+          "59:L059-13",
+          "60:L060-01",
+          "60:L060-04",
+          "60:L060-05",
+          "60:L060-08",
+          "60:L060-09",
+          "60:L060-12",
+          "60:L060-14",
+          "60:L060-18",
+          "60:L060-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 200,
+            "attempts": 200
+          }
+        ]
+      },
+      {
+        "chapter": "7 · Joker Fundamentals",
+        "levelIds": [
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70
+        ],
+        "attempts": 120,
+        "clears": 109,
+        "clearRate": 0.9083333333333333,
+        "medianScore": 1043,
+        "uniqueLayoutFailures": [
+          "67:L067-03",
+          "67:L067-10",
+          "68:L068-02",
+          "68:L068-08",
+          "68:L068-10",
+          "69:L069-01",
+          "69:L069-02",
+          "70:L070-02",
+          "70:L070-03",
+          "70:L070-05",
+          "70:L070-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "copper"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "copper",
+              "polish"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "retainer",
+              "royalscam"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "suit_swap"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "glass_joystick"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "metronome",
+              "polish",
+              "twin_flame"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "polish"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "lastcall"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "glass_joystick",
+              "lastcall"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "copper",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "lastcall"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "lastcall",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "chapter": "8 · Build Creation",
+        "levelIds": [
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80
+        ],
+        "attempts": 136,
+        "clears": 110,
+        "clearRate": 0.8088235294117647,
+        "medianScore": 1399,
+        "uniqueLayoutFailures": [
+          "71:L071-11",
+          "71:L071-12",
+          "72:L072-03",
+          "72:L072-06",
+          "73:L073-03",
+          "73:L073-10",
+          "74:L074-09",
+          "76:L076-01",
+          "76:L076-04",
+          "76:L076-07",
+          "78:L078-03",
+          "79:L079-03",
+          "79:L079-04",
+          "79:L079-05",
+          "79:L079-06",
+          "79:L079-07",
+          "79:L079-08",
+          "79:L079-10",
+          "79:L079-12",
+          "80:L080-01",
+          "80:L080-05",
+          "80:L080-07",
+          "80:L080-08",
+          "80:L080-09",
+          "80:L080-10",
+          "80:L080-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "guillotine",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 14,
+            "attempts": 14
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "pocketflush"
+            ],
+            "layoutCount": 13,
+            "attempts": 13
+          },
+          {
+            "jokerIds": [
+              "danger_music"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "shortcut",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "doubledown",
+              "metronome",
+              "polish"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "royalscam"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "monochrome"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "uniform"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "suit_swap",
+              "uniform"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "retainer"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "polish"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "marathoner",
+              "polish"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "retainer",
+              "royalscam"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "suit_swap"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "face_value",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "doubledown",
+              "polish",
+              "trainer"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "doubledown",
+              "polish",
+              "twin_flame"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "pocketflush"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "kingpin"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "gap_filler",
+              "guillotine"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "copper",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "face_value",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "monochrome",
+              "suit_swap"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "perfectionist",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "metronome",
+              "polish",
+              "trainer"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "trainer",
+              "twin_flame"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "chapter": "9 · Expert Combinations",
+        "levelIds": [
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90
+        ],
+        "attempts": 128,
+        "clears": 76,
+        "clearRate": 0.59375,
+        "medianScore": 2215,
+        "uniqueLayoutFailures": [
+          "82:L082-05",
+          "83:L083-03",
+          "83:L083-10",
+          "84:L084-01",
+          "85:L085-01",
+          "85:L085-02",
+          "85:L085-03",
+          "85:L085-04",
+          "85:L085-05",
+          "85:L085-06",
+          "85:L085-07",
+          "85:L085-08",
+          "85:L085-09",
+          "85:L085-10",
+          "86:L086-01",
+          "86:L086-02",
+          "86:L086-03",
+          "86:L086-04",
+          "86:L086-08",
+          "86:L086-09",
+          "86:L086-10",
+          "86:L086-12",
+          "87:L087-01",
+          "87:L087-02",
+          "87:L087-03",
+          "87:L087-04",
+          "87:L087-05",
+          "87:L087-06",
+          "87:L087-07",
+          "87:L087-08",
+          "87:L087-09",
+          "87:L087-10",
+          "87:L087-11",
+          "87:L087-12",
+          "89:L089-01",
+          "89:L089-02",
+          "89:L089-03",
+          "89:L089-05",
+          "89:L089-08",
+          "89:L089-09",
+          "89:L089-10",
+          "89:L089-12",
+          "89:L089-13",
+          "89:L089-14",
+          "89:L089-15",
+          "89:L089-16",
+          "89:L089-18",
+          "90:L090-03",
+          "90:L090-05",
+          "90:L090-06",
+          "90:L090-07",
+          "90:L090-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "polish",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 18,
+            "attempts": 18
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "modded",
+              "survivor"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "polish"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "purist"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "purist"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "polish",
+              "survivor"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "storm_harness",
+              "survivor"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "guillotine"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "polish",
+              "wire"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "monochrome"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "gap_filler",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "polish",
+              "trident"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "survivor"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "inktrade",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "ensemble",
+              "glass_joystick"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "survivor"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "ensemble",
+              "glass_joystick",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "polish",
+              "trident"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "monochrome",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gravedigger",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "inktrade",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "warm_up"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "monochrome",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "purist",
+              "rainbow",
+              "rose_tint"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "chapter": "10 · Final Gauntlet",
+        "levelIds": [
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100
+        ],
+        "attempts": 172,
+        "clears": 88,
+        "clearRate": 0.5116279069767442,
+        "medianScore": 2265,
+        "uniqueLayoutFailures": [
+          "100:L100-01",
+          "100:L100-02",
+          "100:L100-03",
+          "100:L100-04",
+          "100:L100-05",
+          "100:L100-06",
+          "100:L100-07",
+          "100:L100-08",
+          "100:L100-09",
+          "100:L100-10",
+          "100:L100-11",
+          "100:L100-12",
+          "100:L100-13",
+          "100:L100-14",
+          "100:L100-15",
+          "100:L100-16",
+          "100:L100-17",
+          "100:L100-18",
+          "100:L100-19",
+          "100:L100-20",
+          "100:L100-22",
+          "100:L100-23",
+          "100:L100-24",
+          "91:L091-01",
+          "91:L091-06",
+          "91:L091-09",
+          "91:L091-10",
+          "91:L091-12",
+          "92:L092-01",
+          "92:L092-02",
+          "92:L092-04",
+          "92:L092-05",
+          "92:L092-06",
+          "92:L092-08",
+          "92:L092-09",
+          "92:L092-10",
+          "92:L092-11",
+          "92:L092-18",
+          "93:L093-03",
+          "93:L093-06",
+          "93:L093-07",
+          "93:L093-08",
+          "93:L093-12",
+          "93:L093-16",
+          "93:L093-20",
+          "94:L094-01",
+          "94:L094-05",
+          "94:L094-07",
+          "94:L094-09",
+          "94:L094-12",
+          "95:L095-01",
+          "95:L095-03",
+          "96:L096-01",
+          "96:L096-04",
+          "96:L096-06",
+          "96:L096-09",
+          "96:L096-12",
+          "96:L096-15",
+          "96:L096-16",
+          "97:L097-01",
+          "97:L097-02",
+          "97:L097-04",
+          "97:L097-07",
+          "97:L097-10",
+          "97:L097-11",
+          "98:L098-01",
+          "98:L098-03",
+          "98:L098-04",
+          "98:L098-06",
+          "99:L099-01",
+          "99:L099-02",
+          "99:L099-03",
+          "99:L099-04",
+          "99:L099-05",
+          "99:L099-06",
+          "99:L099-07",
+          "99:L099-09",
+          "99:L099-11",
+          "99:L099-12",
+          "99:L099-13",
+          "99:L099-14",
+          "99:L099-16",
+          "99:L099-17",
+          "99:L099-18"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 18,
+            "attempts": 18
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "rainbow"
+            ],
+            "layoutCount": 18,
+            "attempts": 18
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "polish"
+            ],
+            "layoutCount": 17,
+            "attempts": 17
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 13,
+            "attempts": 13
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "pocketflush",
+              "twin_study"
+            ],
+            "layoutCount": 11,
+            "attempts": 11
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "roller"
+            ],
+            "layoutCount": 10,
+            "attempts": 10
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "purist"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "lowball",
+              "number_station",
+              "polish"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "lowball",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "marathoner"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "polish",
+              "royalscam"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "monochrome"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "ensemble",
+              "glass_joystick"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "even",
+              "lowball",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "lowball",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "number_station",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "odd_job",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "guillotine"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "ensemble",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "even",
+              "number_station",
+              "polish"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "even",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "even",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "lastcall",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "roller",
+              "warm_up"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "pocketflush"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "number_station",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      }
+    ],
+    "levels": [
+      {
+        "levelId": 1,
+        "levelName": "First Pair",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.95,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 34,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 2,
+        "levelName": "Pair Practice",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.94,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 65,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 3,
+        "levelName": "Two at Once",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.93,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 64,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 4,
+        "levelName": "Double Two",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.92,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 107,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 5,
+        "levelName": "Triple Two",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.9,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 180,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 6,
+        "levelName": "Three Together",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.9,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 91,
+        "uniqueLayoutFailures": [
+          "L006-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 7,
+        "levelName": "Run It",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.89,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 128,
+        "uniqueLayoutFailures": [
+          "L007-02"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 8,
+        "levelName": "Same Suit",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.88,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 153,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 9,
+        "levelName": "Full House",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.86,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 207,
+        "uniqueLayoutFailures": [
+          "L009-02"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 10,
+        "levelName": "First Score Test",
+        "chapter": "1 · Basic Hands",
+        "targetSuccess": 0.85,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 574,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 11,
+        "levelName": "Pair Chain",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.837,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 244,
+        "uniqueLayoutFailures": [
+          "L011-09"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 12,
+        "levelName": "Two Pair Chain",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.824,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 293,
+        "uniqueLayoutFailures": [
+          "L012-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 13,
+        "levelName": "Mixed Set",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.8109999999999999,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 372,
+        "uniqueLayoutFailures": [
+          "L013-01",
+          "L013-07"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 14,
+        "levelName": "Straight Practice",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.7979999999999999,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 534,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 15,
+        "levelName": "Flush Practice",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.7849999999999999,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 586,
+        "uniqueLayoutFailures": [
+          "L015-03"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 16,
+        "levelName": "House Party",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.772,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 466,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 17,
+        "levelName": "Four Strong",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.759,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 688,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 18,
+        "levelName": "Variety Pack",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.746,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 570,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 19,
+        "levelName": "No Waste",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.733,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 520,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 20,
+        "levelName": "Basics Final",
+        "chapter": "2 · Hand Planning",
+        "targetSuccess": 0.72,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 603,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 21,
+        "levelName": "No High Cards",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.7405,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 408,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 22,
+        "levelName": "Pairs Only",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.731,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 2,
+        "clearRate": 0.16666666666666666,
+        "medianScore": 134,
+        "uniqueLayoutFailures": [
+          "L022-01",
+          "L022-02",
+          "L022-03",
+          "L022-04",
+          "L022-05",
+          "L022-06",
+          "L022-08",
+          "L022-09",
+          "L022-10",
+          "L022-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 23,
+        "levelName": "Red Heat",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.7215,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 487,
+        "uniqueLayoutFailures": [
+          "L023-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 24,
+        "levelName": "Blackout",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.712,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 525,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 25,
+        "levelName": "Face Off",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.7025,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 451,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 26,
+        "levelName": "Ace Lock",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.6930000000000001,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 20,
+        "clearRate": 1.0,
+        "medianScore": 536,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 27,
+        "levelName": "Repeat Tax",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.6835,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 459,
+        "uniqueLayoutFailures": [
+          "L027-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 28,
+        "levelName": "Costly Discards",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.674,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 3,
+        "clearRate": 0.25,
+        "medianScore": 686,
+        "uniqueLayoutFailures": [
+          "L028-01",
+          "L028-02",
+          "L028-03",
+          "L028-05",
+          "L028-06",
+          "L028-08",
+          "L028-09",
+          "L028-11",
+          "L028-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 29,
+        "levelName": "Final Hand",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.6645,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 475,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 30,
+        "levelName": "Modifier Checkpoint",
+        "chapter": "3 · Modifier Introduction",
+        "targetSuccess": 0.655,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 514,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 31,
+        "levelName": "One of Each",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.6455,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 9,
+        "clearRate": 0.75,
+        "medianScore": 522,
+        "uniqueLayoutFailures": [
+          "L031-03",
+          "L031-06",
+          "L031-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 32,
+        "levelName": "In Order",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.636,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 1,
+        "clearRate": 0.08333333333333333,
+        "medianScore": 418,
+        "uniqueLayoutFailures": [
+          "L032-01",
+          "L032-02",
+          "L032-03",
+          "L032-04",
+          "L032-05",
+          "L032-06",
+          "L032-07",
+          "L032-08",
+          "L032-09",
+          "L032-10",
+          "L032-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 33,
+        "levelName": "Even Lock",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.6265000000000001,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 16,
+        "clearRate": 0.8,
+        "medianScore": 671,
+        "uniqueLayoutFailures": [
+          "L033-06",
+          "L033-07",
+          "L033-12",
+          "L033-15"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 34,
+        "levelName": "Odd Lock",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.617,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 19,
+        "clearRate": 0.95,
+        "medianScore": 675,
+        "uniqueLayoutFailures": [
+          "L034-02"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 35,
+        "levelName": "Suit Shift",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.6075,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 504,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 36,
+        "levelName": "Shrinking Discards",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.598,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 529,
+        "uniqueLayoutFailures": [
+          "L036-04",
+          "L036-09"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 37,
+        "levelName": "Four Hands",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.5885,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 420,
+        "uniqueLayoutFailures": [
+          "L037-03",
+          "L037-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 38,
+        "levelName": "Two Discards",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.579,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 9,
+        "clearRate": 0.75,
+        "medianScore": 505,
+        "uniqueLayoutFailures": [
+          "L038-04",
+          "L038-05",
+          "L038-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 39,
+        "levelName": "Rising Pressure",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.5695,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 522,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 40,
+        "levelName": "Modifier Final",
+        "chapter": "4 · Modifier Mastery",
+        "targetSuccess": 0.56,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 477,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 41,
+        "levelName": "Quarter Blocked",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.6405000000000001,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 18,
+        "clearRate": 0.9,
+        "medianScore": 502,
+        "uniqueLayoutFailures": [
+          "L041-02",
+          "L041-05"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 42,
+        "levelName": "Pairs Through It",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.631,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 11,
+        "clearRate": 0.55,
+        "medianScore": 342,
+        "uniqueLayoutFailures": [
+          "L042-01",
+          "L042-04",
+          "L042-05",
+          "L042-07",
+          "L042-08",
+          "L042-09",
+          "L042-14",
+          "L042-15",
+          "L042-16"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 43,
+        "levelName": "Double Pair",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.6215,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 13,
+        "clearRate": 0.65,
+        "medianScore": 393,
+        "uniqueLayoutFailures": [
+          "L043-06",
+          "L043-07",
+          "L043-08",
+          "L043-11",
+          "L043-16",
+          "L043-18",
+          "L043-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 44,
+        "levelName": "Broken Run",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.612,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 13,
+        "clearRate": 0.65,
+        "medianScore": 429,
+        "uniqueLayoutFailures": [
+          "L044-01",
+          "L044-05",
+          "L044-06",
+          "L044-08",
+          "L044-16",
+          "L044-18",
+          "L044-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 45,
+        "levelName": "Thin Suit",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.6025,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 10,
+        "clearRate": 0.5,
+        "medianScore": 476,
+        "uniqueLayoutFailures": [
+          "L045-02",
+          "L045-03",
+          "L045-05",
+          "L045-06",
+          "L045-10",
+          "L045-11",
+          "L045-14",
+          "L045-15",
+          "L045-16",
+          "L045-17"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 46,
+        "levelName": "Forty Down",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.593,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 16,
+        "clearRate": 0.8,
+        "medianScore": 469,
+        "uniqueLayoutFailures": [
+          "L046-04",
+          "L046-06",
+          "L046-09",
+          "L046-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 47,
+        "levelName": "Adapt",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.5835,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 14,
+        "clearRate": 0.7,
+        "medianScore": 557,
+        "uniqueLayoutFailures": [
+          "L047-01",
+          "L047-03",
+          "L047-04",
+          "L047-12",
+          "L047-17",
+          "L047-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 48,
+        "levelName": "Half Deck",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.5740000000000001,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 16,
+        "clearRate": 0.8,
+        "medianScore": 400,
+        "uniqueLayoutFailures": [
+          "L048-04",
+          "L048-05",
+          "L048-06",
+          "L048-09"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 49,
+        "levelName": "Find a Route",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.5645,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 10,
+        "clearRate": 0.5,
+        "medianScore": 388,
+        "uniqueLayoutFailures": [
+          "L049-01",
+          "L049-02",
+          "L049-07",
+          "L049-09",
+          "L049-11",
+          "L049-12",
+          "L049-13",
+          "L049-14",
+          "L049-17",
+          "L049-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 50,
+        "levelName": "Half-Deck Final",
+        "chapter": "5 · Blocked Decks",
+        "targetSuccess": 0.555,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 12,
+        "clearRate": 0.6,
+        "medianScore": 427,
+        "uniqueLayoutFailures": [
+          "L050-01",
+          "L050-02",
+          "L050-03",
+          "L050-04",
+          "L050-07",
+          "L050-10",
+          "L050-12",
+          "L050-13"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 51,
+        "levelName": "Half and No High",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.5455,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 16,
+        "clearRate": 0.8,
+        "medianScore": 431,
+        "uniqueLayoutFailures": [
+          "L051-03",
+          "L051-06",
+          "L051-13",
+          "L051-16"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 52,
+        "levelName": "Half and Tight",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.536,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 10,
+        "clearRate": 0.5,
+        "medianScore": 468,
+        "uniqueLayoutFailures": [
+          "L052-02",
+          "L052-03",
+          "L052-04",
+          "L052-05",
+          "L052-06",
+          "L052-08",
+          "L052-09",
+          "L052-10",
+          "L052-11",
+          "L052-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 53,
+        "levelName": "Half and Faceless",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.5265,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 13,
+        "clearRate": 0.65,
+        "medianScore": 391,
+        "uniqueLayoutFailures": [
+          "L053-03",
+          "L053-05",
+          "L053-07",
+          "L053-10",
+          "L053-11",
+          "L053-13",
+          "L053-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 54,
+        "levelName": "Red Rescue",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.517,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 14,
+        "clearRate": 0.7,
+        "medianScore": 405,
+        "uniqueLayoutFailures": [
+          "L054-03",
+          "L054-04",
+          "L054-05",
+          "L054-08",
+          "L054-13",
+          "L054-16"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 55,
+        "levelName": "Black Rescue",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.5075000000000001,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 11,
+        "clearRate": 0.55,
+        "medianScore": 397,
+        "uniqueLayoutFailures": [
+          "L055-01",
+          "L055-02",
+          "L055-03",
+          "L055-06",
+          "L055-11",
+          "L055-12",
+          "L055-14",
+          "L055-16",
+          "L055-20"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 56,
+        "levelName": "Half Variety",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.498,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 14,
+        "clearRate": 0.7,
+        "medianScore": 454,
+        "uniqueLayoutFailures": [
+          "L056-01",
+          "L056-05",
+          "L056-07",
+          "L056-10",
+          "L056-11",
+          "L056-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 57,
+        "levelName": "Half Sequence",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.48850000000000005,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 0,
+        "clearRate": 0.0,
+        "medianScore": 157,
+        "uniqueLayoutFailures": [
+          "L057-01",
+          "L057-02",
+          "L057-03",
+          "L057-04",
+          "L057-05",
+          "L057-06",
+          "L057-07",
+          "L057-08",
+          "L057-09",
+          "L057-10",
+          "L057-11",
+          "L057-12",
+          "L057-13",
+          "L057-14",
+          "L057-15",
+          "L057-16",
+          "L057-17",
+          "L057-18",
+          "L057-19",
+          "L057-20"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 58,
+        "levelName": "Half Pressure",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.47900000000000004,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 11,
+        "clearRate": 0.55,
+        "medianScore": 544,
+        "uniqueLayoutFailures": [
+          "L058-03",
+          "L058-05",
+          "L058-07",
+          "L058-08",
+          "L058-12",
+          "L058-13",
+          "L058-14",
+          "L058-17",
+          "L058-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 59,
+        "levelName": "Shifting Suit",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.46950000000000003,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 14,
+        "clearRate": 0.7,
+        "medianScore": 430,
+        "uniqueLayoutFailures": [
+          "L059-02",
+          "L059-03",
+          "L059-08",
+          "L059-11",
+          "L059-12",
+          "L059-13"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 60,
+        "levelName": "Restricted Final",
+        "chapter": "6 · Restricted Decks",
+        "targetSuccess": 0.46,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 11,
+        "clearRate": 0.55,
+        "medianScore": 401,
+        "uniqueLayoutFailures": [
+          "L060-01",
+          "L060-04",
+          "L060-05",
+          "L060-08",
+          "L060-09",
+          "L060-12",
+          "L060-14",
+          "L060-18",
+          "L060-19"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [],
+            "layoutCount": 20,
+            "attempts": 20
+          }
+        ]
+      },
+      {
+        "levelId": 61,
+        "levelName": "Copper Chip",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5905,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 541,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "copper"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 62,
+        "levelName": "Pair Polisher",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.581,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 701,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "polish"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 63,
+        "levelName": "Chips Times Mult",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5715,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 881,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "copper",
+              "polish"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 64,
+        "levelName": "Royal Engine",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5619999999999999,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 818,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "face_value",
+              "retainer",
+              "royalscam"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 65,
+        "levelName": "Glass Cannon",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5525,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 1436,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 66,
+        "levelName": "Pair Build",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5429999999999999,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 748,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "metronome",
+              "polish",
+              "twin_flame"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 67,
+        "levelName": "Straight Build",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5335,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1318,
+        "uniqueLayoutFailures": [
+          "L067-03",
+          "L067-10"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "fulltable",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 68,
+        "levelName": "Flush Build",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.524,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 9,
+        "clearRate": 0.75,
+        "medianScore": 1426,
+        "uniqueLayoutFailures": [
+          "L068-02",
+          "L068-08",
+          "L068-10"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "suit_swap"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 69,
+        "levelName": "Choose Three",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.5145,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1809,
+        "uniqueLayoutFailures": [
+          "L069-01",
+          "L069-02"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "copper",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 70,
+        "levelName": "Joker Checkpoint",
+        "chapter": "7 · Joker Fundamentals",
+        "targetSuccess": 0.505,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 8,
+        "clearRate": 0.6666666666666666,
+        "medianScore": 5711,
+        "uniqueLayoutFailures": [
+          "L070-02",
+          "L070-03",
+          "L070-05",
+          "L070-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "lastcall"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "glass_joystick",
+              "lastcall"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "lastcall"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "lastcall",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 71,
+        "levelName": "Pair Architect",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.4955,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1038,
+        "uniqueLayoutFailures": [
+          "L071-11",
+          "L071-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "doubledown",
+              "metronome",
+              "polish"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "doubledown",
+              "polish",
+              "trainer"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "doubledown",
+              "polish",
+              "twin_flame"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "metronome",
+              "polish",
+              "trainer"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "trainer",
+              "twin_flame"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 72,
+        "levelName": "Straight Architect",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.486,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1595,
+        "uniqueLayoutFailures": [
+          "L072-03",
+          "L072-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "shortcut",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 73,
+        "levelName": "Flush Architect",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.4765,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1580,
+        "uniqueLayoutFailures": [
+          "L073-03",
+          "L073-10"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "uniform"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "suit_swap",
+              "uniform"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "pocketflush",
+              "suit_swap"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "flushfund",
+              "monochrome",
+              "suit_swap"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 74,
+        "levelName": "Rank Architect",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.46699999999999997,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 953,
+        "uniqueLayoutFailures": [
+          "L074-09"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "royalscam"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "retainer"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "retainer",
+              "royalscam"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "kingpin"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 75,
+        "levelName": "Dead Slot",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.4575,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 1405,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "dividend",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "marathoner",
+              "polish"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "face_value",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "face_value",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "dividend",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 76,
+        "levelName": "Rising Power",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.44799999999999995,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 9,
+        "clearRate": 0.75,
+        "medianScore": 1156,
+        "uniqueLayoutFailures": [
+          "L076-01",
+          "L076-04",
+          "L076-07"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "danger_music"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 77,
+        "levelName": "Joker Blackout",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.4385,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 1269,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "copper",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "rainbow",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 78,
+        "levelName": "Quarter Block Build",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.429,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 19,
+        "clearRate": 0.95,
+        "medianScore": 1559,
+        "uniqueLayoutFailures": [
+          "L078-03"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "guillotine",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 14,
+            "attempts": 14
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "polish"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 79,
+        "levelName": "Half Block Build",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.4195,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 12,
+        "clearRate": 0.6,
+        "medianScore": 1238,
+        "uniqueLayoutFailures": [
+          "L079-03",
+          "L079-04",
+          "L079-05",
+          "L079-06",
+          "L079-07",
+          "L079-08",
+          "L079-10",
+          "L079-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "pocketflush"
+            ],
+            "layoutCount": 13,
+            "attempts": 13
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "monochrome"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "pocketflush"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "gap_filler",
+              "guillotine"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 80,
+        "levelName": "Build Final",
+        "chapter": "8 · Build Creation",
+        "targetSuccess": 0.41,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 5,
+        "clearRate": 0.4166666666666667,
+        "medianScore": 4144,
+        "uniqueLayoutFailures": [
+          "L080-01",
+          "L080-05",
+          "L080-07",
+          "L080-08",
+          "L080-09",
+          "L080-10",
+          "L080-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "perfectionist",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 81,
+        "levelName": "Double Trouble",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.482,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 2951,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "modded",
+              "survivor"
+            ],
+            "layoutCount": 6,
+            "attempts": 6
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "polish",
+              "survivor"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "storm_harness",
+              "survivor"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          }
+        ]
+      },
+      {
+        "levelId": 82,
+        "levelName": "No Repeat Build",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.464,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 3654,
+        "uniqueLayoutFailures": [
+          "L082-05"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "purist"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "purist"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 83,
+        "levelName": "Black Build",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.446,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 10,
+        "clearRate": 0.8333333333333334,
+        "medianScore": 1583,
+        "uniqueLayoutFailures": [
+          "L083-03",
+          "L083-10"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "polish",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "inktrade",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "gravedigger",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "inktrade",
+              "polish",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 84,
+        "levelName": "Red Build",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.428,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 11,
+        "clearRate": 0.9166666666666666,
+        "medianScore": 1710,
+        "uniqueLayoutFailures": [
+          "L084-01"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "polish",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 10,
+            "attempts": 10
+          },
+          {
+            "jokerIds": [
+              "monochrome",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "purist",
+              "rainbow",
+              "rose_tint"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 85,
+        "levelName": "Expensive Discards",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.41000000000000003,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 2,
+        "clearRate": 0.16666666666666666,
+        "medianScore": 2446,
+        "uniqueLayoutFailures": [
+          "L085-01",
+          "L085-02",
+          "L085-03",
+          "L085-04",
+          "L085-05",
+          "L085-06",
+          "L085-07",
+          "L085-08",
+          "L085-09",
+          "L085-10"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "warm_up"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 86,
+        "levelName": "Scorched Ranks",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.392,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 4,
+        "clearRate": 0.3333333333333333,
+        "medianScore": 3521,
+        "uniqueLayoutFailures": [
+          "L086-01",
+          "L086-02",
+          "L086-03",
+          "L086-04",
+          "L086-08",
+          "L086-09",
+          "L086-10",
+          "L086-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 12,
+            "attempts": 12
+          }
+        ]
+      },
+      {
+        "levelId": 87,
+        "levelName": "Combo Ladder",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.374,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 0,
+        "clearRate": 0.0,
+        "medianScore": 835,
+        "uniqueLayoutFailures": [
+          "L087-01",
+          "L087-02",
+          "L087-03",
+          "L087-04",
+          "L087-05",
+          "L087-06",
+          "L087-07",
+          "L087-08",
+          "L087-09",
+          "L087-10",
+          "L087-11",
+          "L087-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "comboist",
+              "polish",
+              "wire"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "gap_filler",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "polish",
+              "trident"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "gap_filler",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "polish",
+              "trident"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "gap_filler",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "polish",
+              "trident",
+              "wire"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 88,
+        "levelName": "Four Styles",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.356,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 12,
+        "clearRate": 1.0,
+        "medianScore": 3777,
+        "uniqueLayoutFailures": [],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "purist"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "purist"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "ensemble",
+              "glass_joystick",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 89,
+        "levelName": "Half-Deck Blackout",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.338,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 7,
+        "clearRate": 0.35,
+        "medianScore": 1623,
+        "uniqueLayoutFailures": [
+          "L089-01",
+          "L089-02",
+          "L089-03",
+          "L089-05",
+          "L089-08",
+          "L089-09",
+          "L089-10",
+          "L089-12",
+          "L089-13",
+          "L089-14",
+          "L089-15",
+          "L089-16",
+          "L089-18"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "polish"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "guillotine"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "monochrome"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "glass_joystick",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "polish",
+              "twin_study"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "monochrome",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 90,
+        "levelName": "Expert Final",
+        "chapter": "9 · Expert Combinations",
+        "targetSuccess": 0.32,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 7,
+        "clearRate": 0.5833333333333334,
+        "medianScore": 2808,
+        "uniqueLayoutFailures": [
+          "L090-03",
+          "L090-05",
+          "L090-06",
+          "L090-07",
+          "L090-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "survivor"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "ensemble",
+              "glass_joystick"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "survivor"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 91,
+        "levelName": "Open Build",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.38,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 7,
+        "clearRate": 0.5833333333333334,
+        "medianScore": 6136,
+        "uniqueLayoutFailures": [
+          "L091-01",
+          "L091-06",
+          "L091-09",
+          "L091-10",
+          "L091-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "allin",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          }
+        ]
+      },
+      {
+        "levelId": 92,
+        "levelName": "Half-Deck Power",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.36000000000000004,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 10,
+        "clearRate": 0.5,
+        "medianScore": 1436,
+        "uniqueLayoutFailures": [
+          "L092-01",
+          "L092-02",
+          "L092-04",
+          "L092-05",
+          "L092-06",
+          "L092-08",
+          "L092-09",
+          "L092-10",
+          "L092-11",
+          "L092-18"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "guillotine",
+              "pocketflush",
+              "twin_study"
+            ],
+            "layoutCount": 11,
+            "attempts": 11
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "twin_study"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "cleaner",
+              "guillotine",
+              "monochrome"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "pocketflush"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "guillotine",
+              "monochrome",
+              "twin_study"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 93,
+        "levelName": "Half-Deck Variety",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.34,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 13,
+        "clearRate": 0.65,
+        "medianScore": 3672,
+        "uniqueLayoutFailures": [
+          "L093-03",
+          "L093-06",
+          "L093-07",
+          "L093-08",
+          "L093-12",
+          "L093-16",
+          "L093-20"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "rainbow"
+            ],
+            "layoutCount": 8,
+            "attempts": 8
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "purist"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "purist",
+              "rainbow"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "ensemble",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 94,
+        "levelName": "Minimal Discards",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.32,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 7,
+        "clearRate": 0.5833333333333334,
+        "medianScore": 1998,
+        "uniqueLayoutFailures": [
+          "L094-01",
+          "L094-05",
+          "L094-07",
+          "L094-09",
+          "L094-12"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 9,
+            "attempts": 9
+          },
+          {
+            "jokerIds": [
+              "fulltable",
+              "polish",
+              "purist"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "polish",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "marathoner",
+              "purist",
+              "roller"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 95,
+        "levelName": "Faceless Build",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.30000000000000004,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 18,
+        "clearRate": 0.9,
+        "medianScore": 1131,
+        "uniqueLayoutFailures": [
+          "L095-01",
+          "L095-03"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "lowball",
+              "number_station",
+              "polish"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "lowball",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 4,
+            "attempts": 4
+          },
+          {
+            "jokerIds": [
+              "even",
+              "lowball",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "lowball",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "number_station",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "odd_job",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "even",
+              "number_station",
+              "polish"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "even",
+              "odd_job",
+              "polish"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "even",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "number_station",
+              "polish",
+              "prime_time"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 96,
+        "levelName": "Low-Card Lock",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.28,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 13,
+        "clearRate": 0.65,
+        "medianScore": 2149,
+        "uniqueLayoutFailures": [
+          "L096-01",
+          "L096-04",
+          "L096-06",
+          "L096-09",
+          "L096-12",
+          "L096-15",
+          "L096-16"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "ace_in_the_hole",
+              "face_value",
+              "polish"
+            ],
+            "layoutCount": 17,
+            "attempts": 17
+          },
+          {
+            "jokerIds": [
+              "face_value",
+              "polish",
+              "royalscam"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          }
+        ]
+      },
+      {
+        "levelId": 97,
+        "levelName": "Decay",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.26,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 6,
+        "clearRate": 0.5,
+        "medianScore": 4199,
+        "uniqueLayoutFailures": [
+          "L097-01",
+          "L097-02",
+          "L097-04",
+          "L097-07",
+          "L097-10",
+          "L097-11"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "comboist",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "marathoner"
+            ],
+            "layoutCount": 3,
+            "attempts": 3
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "ensemble",
+              "glass_joystick"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 2,
+            "attempts": 2
+          }
+        ]
+      },
+      {
+        "levelId": 98,
+        "levelName": "Fading Jokers",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.24000000000000002,
+        "shippingLayoutCount": 12,
+        "attemptedLayoutCount": 12,
+        "attempts": 12,
+        "clears": 8,
+        "clearRate": 0.6666666666666666,
+        "medianScore": 1732,
+        "uniqueLayoutFailures": [
+          "L098-01",
+          "L098-03",
+          "L098-04",
+          "L098-06"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "marathoner",
+              "roller"
+            ],
+            "layoutCount": 10,
+            "attempts": 10
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "lastcall",
+              "marathoner"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "roller",
+              "warm_up"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 99,
+        "levelName": "The Wall",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.22000000000000003,
+        "shippingLayoutCount": 20,
+        "attemptedLayoutCount": 20,
+        "attempts": 20,
+        "clears": 5,
+        "clearRate": 0.25,
+        "medianScore": 3466,
+        "uniqueLayoutFailures": [
+          "L099-01",
+          "L099-02",
+          "L099-03",
+          "L099-04",
+          "L099-05",
+          "L099-06",
+          "L099-07",
+          "L099-09",
+          "L099-11",
+          "L099-12",
+          "L099-13",
+          "L099-14",
+          "L099-16",
+          "L099-17",
+          "L099-18"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "glass_joystick",
+              "guillotine",
+              "rainbow"
+            ],
+            "layoutCount": 18,
+            "attempts": 18
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "guillotine"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          },
+          {
+            "jokerIds": [
+              "comboist",
+              "glass_joystick",
+              "rainbow"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      },
+      {
+        "levelId": 100,
+        "levelName": "Master Level",
+        "chapter": "10 · Final Gauntlet",
+        "targetSuccess": 0.22,
+        "shippingLayoutCount": 24,
+        "attemptedLayoutCount": 24,
+        "attempts": 24,
+        "clears": 1,
+        "clearRate": 0.041666666666666664,
+        "medianScore": 3029,
+        "uniqueLayoutFailures": [
+          "L100-01",
+          "L100-02",
+          "L100-03",
+          "L100-04",
+          "L100-05",
+          "L100-06",
+          "L100-07",
+          "L100-08",
+          "L100-09",
+          "L100-10",
+          "L100-11",
+          "L100-12",
+          "L100-13",
+          "L100-14",
+          "L100-15",
+          "L100-16",
+          "L100-17",
+          "L100-18",
+          "L100-19",
+          "L100-20",
+          "L100-22",
+          "L100-23",
+          "L100-24"
+        ],
+        "recommendedLoadoutFrequency": [
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "danger_music",
+              "glass_joystick"
+            ],
+            "layoutCount": 18,
+            "attempts": 18
+          },
+          {
+            "jokerIds": [
+              "danger_music",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 5,
+            "attempts": 5
+          },
+          {
+            "jokerIds": [
+              "chaos_theory",
+              "glass_joystick",
+              "rarity_hunter"
+            ],
+            "layoutCount": 1,
+            "attempts": 1
+          }
+        ]
+      }
+    ]
+  },
+  "solverReplay": {
+    "artifactAvailable": false,
+    "unavailableReason": "WILDCARD-solver-results-v8.5.2.generated.json was not supplied.",
+    "routesSupplied": 0,
+    "routesPassed": 0,
+    "allRoutesPassed": false,
+    "successfulLayoutCount": 0,
+    "missingLayoutCount": 0,
+    "missingLayoutKeys": [],
+    "failedRoutes": []
+  }
+}

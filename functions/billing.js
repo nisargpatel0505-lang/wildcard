@@ -182,7 +182,14 @@ function readCloudWriteInput(data) {
       clampInteger(data?.expectedProgressVersion, 0, 999999999),
     billingAdjustmentApplied:
       clampInteger(data?.billingAdjustmentApplied, 0),
+    clientAppVersion: sanitizeClientAppVersion(data?.clientAppVersion),
   };
+}
+
+function sanitizeClientAppVersion(value) {
+  const version = typeof value === "string" ? value.trim() : "";
+  return /^[0-9A-Za-z][0-9A-Za-z._+-]{0,31}$/.test(version) ?
+    version : "6.9.14";
 }
 
 function cloudSaveResponse(snapshot, data, extra = {}) {
@@ -341,7 +348,7 @@ const writeSecureCloudSave = onCall({
     const record = {
       uid,
       schemaVersion: 2,
-      appVersion: "6.9.14",
+      appVersion: input.clientAppVersion,
       accountJson: reconciled.accountJson,
       runJson: input.runJson,
       clientSavedAt: input.clientSavedAt,
@@ -955,6 +962,7 @@ module.exports = {
     sanitizeCloudAccountJson,
     applyCoinAdjustment,
     shouldCreateCoinAdjustment,
+    sanitizeClientAppVersion,
     PROTECTED_CLOUD_ACCOUNT_FIELDS,
   },
 };

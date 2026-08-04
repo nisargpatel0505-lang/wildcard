@@ -1,0 +1,429 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show setEquals;
+import 'package:url_launcher/url_launcher.dart';
+
+import '../core/app_constants.dart';
+import '../core/daily_utc_date.dart';
+import '../domain/account_state.dart';
+import '../domain/economy.dart';
+import '../domain/game_rules.dart';
+import '../domain/joker_catalog.dart';
+import '../domain/level_mode/level_catalog.dart';
+import '../domain/level_mode/level_definition.dart';
+import '../game/game_controller.dart';
+import '../game/game_models.dart';
+import '../ui/wildcard_ui.dart';
+import 'app_controller.dart';
+import 'screens/cabinet_screen.dart';
+import 'screens/game_host_screen.dart';
+import 'screens/missions_screen.dart';
+import 'screens/mode_picker_screen.dart';
+import 'screens/level_brief_screen.dart';
+import 'screens/level_select_screen.dart';
+import 'screens/more_screen.dart';
+import 'screens/run_type_picker_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/shop_hub_screen.dart';
+import 'screens/tutorial_screen.dart';
+import 'screens/vault_screen.dart';
+import '../ui/widgets/wildcard_toast.dart';
+
+class WildcardApp extends StatefulWidget {
+  const WildcardApp({required this.controller, super.key});
+
+  final AppController controller;
+
+  @override
+  State<WildcardApp> createState() => _WildcardAppState();
+}
+
+class _WildcardAppState extends State<WildcardApp> {
+  final navigatorKey = GlobalKey<NavigatorState>();
+  bool acceptingPrivacy = false;
+  bool launchingRun = false;
+  Future<LevelCatalog>? _levelCatalogFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => MaterialApp(
+        navigatorKey: navigatorKey,
+        debugShowCheckedModeBanner: false,
+        title: AppConstants.appName,
+        theme: WildcardTheme.build(
+          themeId: resolveWildcardThemeId(
+            widget.controller.account.equipped.theme,
+          ),
+        ),
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.35,
+          child: child!,
+        ),
+        home: Builder(
+          builder: (context) => Stack(
+            fit: StackFit.expand,
+            children: [
+              WildcardHomeScreen(
+                coins: widget.controller.account.coins,
+                bestHeat: widget.controller.account.bestHeat,
+                playerTitle: widget.controller.equippedTitleName,
+                hasSavedRun: widget.controller.hasResumableRun,
+                dailyRewardAvailable:
+                    widget.controller.dailyLoginOffer.available,
+                dailyRewardLabel:
+                    'Daily D${widget.controller.dailyLoginOffer.streak} +${widget.controller.dailyLoginOffer.reward} · next +${widget.controller.dailyLoginOffer.tomorrowReward}',
+                weeklyMissionsAttention:
+                    widget.controller.weeklyMissionsNeedAttention,
+                cabinetAttention: widget.controller.cabinetNeedsAttention,
+                soundEnabled: !widget.controller.account.muted,
+                musicEnabled: widget.controller.account.musicOn,
+                fastScoring:
+                    widget.controller.account.speed == ScoringPace.fast,
+                onResume: () => _resumeRun(context),
+                onNewRun: () => _openRunTypePicker(context),
+                onJokerUnlocks: () =>
+                    _push(context, VaultScreen(controller: widget.controller)),
+                onShop: () => _push(
+                  context,
+                  ShopHubScreen(controller: widget.controller),
+                ),
+                onCabinet: () => _push(
+                  context,
+                  CabinetScreen(controller: widget.controller),
+                ),
+                onWeeklyMissions: () => _push(
+                  context,
+                  MissionsScreen(controller: widget.controller),
+                ),
+                onSettings: () => _push(
+                  context,
+                  SettingsScreen(controller: widget.controller),
+                ),
+                onMore: () =>
+                    _push(context, MoreScreen(controller: widget.controller)),
+                onDailyReward: () => _claimDaily(context),
+                onToggleSound: () => widget.controller.mutateAccount(
+                  (account) => account.muted = !account.muted,
+                ),
+                onToggleMusic: () => widget.controller.mutateAccount(
+                  (account) => account.musicOn = !account.musicOn,
+                ),
+                onToggleScoringSpeed: () => widget.controller.mutateAccount(
+                  (account) => account.speed = account.speed == ScoringPace.fast
+                      ? ScoringPace.normal
+                      : ScoringPace.fast,
+                ),
+              ),
+              if (!widget.controller.privacyAccepted)
+                WildcardPrivacyGate(
+                  accepting: acceptingPrivacy,
+                  onAccept: _acceptPrivacy,
+                  onOpenPrivacyPolicy: () => launchUrl(
+                    Uri.parse(AppConstants.privacyPolicyUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _acceptPrivacy() async {
+    if (acceptingPrivacy) return;
+    setState(() => acceptingPrivacy = true);
+    try {
+      await widget.controller.acceptPrivacyPolicy();
+    } finally {
+      if (mounted) setState(() => acceptingPrivacy = false);
+    }
+  }
+
+  Future<void> _claimDaily(BuildContext context) async {
+    final claimedOffer = widget.controller.dailyLoginOffer;
+    final reward = await widget.controller.claimDailyLoginReward();
+    if (context.mounted && reward > 0) {
+      // The WebView paired every coin grant with its little coin chord.
+      widget.controller.sfx.play('coins');
+      showWildcardToast(
+        context,
+        'Day ${claimedOffer.streak} · +$reward coins · tomorrow +${claimedOffer.tomorrowReward}',
+      );
+    }
+  }
+
+  void _openRunTypePicker(BuildContext context) {
+    _push(
+      context,
+      RunTypePickerScreen(
+        onOpenLevels: () => unawaited(_openLevels()),
+        onOpenArcade: () => _openModePicker(context),
+      ),
+    );
+  }
+
+  Future<LevelCatalog> _loadLevelCatalog() => _levelCatalogFuture ??=
+      LevelCatalog.load((path) => rootBundle.loadString(path));
+
+  Future<void> _openLevels() async {
+    try {
+      final catalog = await _loadLevelCatalog();
+      final navigator = navigatorKey.currentState;
+      if (navigator == null) return;
+      await navigator.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => LevelSelectScreen(
+            catalog: catalog,
+            account: widget.controller.account,
+            onOpenLevel: _openLevelBrief,
+          ),
+        ),
+      );
+    } catch (error) {
+      _message('Levels could not load: $error');
+    }
+  }
+
+  void _openLevelBrief(LevelDefinition level) {
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) return;
+    unawaited(
+      navigator.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => LevelBriefScreen(
+            level: level,
+            priorAttempts:
+                widget.controller.account.levelAttempts[level.id] ?? 0,
+            onLaunch: (request) => unawaited(_launchLevel(request)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchLevel(LevelLaunchRequest request) async {
+    if (launchingRun) return;
+    final level = request.level;
+    final unlocked =
+        widget.controller.account.clearedLevelIds.contains(level.id) ||
+        level.id <= widget.controller.account.highestUnlockedLevel;
+    if (!unlocked) {
+      _message('Level ${level.id} is locked.');
+      return;
+    }
+    level.validateJokerSelection(request.selectedJokerIds);
+    final layout =
+        level.layouts[math.Random.secure().nextInt(level.layouts.length)];
+    final attempt = LevelAttemptConfig.fromSelection(
+      level: level,
+      layout: layout,
+      selectedJokerIds: request.selectedJokerIds,
+    );
+    await _startLevelAttempt(attempt);
+  }
+
+  Future<void> _startLevelAttempt(LevelAttemptConfig attempt) async {
+    if (launchingRun) return;
+    launchingRun = true;
+    LevelResultAction? action;
+    try {
+      final game = await GameController.startNew(
+        config: GameRunConfig(
+          // Level RNG is authored alongside its exact deck layout. Retry and
+          // process-death resume must therefore keep the layout seed too.
+          rngSeed: attempt.rngSeed,
+          unlockedJokerIds: widget.controller.account.unlockedJokerIds,
+          scoringPace: widget.controller.account.speed,
+          levelAttempt: attempt,
+          highestUnlockedLevel: widget.controller.account.highestUnlockedLevel,
+          clearedLevelIds: widget.controller.account.clearedLevelIds,
+        ),
+        callbacks: widget.controller.gamePersistenceCallbacks(),
+      );
+      widget.controller.pi.queueRunStart('level');
+      final navigator = navigatorKey.currentState;
+      if (navigator == null) {
+        game.dispose();
+        return;
+      }
+      navigator.popUntil((route) => route.isFirst);
+      action = await navigator.push<LevelResultAction>(
+        MaterialPageRoute<LevelResultAction>(
+          builder: (_) => GameHostScreen(
+            appController: widget.controller,
+            gameController: game,
+          ),
+        ),
+      );
+    } catch (error) {
+      _message('Level could not start: $error');
+    } finally {
+      launchingRun = false;
+    }
+    if (action != null) await _handleLevelAction(action, attempt);
+  }
+
+  Future<void> _handleLevelAction(
+    LevelResultAction action,
+    LevelAttemptConfig previous,
+  ) async {
+    switch (action) {
+      case LevelResultAction.retry:
+        await _startLevelAttempt(previous);
+        return;
+      case LevelResultAction.select:
+        await _openLevels();
+        return;
+      case LevelResultAction.next:
+        final catalog = await _loadLevelCatalog();
+        final nextId = math.min(100, previous.levelId + 1);
+        _openLevelBrief(catalog.level(nextId));
+        return;
+    }
+  }
+
+  void _openModePicker(BuildContext context) {
+    _push(
+      context,
+      ModePickerScreen(
+        account: widget.controller.account,
+        onLaunch: (request) => unawaited(_launchRun(request)),
+        onOpenTutorial: () => _push(
+          context,
+          TutorialScreen(onComplete: widget.controller.completeTutorial),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchRun(RunLaunchRequest request) async {
+    if (launchingRun) return;
+    launchingRun = true;
+    final dailyDate = request.mode == RunMode.daily ? dailyUtcDateKey() : '';
+    final guided =
+        request.mode == RunMode.normal &&
+        !widget.controller.account.firstRunStarted;
+    final starter = request.startJokerId == null
+        ? null
+        : jokersById[request.startJokerId];
+    try {
+      final game = await GameController.startNew(
+        config: GameRunConfig(
+          rngSeed: math.Random.secure().nextInt(0x7fffffff),
+          mode: request.mode,
+          difficulty: request.difficulty,
+          dailyDate: dailyDate,
+          unlockedJokerIds: widget.controller.account.unlockedJokerIds,
+          initialJokerIds: guided ? const ['copper', 'polish'] : const [],
+          startBoostJokerId: starter?.id,
+          startBoostCost: starter == null ? 0 : starterJokerPrice(starter),
+          stake: request.mode == RunMode.daily ? 0 : request.stake,
+          guidedFirstRun: guided,
+          scoringPace: widget.controller.account.speed,
+        ),
+        callbacks: widget.controller.gamePersistenceCallbacks(
+          dailyDate: dailyDate,
+        ),
+      );
+      widget.controller.pi.queueRunStart(request.mode.name);
+      final navigator = navigatorKey.currentState;
+      if (navigator == null) {
+        game.dispose();
+        return;
+      }
+      // Close both run pickers before placing the live run on the stack. The
+      // player returns to Home after finishing, exactly as before Level Mode.
+      navigator.popUntil((route) => route.isFirst);
+      await navigator.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => GameHostScreen(
+            appController: widget.controller,
+            gameController: game,
+          ),
+        ),
+      );
+    } catch (error) {
+      _message('Run could not start: $error');
+    } finally {
+      launchingRun = false;
+    }
+  }
+
+  Future<void> _resumeRun(BuildContext context) async {
+    if (launchingRun || widget.controller.activeRunJson == null) return;
+    launchingRun = true;
+    LevelResultAction? levelAction;
+    LevelAttemptConfig? resumedLevelAttempt;
+    try {
+      final reference = GameController.levelResumeReference(
+        widget.controller.activeRunJson!,
+      );
+      if (reference != null) {
+        final catalog = await _loadLevelCatalog();
+        final level = catalog.level(reference.levelId);
+        final selected = reference.temporaryJokerIds
+            .where(level.jokerOptionIds.contains)
+            .toList(growable: false);
+        level.validateJokerSelection(selected);
+        resumedLevelAttempt = LevelAttemptConfig.fromSelection(
+          level: level,
+          layout: level.layoutById(reference.layoutId),
+          selectedJokerIds: selected,
+        );
+        if (!setEquals(
+          resumedLevelAttempt.temporaryJokerIds.toSet(),
+          reference.temporaryJokerIds.toSet(),
+        )) {
+          throw const FormatException('Saved temporary Jokers changed');
+        }
+      }
+      final game = await GameController.resume(
+        encoded: widget.controller.activeRunJson!,
+        callbacks: widget.controller.gamePersistenceCallbacks(),
+        unlockedJokerIds: widget.controller.account.unlockedJokerIds,
+        pace: widget.controller.account.speed,
+        levelAttempt: resumedLevelAttempt,
+      );
+      widget.controller.pi.queueRunStart(
+        game.isLevelMode ? 'level-resume' : game.state.mode.name,
+      );
+      final navigator = navigatorKey.currentState;
+      if (navigator == null) {
+        game.dispose();
+        return;
+      }
+      levelAction = await navigator.push<LevelResultAction>(
+        MaterialPageRoute<LevelResultAction>(
+          builder: (_) => GameHostScreen(
+            appController: widget.controller,
+            gameController: game,
+            resumed: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      _message('Saved run could not resume: $error');
+    } finally {
+      launchingRun = false;
+    }
+    if (levelAction != null && resumedLevelAttempt != null) {
+      await _handleLevelAction(levelAction, resumedLevelAttempt);
+    }
+  }
+
+  Future<void> _push(BuildContext context, Widget screen) =>
+      Navigator.push(context, MaterialPageRoute<void>(builder: (_) => screen));
+
+  void _message(String value) {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    showWildcardToast(context, value);
+  }
+}

@@ -50,9 +50,25 @@ byte-for-byte. Bundletool validation and APK/AAB signature checks passed.
   IDs. Google demonstration IDs are limited to the developer variant.
 - Ad serving can remain limited until AdMob completes app review and the Play
   listing is linked.
-- Billing code is ready for trusted delivery, but real-money products cannot be
-  activated until the Play Console merchant account, payments profile,
-  tax/bank details and product catalogue are completed by the account owner.
+- The Play merchant/payments profile is active. All six exact product IDs are
+  active with one backwards-compatible purchase option in 173 regions:
+  `coins_250` (£0.99), `coins_600` (£1.99), `coins_1600` (£4.99),
+  `coins_3600` (£9.99), `coins_8500` (£19.99) and `remove_ads` (£2.99).
+- The Functions runtime identity
+  `420107184674-compute@developer.gserviceaccount.com` is an active Play
+  Console user with the least-privilege financial/order permission that grants
+  Purchases API access.
+- Real-time developer notifications are enabled for voided purchases and all
+  one-time products on
+  `projects/wildcard-31d50/topics/wildcard-play-billing`. Play successfully
+  sent a test notification and the deployed `playBillingNotification`
+  function received it.
+- The existing three-person internal-test email list is enabled for Play
+  license testing with the normal response. A final Play-installed
+  purchase/delivery/restore/refund pass is still required before public sale;
+  the immediately retested sideloaded build connected to Billing but received
+  an empty catalogue, so Play-distribution/account eligibility and catalogue
+  propagation still require a genuine Play Store install test.
 - Daily Board coin prizes remain disabled until score attestation and a
   server-authoritative settlement ledger exist.
 
@@ -90,6 +106,12 @@ release.
 - Pi API security/analytics checks: passed.
 - Connected-phone developer build: launches without crash or ANR, preserves the
   existing save and displays the mandatory privacy gate correctly.
+- Connected-phone Google demo rewarded ad: loaded full-screen, granted exactly
+  25 coins once, closed cleanly and preserved the resumable Heat 3 run.
+- Play Billing connected and resolved the GB storefront. The first catalogue
+  query immediately after product activation returned no product details, so
+  the definitive billing test remains the Play-installed internal build under
+  one of the configured license-tester accounts.
 
 The signed code-34 AAB was published as `WILDCARD v6.9.14 internal test`.
 Google Play reported only the non-blocking deobfuscation/native-symbol warnings.

@@ -1,0 +1,21 @@
+flutter_native_splash:
+  android: true
+  ios: false
+  web: false
+  fullscreen: true
+  android_min_sdk: 24
+
+  # Pre-Android-12 launch window: the same palace and separately centred logo
+  # used by Flutter's first frame. Keeping them separate prevents the wide
+  # WILDCARD mark from being stretched with the background.
+  # After regeneration, keep generated background.png in drawable-nodpi so
+  # Android does not density-scale the full-screen palace into a huge bitmap.
+  background_image: assets/splash/wildcard-palace-launch.png
+  image: assets/splash/wildcard-logo-launch.png
+  android_gravity: center
+
+  # Android 12+ mandates a solid window and masked centre icon; full-screen
+  # background images are not supported by the platform splash API.
+  android_12:
+    color: "#080414"
+    image: assets/splash/wildcard-logo-android12.png

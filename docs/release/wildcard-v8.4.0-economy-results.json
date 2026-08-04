@@ -1,0 +1,181 @@
+﻿{
+  "assumptions": [
+    "Gameplay depth is measured only when --depth-summary supplies a histogram; otherwise the prominently labelled provisional means are planning inputs, not smart-bot findings.",
+    "A rational collector buys Wood until all non-WILD Jokers are owned, then Gold. No-duplicate rarity renormalization makes this the deterministic minimum chest sink.",
+    "The current first genuine Normal loss grants one free Joker. This run models it as rare; use --free-joker-rarity to change it.",
+    "All remaining cosmetics are bought directly at listed prices. The randomized 750-coin Cosmetic Vault is excluded.",
+    "Rewarded ads share one five-view daily cap. The model chooses the better of +25 coins or doubling a run; it never counts both for the same view, and assumes no view is spent refreshing missions.",
+    "Daily login assumes an uninterrupted streak: 30 coins on day 1, +18 per day, capped at 192. Disable with --no-daily-login.",
+    "Weekly income is the 700-coin expected value of three catalogue missions multiplied by each profile's completion rate.",
+    "The 2,797 one-time achievement pool is realized gradually and partially according to each profile instead of being granted on day zero.",
+    "Paid coin packs, stakes, inactive Daily Board prizes, Daily Challenge coins, and unmodeled promotional grants are excluded."
+  ],
+  "collection_days": {
+    "casual": {
+      "with_ads": {
+        "account_coins_per_run_after": 23.3,
+        "account_coins_per_run_before": 23.3,
+        "achievement_income_at_completion": 2097.750000000003,
+        "ad_income_at_completion": 25125.0,
+        "ads": true,
+        "daily_login_income_at_completion": 37782.0,
+        "full_collection_day": 201,
+        "joker_collection_day": 27,
+        "profile": "casual",
+        "runs_per_day": 2,
+        "total_income_at_completion": 83391.35000000028,
+        "total_sink": 83190,
+        "unspent_coins": 201.35000000001457,
+        "weekly_income_at_completion": 8820.0
+      },
+      "without_ads": {
+        "account_coins_per_run_after": 23.3,
+        "account_coins_per_run_before": 23.3,
+        "achievement_income_at_completion": 2097.750000000003,
+        "ad_income_at_completion": 0.0,
+        "ads": false,
+        "daily_login_income_at_completion": 54678.0,
+        "full_collection_day": 289,
+        "joker_collection_day": 38,
+        "profile": "casual",
+        "runs_per_day": 2,
+        "total_income_at_completion": 83358.15000000018,
+        "total_sink": 83190,
+        "unspent_coins": 168.14999999990104,
+        "weekly_income_at_completion": 12915.0
+      }
+    },
+    "dedicated": {
+      "with_ads": {
+        "account_coins_per_run_after": 34.3,
+        "account_coins_per_run_before": 34.3,
+        "achievement_income_at_completion": 2657.150000000001,
+        "ad_income_at_completion": 19208.0,
+        "ads": true,
+        "daily_login_income_at_completion": 20694.0,
+        "full_collection_day": 112,
+        "joker_collection_day": 15,
+        "profile": "dedicated",
+        "runs_per_day": 8,
+        "total_income_at_completion": 83571.94999999994,
+        "total_sink": 83190,
+        "unspent_coins": 381.95000000001755,
+        "weekly_income_at_completion": 10080.0
+      },
+      "without_ads": {
+        "account_coins_per_run_after": 34.3,
+        "account_coins_per_run_before": 34.3,
+        "achievement_income_at_completion": 2657.150000000001,
+        "ad_income_at_completion": 0.0,
+        "ads": false,
+        "daily_login_income_at_completion": 27414.0,
+        "full_collection_day": 147,
+        "joker_collection_day": 20,
+        "profile": "dedicated",
+        "runs_per_day": 8,
+        "total_income_at_completion": 83837.9499999999,
+        "total_sink": 83190,
+        "unspent_coins": 647.9500000000176,
+        "weekly_income_at_completion": 13230.0
+      }
+    }
+  },
+  "inputs": {
+    "cosmetic_direct_price_totals": {
+      "all": 72650,
+      "sly": 19100,
+      "tables": 18050,
+      "themes": 35500
+    },
+    "first_loss_free_joker_rarity": "rare",
+    "profiles": {
+      "casual": {
+        "achievement_fraction": 0.75,
+        "achievement_realization_days": 120,
+        "after_collection": {
+          "account_coins_per_run": 23.3,
+          "mean_heats_cleared": 7.5,
+          "source": "PROVISIONAL input (replace with strategic-harness JSON)",
+          "terminal_heat_histogram": null,
+          "win_rate": 0.03
+        },
+        "before_collection": {
+          "account_coins_per_run": 23.3,
+          "mean_heats_cleared": 7.5,
+          "source": "PROVISIONAL input (replace with strategic-harness JSON)",
+          "terminal_heat_histogram": null,
+          "win_rate": 0.03
+        },
+        "runs_per_day": 2,
+        "weekly_completion_rate": 0.45
+      },
+      "dedicated": {
+        "achievement_fraction": 0.95,
+        "achievement_realization_days": 60,
+        "after_collection": {
+          "account_coins_per_run": 34.3,
+          "mean_heats_cleared": 9.5,
+          "source": "PROVISIONAL input (replace with strategic-harness JSON)",
+          "terminal_heat_histogram": null,
+          "win_rate": 0.18
+        },
+        "before_collection": {
+          "account_coins_per_run": 34.3,
+          "mean_heats_cleared": 9.5,
+          "source": "PROVISIONAL input (replace with strategic-harness JSON)",
+          "terminal_heat_histogram": null,
+          "win_rate": 0.18
+        },
+        "runs_per_day": 8,
+        "weekly_completion_rate": 0.9
+      }
+    },
+    "public_jokers": 102,
+    "rarity_counts": {
+      "common": 42,
+      "rare": 20,
+      "uncommon": 32,
+      "wild": 8
+    },
+    "starter_jokers": 10,
+    "starter_rarity_counts": {
+      "common": 8,
+      "rare": 0,
+      "uncommon": 2,
+      "wild": 0
+    }
+  },
+  "joker_sink": {
+    "discounted_wood_opens": 4,
+    "free_joker_rarity": "rare",
+    "gold_cost": 2400,
+    "gold_opens": 8,
+    "locked_nonwild_after_free": 83,
+    "locked_wild_after_free": 8,
+    "public_jokers": 102,
+    "regular_wood_opens": 79,
+    "starter_jokers": 10,
+    "total_cost": 10540,
+    "wood_cost": 8140
+  },
+  "meta": {
+    "depth_summary": null,
+    "model": "WILDCARD v8.4 deterministic account economy",
+    "smart_bot_claims_embedded": false
+  },
+  "recommended_total_sink_range": {
+    "basis": "Combined account-coin sink supporting ad-engaged collection goals: casual 180-365 days and dedicated 120-180 days. Uses steady-state income with daily login and excludes one-time achievements.",
+    "casual_target_interval": [
+      73548,
+      149139
+    ],
+    "dedicated_target_interval": [
+      87348,
+      131022
+    ],
+    "feasible_overlap": true,
+    "recommended_max": 131000,
+    "recommended_min": 88000
+  },
+  "total_current_sink": 83190
+}
