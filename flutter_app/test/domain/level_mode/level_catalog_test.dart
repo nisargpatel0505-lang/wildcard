@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/domain/cards.dart';
@@ -30,7 +31,7 @@ void main() {
       );
       expect(catalog.layoutCount, 1460);
       expect(catalog.level(1).name, 'First Pair');
-      expect(catalog.level(100).objective.targetScore, 5345);
+      expect(catalog.level(100).objective.targetScore, 4585);
       expect(catalog.level(100).layouts, hasLength(24));
       expect(
         catalog
@@ -41,9 +42,18 @@ void main() {
       );
     });
 
-    test('objective-only tables never hide an additional score target', () {
+    test('the exact objective-only tables never hide a score target', () {
       final catalog = LevelCatalog.fromJsonString(productionSource);
       const objectiveOnlyLevels = <int>[
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
         11,
         12,
         13,
@@ -64,6 +74,12 @@ void main() {
         93,
       ];
 
+      expect(
+        catalog.levels
+            .where((level) => level.objective.targetScore == 0)
+            .map((level) => level.id),
+        orderedEquals(objectiveOnlyLevels),
+      );
       for (final levelId in objectiveOnlyLevels) {
         expect(
           catalog.level(levelId).objective.targetScore,
@@ -79,8 +95,99 @@ void main() {
       });
 
       // Combined challenges that explicitly say "reach the target" retain it.
-      expect(catalog.level(10).objective.targetScore, 515);
-      expect(catalog.level(82).objective.targetScore, 3300);
+      expect(catalog.level(10).objective.targetScore, greaterThan(0));
+      expect(catalog.level(82).objective.targetScore, greaterThan(0));
+    });
+
+    test('resource redesign caps and never loosens authored budgets', () {
+      final catalog = LevelCatalog.fromJsonString(productionSource);
+
+      for (final level in catalog.levels) {
+        final oldHands = _authoredHands(level.id);
+        final oldDiscards = _authoredDiscards(level.id);
+        final expectedHands = math.min(oldHands, _redesignHandsCap(level.id));
+        final expectedDiscards = math.min(
+          oldDiscards,
+          _redesignDiscardsCap(level.id),
+        );
+
+        expect(
+          level.rules.hands,
+          expectedHands,
+          reason: 'Level ${level.id} must use the capped hands budget',
+        );
+        expect(
+          level.rules.discards,
+          expectedDiscards,
+          reason: 'Level ${level.id} must use the capped discard budget',
+        );
+        expect(
+          level.rules.hands,
+          lessThanOrEqualTo(oldHands),
+          reason: 'Level ${level.id} must not gain authored hands',
+        );
+        expect(
+          level.rules.discards,
+          lessThanOrEqualTo(oldDiscards),
+          reason: 'Level ${level.id} must not gain authored discards',
+        );
+      }
+    });
+
+    test('every objective statically fits its available scoring hands', () {
+      final catalog = LevelCatalog.fromJsonString(productionSource);
+
+      for (final level in catalog.levels) {
+        final hands = level.rules.hands;
+        final objective = level.objective;
+        final requiredCountHands = objective.requiredCounts.values.fold<int>(
+          0,
+          (sum, count) => sum + count,
+        );
+        final constraints = <String, int>{
+          'required hand counts': requiredCountHands,
+          'required sequence': objective.requiredSequence.length,
+          'minimum variety': objective.minVariety,
+          'minimum quality count': objective.minQualityCount,
+          'minimum qualifying types': objective.minTypesFromCount,
+          'checkpoints': objective.checkpoints.length,
+        };
+
+        for (final constraint in constraints.entries) {
+          expect(
+            constraint.value,
+            lessThanOrEqualTo(hands),
+            reason:
+                'Level ${level.id} ${constraint.key} needs '
+                '${constraint.value} hands, but only $hands are available',
+          );
+        }
+      }
+    });
+
+    test('tightened table copy advertises the effective resources', () {
+      final catalog = LevelCatalog.fromJsonString(productionSource);
+      final level50 = catalog.level(50);
+      final level80 = catalog.level(80);
+      final level91 = catalog.level(91);
+
+      expect(level50.rules.hands, 4);
+      expect(level50.description.toLowerCase(), contains('four plays'));
+      expect(level50.description.toLowerCase(), isNot(contains('five plays')));
+
+      expect(level80.rules.hands, 4);
+      expect(level80.rules.discards, 2);
+      expect(level80.description.toLowerCase(), contains('four plays'));
+      expect(level80.description.toLowerCase(), contains('two discards'));
+      expect(
+        level80.description.toLowerCase(),
+        isNot(contains('three discards')),
+      );
+
+      expect(level91.rules.hands, 4);
+      expect(level91.rules.discards, 2);
+      expect(level91.hint.toLowerCase(), contains('four plays'));
+      expect(level91.hint.toLowerCase(), isNot(contains('five plays')));
     });
 
     test(
@@ -358,4 +465,31 @@ void main() {
       expect(() => LevelCatalog.fromJson(invalidTarget), throwsFormatException);
     });
   });
+}
+
+int _authoredHands(int levelId) =>
+    const <int, int>{11: 4, 12: 4, 37: 4, 39: 4, 58: 4, 80: 4}[levelId] ?? 5;
+
+int _authoredDiscards(int levelId) =>
+    const <int, int>{
+      36: 4,
+      37: 3,
+      38: 2,
+      39: 3,
+      52: 3,
+      58: 3,
+      65: 4,
+      80: 3,
+      94: 2,
+      100: 3,
+    }[levelId] ??
+    5;
+
+int _redesignHandsCap(int levelId) => levelId <= 40 ? 5 : 4;
+
+int _redesignDiscardsCap(int levelId) {
+  if (levelId <= 10) return 5;
+  if (levelId <= 20) return 4;
+  if (levelId <= 70) return 3;
+  return 2;
 }

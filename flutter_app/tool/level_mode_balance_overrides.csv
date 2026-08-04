@@ -1,0 +1,11 @@
+level,target,discards,reason
+20,670,,Focused native-policy sweep reduced rate error from 0.197 to 0.053
+40,500,,Focused native-policy sweep reduced rate error from 0.213 to 0.047
+58,595,,Focused native-policy sweep reduced rate error from 0.270 to 0.020
+60,440,,Focused native-policy sweep reduced rate error from 0.230 to 0.120
+63,995,,Focused native-policy sweep reduced rate error from 0.200 to 0.033
+75,1370,,Focused native-policy sweep reduced rate error from 0.200 to 0.050
+78,1585,,Focused native-policy sweep reduced rate error from 0.150 to 0.050
+85,1490,,Focused native-policy sweep reduced rate error from 0.140 to 0.027
+89,1975,,Focused native-policy sweep reduced rate error from 0.190 to 0.060
+98,1885,,Focused native-policy sweep reduced rate error from 0.197 to 0.113

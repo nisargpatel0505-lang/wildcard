@@ -13,13 +13,14 @@
   "notes": [
     "Observed clear rates are competent-policy simulation proxies, not measured human first-attempt rates.",
     "Every blocked deck is an explicit prevalidated deck order; production must never cut a fresh random half-deck.",
-    "Level Jokers are temporary and must not mutate account unlock ownership."
+    "Level Jokers are temporary and must not mutate account unlock ownership.",
+    "v8.6.2 difficulty rebuild applies chapter resource budgets before deriving score targets from native-policy medians; objective-only levels never receive a hidden score floor."
   ],
   "levels": [
     {
       "id": 1,
       "name": "First Pair",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Pair.",
       "rules": {
         "hand_size": 9,
@@ -77,7 +78,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.95,
+      "targetSuccess": 0.9,
       "hint": "Keep two cards of the same rank.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -813,7 +814,7 @@
     {
       "id": 2,
       "name": "Pair Practice",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score two Pairs before your plays run out.",
       "rules": {
         "hand_size": 9,
@@ -871,7 +872,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.94,
+      "targetSuccess": 0.9,
       "hint": "Keep duplicate ranks and discard isolated cards.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -1607,7 +1608,7 @@
     {
       "id": 3,
       "name": "Two at Once",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Two Pair.",
       "rules": {
         "hand_size": 9,
@@ -1665,7 +1666,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.93,
+      "targetSuccess": 0.9,
       "hint": "Build two separate pairs in the same play.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -2401,7 +2402,7 @@
     {
       "id": 4,
       "name": "Double Two",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score two Two Pairs.",
       "rules": {
         "hand_size": 9,
@@ -2459,7 +2460,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.92,
+      "targetSuccess": 0.9,
       "hint": "Do not spend both pairs unless the remaining hand can rebuild.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -3195,7 +3196,7 @@
     {
       "id": 5,
       "name": "Triple Two",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score three Two Pairs in five plays.",
       "rules": {
         "hand_size": 9,
@@ -3989,7 +3990,7 @@
     {
       "id": 6,
       "name": "Three Together",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Three of a Kind.",
       "rules": {
         "hand_size": 9,
@@ -4783,7 +4784,7 @@
     {
       "id": 7,
       "name": "Run It",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Straight.",
       "rules": {
         "hand_size": 9,
@@ -4841,7 +4842,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.89,
+      "targetSuccess": 0.9,
       "hint": "Keep connected ranks; Ace can be high or low.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -5577,7 +5578,7 @@
     {
       "id": 8,
       "name": "Same Suit",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Flush.",
       "rules": {
         "hand_size": 9,
@@ -5635,7 +5636,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.88,
+      "targetSuccess": 0.9,
       "hint": "Keep the suit with the most cards.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -6371,7 +6372,7 @@
     {
       "id": 9,
       "name": "Full House",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Score one Full House.",
       "rules": {
         "hand_size": 9,
@@ -6429,7 +6430,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.86,
+      "targetSuccess": 0.9,
       "hint": "Build a three-card rank and a separate pair.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -7165,7 +7166,7 @@
     {
       "id": 10,
       "name": "First Score Test",
-      "chapter": "1 \u00b7 Basic Hands",
+      "chapter": "1 · Basic Hands",
       "description": "Reach the score target using at least two different hand types.",
       "rules": {
         "hand_size": 9,
@@ -7204,7 +7205,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 515,
+        "target_score": 480,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 2,
@@ -7221,7 +7222,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.85,
+      "targetSuccess": 0.9,
       "hint": "Play made hands instead of five-card High Cards.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -7957,13 +7958,13 @@
     {
       "id": 11,
       "name": "Pair Chain",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score three Pairs in four plays.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 4,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -8015,7 +8016,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.837,
+      "targetSuccess": 0.78,
       "hint": "Preserve duplicate ranks between plays.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -8751,13 +8752,13 @@
     {
       "id": 12,
       "name": "Two Pair Chain",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score two Two Pairs in four plays.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 4,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -8809,7 +8810,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.824,
+      "targetSuccess": 0.78,
       "hint": "Use discards before spending a fragile Two Pair.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -9545,13 +9546,13 @@
     {
       "id": 13,
       "name": "Mixed Set",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score a Pair, Two Pair and Three of a Kind.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -9605,7 +9606,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.8109999999999999,
+      "targetSuccess": 0.78,
       "hint": "Plan the order so one rank can grow from a pair into trips.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -10341,13 +10342,13 @@
     {
       "id": 14,
       "name": "Straight Practice",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score two Straights.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -10399,7 +10400,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.7979999999999999,
+      "targetSuccess": 0.78,
       "hint": "Keep overlapping connected ranks after the first Straight.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -11135,13 +11136,13 @@
     {
       "id": 15,
       "name": "Flush Practice",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score two Flushes.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -11193,7 +11194,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.7849999999999999,
+      "targetSuccess": 0.78,
       "hint": "Commit to the suit with the deepest remaining deck.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -11929,13 +11930,13 @@
     {
       "id": 16,
       "name": "House Party",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score one Full House and one Pair.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -11988,7 +11989,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.772,
+      "targetSuccess": 0.72,
       "hint": "Bank the Pair only when the Full House route remains intact.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -12724,13 +12725,13 @@
     {
       "id": 17,
       "name": "Four Strong",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score Four of a Kind.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -12782,7 +12783,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.759,
+      "targetSuccess": 0.72,
       "hint": "Hold three matching cards and use discards aggressively.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -13518,13 +13519,13 @@
     {
       "id": 18,
       "name": "Variety Pack",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Score four different hand types.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -13575,7 +13576,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.746,
+      "targetSuccess": 0.72,
       "hint": "Do not repeat an easy hand when a new type is available.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -14311,13 +14312,13 @@
     {
       "id": 19,
       "name": "No Waste",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Reach the score target without playing High Card.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -14350,7 +14351,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 450,
+        "target_score": 640,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -14369,7 +14370,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.733,
+      "targetSuccess": 0.72,
       "hint": "Discard weak hands instead of scoring them.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -15105,13 +15106,13 @@
     {
       "id": 20,
       "name": "Basics Final",
-      "chapter": "2 \u00b7 Hand Planning",
+      "chapter": "2 · Hand Planning",
       "description": "Reach the target with three hand types, including a Straight, Flush or better.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 4,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -15144,7 +15145,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 535,
+        "target_score": 670,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 3,
@@ -15904,13 +15905,13 @@
     {
       "id": 21,
       "name": "No High Cards",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "High Card scores zero. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -15943,7 +15944,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 380,
+        "target_score": 665,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -15960,7 +15961,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.7405,
+      "targetSuccess": 0.62,
       "hint": "Discard until you can make at least a Pair.",
       "visibleModifiers": [
         "High Card scores 0"
@@ -16698,13 +16699,13 @@
     {
       "id": 22,
       "name": "Pairs Only",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Only Pair and Two Pair score. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -16740,7 +16741,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 245,
+        "target_score": 255,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -16757,7 +16758,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.731,
+      "targetSuccess": 0.62,
       "hint": "Kickers do not score; protect duplicate ranks.",
       "visibleModifiers": [
         "Only Pair and Two Pair score"
@@ -17495,13 +17496,13 @@
     {
       "id": 23,
       "name": "Red Heat",
-      "chapter": "3 \u00b7 Modifier Introduction",
-      "description": "Red cards give 1.5\u00d7 rank; black cards give 0.5\u00d7. Reach the target.",
+      "chapter": "3 · Modifier Introduction",
+      "description": "Red cards give 1.5× rank; black cards give 0.5×. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -17537,7 +17538,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 430,
+        "target_score": 665,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -17554,10 +17555,10 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.7215,
+      "targetSuccess": 0.62,
       "hint": "Prefer Hearts and Diamonds when two hands are otherwise equal.",
       "visibleModifiers": [
-        "Red rank \u00d71.5; black rank \u00d70.5"
+        "Red rank ×1.5; black rank ×0.5"
       ],
       "recommendedLoadouts": [
         {
@@ -18292,13 +18293,13 @@
     {
       "id": 24,
       "name": "Blackout",
-      "chapter": "3 \u00b7 Modifier Introduction",
-      "description": "Black cards give 1.5\u00d7 rank; red cards give 0.5\u00d7. Reach the target.",
+      "chapter": "3 · Modifier Introduction",
+      "description": "Black cards give 1.5× rank; red cards give 0.5×. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -18334,7 +18335,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 480,
+        "target_score": 625,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -18351,10 +18352,10 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.712,
+      "targetSuccess": 0.62,
       "hint": "Prefer Spades and Clubs.",
       "visibleModifiers": [
-        "Black rank \u00d71.5; red rank \u00d70.5"
+        "Black rank ×1.5; red rank ×0.5"
       ],
       "recommendedLoadouts": [
         {
@@ -19089,13 +19090,13 @@
     {
       "id": 25,
       "name": "Face Off",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Jacks, Queens and Kings contribute zero rank. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -19128,7 +19129,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 410,
+        "target_score": 705,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -19145,7 +19146,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.7025,
+      "targetSuccess": 0.62,
       "hint": "Face cards can still form a hand, but their rank points disappear.",
       "visibleModifiers": [
         "J/Q/K rank score 0"
@@ -19883,13 +19884,13 @@
     {
       "id": 26,
       "name": "Ace Lock",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "All Aces are removed. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [
           "A"
@@ -19924,7 +19925,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 485,
+        "target_score": 735,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -19941,7 +19942,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.6930000000000001,
+      "targetSuccess": 0.62,
       "hint": "Build around connected middle ranks instead of Ace-high routes.",
       "visibleModifiers": [
         "Aces removed"
@@ -21079,13 +21080,13 @@
     {
       "id": 27,
       "name": "Repeat Tax",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Each repeat of a hand type loses 40% score. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -21118,7 +21119,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 435,
+        "target_score": 510,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -21135,7 +21136,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.6835,
+      "targetSuccess": 0.62,
       "hint": "Change hand type before the repeat penalty compounds.",
       "visibleModifiers": [
         "Repeated hand type loses 40%"
@@ -21873,13 +21874,13 @@
     {
       "id": 28,
       "name": "Costly Discards",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Every discard raises the target. Clear it efficiently.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -21912,7 +21913,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 480,
+        "target_score": 440,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -21929,7 +21930,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.674,
+      "targetSuccess": 0.62,
       "hint": "A discard is worthwhile only when the stronger draw covers its tax.",
       "visibleModifiers": [
         "Each discard adds 100 to target"
@@ -22667,13 +22668,13 @@
     {
       "id": 29,
       "name": "Final Hand",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Early plays score 25% less; the fifth play scores double.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -22712,7 +22713,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 410,
+        "target_score": 475,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -22729,10 +22730,10 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.6645,
+      "targetSuccess": 0.62,
       "hint": "Save the best visible route for the double-score final play.",
       "visibleModifiers": [
-        "First four plays \u00d70.75; final play \u00d72"
+        "First four plays ×0.75; final play ×2"
       ],
       "recommendedLoadouts": [
         {
@@ -23467,13 +23468,13 @@
     {
       "id": 30,
       "name": "Modifier Checkpoint",
-      "chapter": "3 \u00b7 Modifier Introduction",
+      "chapter": "3 · Modifier Introduction",
       "description": "Face cards score no rank and repeats lose 40%. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -23506,7 +23507,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 450,
+        "target_score": 495,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -23523,7 +23524,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.655,
+      "targetSuccess": 0.62,
       "hint": "Use varied number-card hands.",
       "visibleModifiers": [
         "J/Q/K rank score 0",
@@ -24262,13 +24263,13 @@
     {
       "id": 31,
       "name": "One of Each",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "A repeated hand type scores zero. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -24301,7 +24302,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 460,
+        "target_score": 455,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 3,
@@ -24318,7 +24319,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.6455,
+      "targetSuccess": 0.62,
       "hint": "Treat each hand type as a one-use resource.",
       "visibleModifiers": [
         "Repeated hand type scores 0"
@@ -25056,13 +25057,13 @@
     {
       "id": 32,
       "name": "In Order",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Play Pair, Two Pair and Straight in that order.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -25117,7 +25118,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.636,
+      "targetSuccess": 0.62,
       "hint": "Do not play the Straight early even when it is visible.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -25853,13 +25854,13 @@
     {
       "id": 33,
       "name": "Even Lock",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Ranks 2, 4, 6, 8 and 10 are removed. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [
           "2",
@@ -25898,7 +25899,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 625,
+        "target_score": 785,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -25915,7 +25916,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.6265000000000001,
+      "targetSuccess": 0.62,
       "hint": "Use duplicate odd ranks and face-card runs.",
       "visibleModifiers": [
         "Even ranks removed"
@@ -26733,13 +26734,13 @@
     {
       "id": 34,
       "name": "Odd Lock",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Ranks 3, 5, 7 and 9 are removed. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [
           "3",
@@ -26777,7 +26778,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 610,
+        "target_score": 905,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -26794,7 +26795,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.617,
+      "targetSuccess": 0.62,
       "hint": "Even ranks remain dense enough for pairs and selected Straights.",
       "visibleModifiers": [
         "3/5/7/9 removed"
@@ -27692,13 +27693,13 @@
     {
       "id": 35,
       "name": "Suit Shift",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "One visible suit contributes zero rank each play. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -27736,7 +27737,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 455,
+        "target_score": 485,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -27753,7 +27754,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.6075,
+      "targetSuccess": 0.62,
       "hint": "Check the current disabled suit before committing a hand.",
       "visibleModifiers": [
         "Suit disabled in visible S/H/D/C rotation"
@@ -28491,13 +28492,13 @@
     {
       "id": 36,
       "name": "Shrinking Discards",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "After every scoring play, one unused discard disappears.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -28530,7 +28531,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 485,
+        "target_score": 560,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -28547,7 +28548,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.598,
+      "targetSuccess": 0.62,
       "hint": "Use needed discards early; they do not remain available.",
       "visibleModifiers": [
         "Lose one unused discard after each scored hand"
@@ -29285,7 +29286,7 @@
     {
       "id": 37,
       "name": "Four Hands",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Reach the target with four plays and three discards.",
       "rules": {
         "hand_size": 9,
@@ -29324,7 +29325,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 370,
+        "target_score": 455,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -29341,7 +29342,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5885,
+      "targetSuccess": 0.62,
       "hint": "Every scoring play must contribute.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -30077,7 +30078,7 @@
     {
       "id": 38,
       "name": "Two Discards",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Reach the target with only two discards.",
       "rules": {
         "hand_size": 9,
@@ -30116,7 +30117,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 480,
+        "target_score": 550,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -30133,7 +30134,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.579,
+      "targetSuccess": 0.62,
       "hint": "Keep flexible shapes rather than chasing one unlikely hand.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -30869,7 +30870,7 @@
     {
       "id": 39,
       "name": "Rising Pressure",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Hit a cumulative checkpoint after each of the first four plays.",
       "rules": {
         "hand_size": 9,
@@ -30909,7 +30910,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 375,
+        "target_score": 615,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -30931,7 +30932,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5695,
+      "targetSuccess": 0.62,
       "hint": "A weak first play can make every later checkpoint impossible.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -31667,13 +31668,13 @@
     {
       "id": 40,
       "name": "Modifier Final",
-      "chapter": "4 \u00b7 Modifier Mastery",
+      "chapter": "4 · Modifier Mastery",
       "description": "Face cards give no rank, hand types cannot repeat, and the target is high.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 5,
-        "discards": 5,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -31707,7 +31708,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 420,
+        "target_score": 500,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -31724,7 +31725,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.56,
+      "targetSuccess": 0.62,
       "hint": "Plan four different number-card hands before spending a play.",
       "visibleModifiers": [
         "J/Q/K rank score 0",
@@ -32463,13 +32464,13 @@
     {
       "id": 41,
       "name": "Quarter Blocked",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "25% of the deck is removed. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.25,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -32502,7 +32503,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 445,
+        "target_score": 565,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -32519,7 +32520,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.6405000000000001,
+      "targetSuccess": 0.52,
       "hint": "Inspect what remains before choosing a route.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -33475,13 +33476,13 @@
     {
       "id": 42,
       "name": "Pairs Through It",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "25% blocked. Score two Pairs.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.25,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -33533,7 +33534,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.631,
+      "targetSuccess": 0.52,
       "hint": "Choose ranks that still have multiple copies available.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -34489,13 +34490,13 @@
     {
       "id": 43,
       "name": "Double Pair",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "25% blocked. Score two Two Pairs.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.25,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -34547,7 +34548,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.6215,
+      "targetSuccess": 0.52,
       "hint": "The deck inspector shows which pair routes still exist.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -35503,13 +35504,13 @@
     {
       "id": 44,
       "name": "Broken Run",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "33% blocked. Score a Straight.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.33,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -35561,7 +35562,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.612,
+      "targetSuccess": 0.52,
       "hint": "Find a five-rank corridor that survived the block.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -36437,13 +36438,13 @@
     {
       "id": 45,
       "name": "Thin Suit",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "33% blocked. Score a Flush.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.33,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -36495,7 +36496,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.6025,
+      "targetSuccess": 0.52,
       "hint": "Count the remaining cards in each suit first.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -37371,13 +37372,13 @@
     {
       "id": 46,
       "name": "Forty Down",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "40% blocked. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.4,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -37410,7 +37411,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 450,
+        "target_score": 565,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -37427,7 +37428,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.593,
+      "targetSuccess": 0.52,
       "hint": "Adapt to the strongest duplicate or suit concentration.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -38223,13 +38224,13 @@
     {
       "id": 47,
       "name": "Adapt",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "40% blocked. Score three different hand types and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.4,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -38262,7 +38263,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 515,
+        "target_score": 525,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 3,
@@ -38279,7 +38280,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5835,
+      "targetSuccess": 0.52,
       "hint": "Use the surviving deck shape rather than forcing one archetype.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -39075,13 +39076,13 @@
     {
       "id": 48,
       "name": "Half Deck",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "50% blocked. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -39114,7 +39115,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 385,
+        "target_score": 490,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -39131,7 +39132,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5740000000000001,
+      "targetSuccess": 0.52,
       "hint": "The smaller deck makes some ranks dense and others absent.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -39827,13 +39828,13 @@
     {
       "id": 49,
       "name": "Find a Route",
-      "chapter": "5 \u00b7 Blocked Decks",
+      "chapter": "5 · Blocked Decks",
       "description": "50% blocked. Score a Straight or Flush and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -39866,7 +39867,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 395,
+        "target_score": 445,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -39888,7 +39889,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5645,
+      "targetSuccess": 0.52,
       "hint": "Compare the surviving rank corridor with the surviving suits.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -40584,13 +40585,13 @@
     {
       "id": 50,
       "name": "Half-Deck Final",
-      "chapter": "5 \u00b7 Blocked Decks",
-      "description": "50% blocked. Reach the chapter target in five plays.",
+      "chapter": "5 · Blocked Decks",
+      "description": "50% blocked. Reach the chapter target in four plays.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -40623,7 +40624,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 420,
+        "target_score": 455,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -40640,7 +40641,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.555,
+      "targetSuccess": 0.52,
       "hint": "Commit early to the strongest route visible in the deck matrix.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -41336,13 +41337,13 @@
     {
       "id": 51,
       "name": "Half and No High",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked and High Card scores zero.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -41375,7 +41376,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 405,
+        "target_score": 555,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -41392,7 +41393,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5455,
+      "targetSuccess": 0.52,
       "hint": "Use discards to avoid wasting a play on zero.",
       "visibleModifiers": [
         "50% blocked",
@@ -42091,12 +42092,12 @@
     {
       "id": 52,
       "name": "Half and Tight",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked with only three discards.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
+        "hands": 4,
         "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
@@ -42130,7 +42131,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 475,
+        "target_score": 550,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -42147,7 +42148,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.536,
+      "targetSuccess": 0.52,
       "hint": "Preserve flexible pairs and four-card suit groups.",
       "visibleModifiers": [
         "50% blocked",
@@ -42846,13 +42847,13 @@
     {
       "id": 53,
       "name": "Half and Faceless",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked and face cards give no rank.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -42885,7 +42886,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 385,
+        "target_score": 440,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -42902,7 +42903,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5265,
+      "targetSuccess": 0.52,
       "hint": "Face cards may complete a hand but should not drive the score plan.",
       "visibleModifiers": [
         "50% blocked",
@@ -43601,13 +43602,13 @@
     {
       "id": 54,
       "name": "Red Rescue",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked; only red cards contribute rank.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -43640,7 +43641,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 395,
+        "target_score": 430,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -43657,7 +43658,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.517,
+      "targetSuccess": 0.52,
       "hint": "Hearts and Diamonds carry the rank score.",
       "visibleModifiers": [
         "50% blocked",
@@ -44356,13 +44357,13 @@
     {
       "id": 55,
       "name": "Black Rescue",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked; only black cards contribute rank.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -44395,7 +44396,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 395,
+        "target_score": 470,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -44412,7 +44413,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.5075000000000001,
+      "targetSuccess": 0.52,
       "hint": "Spades and Clubs carry the rank score.",
       "visibleModifiers": [
         "50% blocked",
@@ -45111,13 +45112,13 @@
     {
       "id": 56,
       "name": "Half Variety",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked and hand types cannot repeat.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -45167,7 +45168,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.498,
+      "targetSuccess": 0.52,
       "hint": "Map four surviving hand types before the first play.",
       "visibleModifiers": [
         "50% blocked",
@@ -45866,13 +45867,13 @@
     {
       "id": 57,
       "name": "Half Sequence",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked. Play Pair, Two Pair and Straight in order.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -45926,7 +45927,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.48850000000000005,
+      "targetSuccess": 0.52,
       "hint": "The required order matters more than the first visible score.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -46622,7 +46623,7 @@
     {
       "id": 58,
       "name": "Half Pressure",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked. Hit four cumulative score checkpoints.",
       "rules": {
         "hand_size": 9,
@@ -46662,7 +46663,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 525,
+        "target_score": 595,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -46684,7 +46685,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.47900000000000004,
+      "targetSuccess": 0.52,
       "hint": "Do not fall behind the first checkpoint.",
       "visibleModifiers": [
         "50% blocked",
@@ -47383,13 +47384,13 @@
     {
       "id": 59,
       "name": "Shifting Suit",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked and one suit is disabled each play.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -47427,7 +47428,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 410,
+        "target_score": 470,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -47444,7 +47445,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.46950000000000003,
+      "targetSuccess": 0.52,
       "hint": "Re-evaluate the best suit every play.",
       "visibleModifiers": [
         "50% blocked",
@@ -48143,13 +48144,13 @@
     {
       "id": 60,
       "name": "Restricted Final",
-      "chapter": "6 \u00b7 Restricted Decks",
+      "chapter": "6 · Restricted Decks",
       "description": "50% blocked, face cards give no rank and repeats decay.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -48182,7 +48183,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 400,
+        "target_score": 440,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -48199,7 +48200,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.46,
+      "targetSuccess": 0.52,
       "hint": "Use varied number-card hands from the surviving deck.",
       "visibleModifiers": [
         "50% blocked",
@@ -48899,13 +48900,13 @@
     {
       "id": 61,
       "name": "Copper Chip",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use the fixed Copper Chip to reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -48938,7 +48939,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 495,
+        "target_score": 790,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -48957,7 +48958,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5905,
+      "targetSuccess": 0.45,
       "hint": "Flat +Mult improves every hand, so play made hands consistently.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -49721,13 +49722,13 @@
     {
       "id": 62,
       "name": "Pair Polisher",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use the fixed Pair Polisher to reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -49760,7 +49761,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 660,
+        "target_score": 790,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -49779,8 +49780,8 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.581,
-      "hint": "Pair-or-better activates \u00d71.4; High Card does not.",
+      "targetSuccess": 0.45,
+      "hint": "Pair-or-better activates ×1.4; High Card does not.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
         {
@@ -50543,13 +50544,13 @@
     {
       "id": 63,
       "name": "Chips Times Mult",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Combine Copper Chip and Pair Polisher.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -50582,7 +50583,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 800,
+        "target_score": 995,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -50602,7 +50603,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5715,
+      "targetSuccess": 0.45,
       "hint": "Additive Mult becomes stronger when multiplied by Pair Polisher.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -51380,13 +51381,13 @@
     {
       "id": 64,
       "name": "Royal Engine",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use Royal Retainer and Royal Scam to score face-card hands.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -51419,7 +51420,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 680,
+        "target_score": 780,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -51440,7 +51441,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5619999999999999,
+      "targetSuccess": 0.45,
       "hint": "J, Q and K receive extra rank and then score twice.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -52232,13 +52233,13 @@
     {
       "id": 65,
       "name": "Glass Cannon",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use Glass Joystick with one fewer discard.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 4,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -52271,7 +52272,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1275,
+        "target_score": 1900,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -52290,8 +52291,8 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5525,
-      "hint": "The fixed \u00d73 makes strong hand bases far more valuable.",
+      "targetSuccess": 0.45,
+      "hint": "The fixed ×3 makes strong hand bases far more valuable.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
         {
@@ -53054,13 +53055,13 @@
     {
       "id": 66,
       "name": "Pair Build",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use Pair Polisher, Metronome and Twin Flame. Score three Pair-or-better hands and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -53093,7 +53094,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 695,
+        "target_score": 955,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -53114,7 +53115,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5429999999999999,
+      "targetSuccess": 0.45,
       "hint": "Repeating a made hand activates Double Down and grows Pair Trainer.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -53906,13 +53907,13 @@
     {
       "id": 67,
       "name": "Straight Build",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use Straight Wire, Gap Filler and Full Table. Score a Straight and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -53945,7 +53946,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1170,
+        "target_score": 1090,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -53970,7 +53971,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5335,
+      "targetSuccess": 0.45,
       "hint": "Shortcut enables three-card Straights; Straight Wire multiplies them.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -54762,13 +54763,13 @@
     {
       "id": 68,
       "name": "Flush Build",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Use Flush Fund, Pocket Flush and Suit Swap. Score a Flush and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -54802,7 +54803,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1400,
+        "target_score": 1200,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -54827,7 +54828,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.524,
+      "targetSuccess": 0.45,
       "hint": "Pocket Flush reduces the requirement to four same-suit cards.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -55619,13 +55620,13 @@
     {
       "id": 69,
       "name": "Choose Three",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Choose three Jokers from six and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -55658,7 +55659,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1720,
+        "target_score": 2120,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -55682,7 +55683,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.5145,
+      "targetSuccess": 0.45,
       "hint": "Combine a broad multiplier with a condition you can trigger often.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -56513,13 +56514,13 @@
     {
       "id": 70,
       "name": "Joker Checkpoint",
-      "chapter": "7 \u00b7 Joker Fundamentals",
+      "chapter": "7 · Joker Fundamentals",
       "description": "Choose three Jokers from five and clear the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 3,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -56552,7 +56553,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 5350,
+        "target_score": 4805,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -56576,7 +56577,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.505,
+      "targetSuccess": 0.45,
       "hint": "Final-play effects can stack, but the earlier plays still need to set up the clear.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -57446,13 +57447,13 @@
     {
       "id": 71,
       "name": "Pair Architect",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Choose three Jokers; score four Pair-or-better hands and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -57485,7 +57486,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 850,
+        "target_score": 890,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -57508,7 +57509,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.4955,
+      "targetSuccess": 0.45,
       "hint": "The intended engine rewards repeated made hands.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -58352,13 +58353,13 @@
     {
       "id": 72,
       "name": "Straight Architect",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Choose three Jokers; score two Straights and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -58391,7 +58392,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1545,
+        "target_score": 1345,
         "required_counts": {
           "Straight": 2
         },
@@ -58416,7 +58417,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.486,
+      "targetSuccess": 0.45,
       "hint": "Shortcut improves consistency; Straight Wire supplies the payoff.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -59234,13 +59235,13 @@
     {
       "id": 73,
       "name": "Flush Architect",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Choose three Jokers; score two Flushes and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -59273,7 +59274,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1425,
+        "target_score": 1605,
         "required_counts": {
           "Flush": 2
         },
@@ -59298,7 +59299,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.4765,
+      "targetSuccess": 0.45,
       "hint": "Use an enabler, a Flush payoff and a colour payoff.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -60129,13 +60130,13 @@
     {
       "id": 74,
       "name": "Rank Architect",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Choose three Jokers; score two Three-of-a-Kind-or-better hands.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -60191,7 +60192,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.46699999999999997,
+      "targetSuccess": 0.45,
       "hint": "Choose rank bonuses that overlap with the ranks you intend to collect.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -61022,13 +61023,13 @@
     {
       "id": 75,
       "name": "Dead Slot",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Dividend occupies one non-scoring slot. Choose two scoring Jokers and clear the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -61061,7 +61062,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1320,
+        "target_score": 1370,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -61084,7 +61085,7 @@
       "negativeJoker": "dividend",
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.4575,
+      "targetSuccess": 0.45,
       "hint": "Treat Dividend as a dead scoring slot and make the other two Jokers cover both consistency and burst.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -61928,13 +61929,13 @@
     {
       "id": 76,
       "name": "Rising Power",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Danger Music grows after each played hand. Reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -61968,7 +61969,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1025,
+        "target_score": 845,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -61987,8 +61988,8 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.44799999999999995,
-      "hint": "Later hands receive much larger \u00d7Mult; preserve a strong final route.",
+      "targetSuccess": 0.45,
+      "hint": "Later hands receive much larger ×Mult; preserve a strong final route.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
         {
@@ -62751,13 +62752,13 @@
     {
       "id": 77,
       "name": "Joker Blackout",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "Choose three Jokers; one selected Joker is disabled each play.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -62791,7 +62792,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1125,
+        "target_score": 1230,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -62814,7 +62815,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.4385,
+      "targetSuccess": 0.45,
       "hint": "Choose effects that remain useful even when one piece goes dark.",
       "visibleModifiers": [
         "One chosen Joker disabled each play"
@@ -63647,13 +63648,13 @@
     {
       "id": 78,
       "name": "Quarter Block Build",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "25% blocked. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.25,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -63687,7 +63688,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1420,
+        "target_score": 1585,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -63710,7 +63711,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.429,
+      "targetSuccess": 0.45,
       "hint": "Inspect the layout before choosing Straight or Flush support.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -64793,13 +64794,13 @@
     {
       "id": 79,
       "name": "Half Block Build",
-      "chapter": "8 \u00b7 Build Creation",
+      "chapter": "8 · Build Creation",
       "description": "50% blocked. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -64833,7 +64834,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1200,
+        "target_score": 1190,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -64856,7 +64857,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.4195,
+      "targetSuccess": 0.45,
       "hint": "Prefer flexible power unless the blocked layout clearly supports a specialist.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -65679,13 +65680,13 @@
     {
       "id": 80,
       "name": "Build Final",
-      "chapter": "8 \u00b7 Build Creation",
-      "description": "Choose three of six Jokers; score the target in four plays and three discards.",
+      "chapter": "8 · Build Creation",
+      "description": "Choose three of six Jokers; score the target in four plays and two discards.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
         "hands": 4,
-        "discards": 3,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -65718,7 +65719,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 4600,
+        "target_score": 5285,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -65742,7 +65743,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.41,
+      "targetSuccess": 0.45,
       "hint": "Build around a reliable base and one late-hand finisher.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -66573,13 +66574,13 @@
     {
       "id": 81,
       "name": "Double Trouble",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Two visible modifiers are active. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -66612,7 +66613,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 2550,
+        "target_score": 3030,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -66636,7 +66637,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.482,
+      "targetSuccess": 0.36,
       "hint": "Choose broad Jokers and vary your made hands.",
       "visibleModifiers": [
         "High Card scores 0",
@@ -67457,13 +67458,13 @@
     {
       "id": 82,
       "name": "No Repeat Build",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Hand types cannot repeat. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -67497,7 +67498,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 3300,
+        "target_score": 3880,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -67521,7 +67522,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.464,
+      "targetSuccess": 0.36,
       "hint": "Specialist hand Jokers are risky when each hand type can score only once.",
       "visibleModifiers": [
         "Repeated hand type scores 0"
@@ -68367,13 +68368,13 @@
     {
       "id": 83,
       "name": "Black Build",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Red cards contribute zero rank. Choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -68407,7 +68408,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1520,
+        "target_score": 1835,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -68431,7 +68432,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.446,
+      "targetSuccess": 0.36,
       "hint": "Ink Trade directly strengthens the live black cards.",
       "visibleModifiers": [
         "Red cards contribute 0 rank"
@@ -69264,13 +69265,13 @@
     {
       "id": 84,
       "name": "Red Build",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Black cards contribute zero rank. Choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -69304,7 +69305,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1525,
+        "target_score": 1920,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -69328,7 +69329,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.428,
+      "targetSuccess": 0.36,
       "hint": "Suit Presser turns Hearts into the strongest red route.",
       "visibleModifiers": [
         "Black cards contribute 0 rank"
@@ -70148,13 +70149,13 @@
     {
       "id": 85,
       "name": "Expensive Discards",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Each discard adds a large amount to the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -70188,7 +70189,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1725,
+        "target_score": 1490,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -70212,7 +70213,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.41000000000000003,
+      "targetSuccess": 0.36,
       "hint": "Only discard when the likely score gain exceeds the added target.",
       "visibleModifiers": [
         "Each discard adds 750 to target"
@@ -71045,13 +71046,13 @@
     {
       "id": 86,
       "name": "Scorched Ranks",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "After a scoring hand, every remaining card sharing a played rank is burned. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -71085,7 +71086,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 3700,
+        "target_score": 3030,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -71109,7 +71110,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.392,
+      "targetSuccess": 0.36,
       "hint": "Do not burn useful duplicate ranks on weak hands.",
       "visibleModifiers": [
         "Every played rank burns from the remaining deck"
@@ -71903,13 +71904,13 @@
     {
       "id": 87,
       "name": "Combo Ladder",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Play Pair, Two Pair, Three of a Kind and Straight in order.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -71971,7 +71972,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": true,
-      "targetSuccess": 0.374,
+      "targetSuccess": 0.36,
       "hint": "The order is absolute; preserve cards needed by later rungs.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -72854,13 +72855,13 @@
     {
       "id": 88,
       "name": "Four Styles",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Score four different hand types and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -72894,7 +72895,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 2950,
+        "target_score": 3775,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -72918,7 +72919,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.356,
+      "targetSuccess": 0.36,
       "hint": "Choose broad power rather than a single-hand specialist.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -73775,13 +73776,13 @@
     {
       "id": 89,
       "name": "Half-Deck Blackout",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "50% blocked and one chosen Joker is disabled each play.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -73815,7 +73816,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1795,
+        "target_score": 1975,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -73839,7 +73840,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.338,
+      "targetSuccess": 0.36,
       "hint": "The best build has redundancy and matches the surviving deck.",
       "visibleModifiers": [
         "50% blocked",
@@ -74704,13 +74705,13 @@
     {
       "id": 90,
       "name": "Expert Final",
-      "chapter": "9 \u00b7 Expert Combinations",
+      "chapter": "9 · Expert Combinations",
       "description": "Three visible modifiers are active. Choose three of six Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -74744,7 +74745,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 2500,
+        "target_score": 2065,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -74768,7 +74769,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.32,
+      "targetSuccess": 0.36,
       "hint": "Use broad multipliers and plan varied number-card hands.",
       "visibleModifiers": [
         "J/Q/K rank score 0",
@@ -75629,13 +75630,13 @@
     {
       "id": 91,
       "name": "Open Build",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "Choose three of six Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -75669,7 +75670,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 6100,
+        "target_score": 5290,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -75693,8 +75694,8 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.38,
-      "hint": "The strongest raw trio is not always the most consistent over five plays.",
+      "targetSuccess": 0.28,
+      "hint": "The strongest raw trio is not always the most consistent over four plays.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
         {
@@ -76498,13 +76499,13 @@
     {
       "id": 92,
       "name": "Half-Deck Power",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "50% blocked. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -76538,7 +76539,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1475,
+        "target_score": 1405,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -76562,7 +76563,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.36000000000000004,
+      "targetSuccess": 0.28,
       "hint": "Let the blocked layout decide whether an enabler is worth a slot.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -77398,13 +77399,13 @@
     {
       "id": 93,
       "name": "Half-Deck Variety",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "50% blocked, no repeated hand types, choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -77462,7 +77463,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.34,
+      "targetSuccess": 0.28,
       "hint": "Broad power is safer than a specialist in a no-repeat level.",
       "visibleModifiers": [
         "50% blocked",
@@ -78301,12 +78302,12 @@
     {
       "id": 94,
       "name": "Minimal Discards",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "Only two discards. Choose three Jokers and reach the target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
+        "hands": 4,
         "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
@@ -78341,7 +78342,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1970,
+        "target_score": 2000,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -78365,7 +78366,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.32,
+      "targetSuccess": 0.28,
       "hint": "Choose consistency and accept strong visible hands rather than chasing perfection.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -79196,13 +79197,13 @@
     {
       "id": 95,
       "name": "Faceless Build",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "Jacks, Queens and Kings are removed. Choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [
           "J",
@@ -79240,7 +79241,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1000,
+        "target_score": 1050,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -79264,7 +79265,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.30000000000000004,
+      "targetSuccess": 0.28,
       "hint": "Low-rank bonuses become more reliable in the faceless deck.",
       "visibleModifiers": [],
       "recommendedLoadouts": [
@@ -80445,13 +80446,13 @@
     {
       "id": 96,
       "name": "Low-Card Lock",
-      "chapter": "10 \u00b7 Final Gauntlet",
-      "description": "Ranks 2\u20136 are removed. Choose three Jokers.",
+      "chapter": "10 · Final Gauntlet",
+      "description": "Ranks 2–6 are removed. Choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [
           "2",
@@ -80491,7 +80492,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 2100,
+        "target_score": 1910,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -81432,13 +81433,13 @@
     {
       "id": 97,
       "name": "Decay",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "Every repeat loses another 35% of its value.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -81472,7 +81473,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 4400,
+        "target_score": 3820,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -81496,7 +81497,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.26,
+      "targetSuccess": 0.28,
       "hint": "Use a different hand before a repeated type collapses in value.",
       "visibleModifiers": [
         "Repeated hand loses another 35%"
@@ -82329,13 +82330,13 @@
     {
       "id": 98,
       "name": "Fading Jokers",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "After every scoring hand, one Joker becomes permanently disabled.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.0,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -82369,7 +82370,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 1695,
+        "target_score": 1885,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 0,
@@ -82393,7 +82394,7 @@
       "negativeJoker": null,
       "layoutCount": 12,
       "curated": false,
-      "targetSuccess": 0.24000000000000002,
+      "targetSuccess": 0.28,
       "hint": "Put early power to work before the build disappears.",
       "visibleModifiers": [
         "One Joker permanently fades after each play"
@@ -83213,13 +83214,13 @@
     {
       "id": 99,
       "name": "The Wall",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "50% blocked, no repeats and discards raise the target. Choose three Jokers.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 5,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -83253,7 +83254,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 3500,
+        "target_score": 3575,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 4,
@@ -83276,7 +83277,7 @@
       "negativeJoker": null,
       "layoutCount": 20,
       "curated": false,
-      "targetSuccess": 0.22000000000000003,
+      "targetSuccess": 0.28,
       "hint": "Avoid unnecessary discards and extract four different hands from the layout.",
       "visibleModifiers": [
         "50% blocked",
@@ -84090,13 +84091,13 @@
     {
       "id": 100,
       "name": "Master Level",
-      "chapter": "10 \u00b7 Final Gauntlet",
+      "chapter": "10 · Final Gauntlet",
       "description": "50% blocked. Choose three of six Jokers, survive three visible modifiers, use at least three hand types and clear the final target.",
       "rules": {
         "hand_size": 9,
         "max_select": 5,
-        "hands": 5,
-        "discards": 3,
+        "hands": 4,
+        "discards": 2,
         "block_fraction": 0.5,
         "blocked_ranks": [],
         "blocked_suits": [],
@@ -84135,7 +84136,7 @@
         "boss_modifier": false
       },
       "objective": {
-        "target_score": 5345,
+        "target_score": 4585,
         "required_counts": {},
         "required_sequence": [],
         "min_variety": 3,
