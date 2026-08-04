@@ -206,7 +206,6 @@ class AccountState {
     final muted = json['muted'] == true;
     final achievements = _objectMap(json['achievements']);
     final claimedSource = json['achievementClaimed'];
-    final validJokers = jokersById.keys.toSet();
     final topRuns = _topRuns(json['topRuns']);
     final rawBestHeat = _clampInt(json['bestHeat'], max: 999);
     final known = <String>{
@@ -258,9 +257,7 @@ class AccountState {
     return AccountState(
       savedAt: _clampInt(json['_savedAt'], max: 9999999999999),
       coins: _clampInt(json['coins']),
-      unlockedJokerIds: _strings(
-        json['unlocked'],
-      ).where(validJokers.contains).toSet(),
+      unlockedJokerIds: migrateRetiredJokerUnlocks(_strings(json['unlocked'])),
       tutorialDone: tutorialDone,
       starterGiftClaimed: json['starterGiftClaimed'] is bool
           ? json['starterGiftClaimed'] == true
@@ -608,7 +605,7 @@ List<RunLogRecord> _runLog(Object? value) {
   for (final item in value) {
     if (item is! Map) continue;
     final date = item['d']?.toString() ?? '';
-    final mode = const <String>{'G', 'D', 'S'}.contains(item['m'])
+    final mode = const <String>{'G', 'D', 'H', 'S'}.contains(item['m'])
         ? item['m']! as String
         : 'S';
     result.add(

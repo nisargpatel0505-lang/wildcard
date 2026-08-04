@@ -240,7 +240,7 @@ void main() {
               if (index != skip) cards[index],
           ]).total,
       ];
-      expect(six.total, subsetScores.reduce(mathMax));
+      expect(six.total, (subsetScores.reduce(mathMax) * 1.25).round());
       expect(six.handType, HandType.fullHouse);
     });
 
@@ -251,7 +251,7 @@ void main() {
         final fiveRedOneBlack = _cards('2H 3D 4H 5D 6H AS');
         expect(
           engine.scoreHand(fiveRedOneBlack).multiplier,
-          closeTo(1.485, 1e-12),
+          closeTo(1.85625, 1e-12),
         );
       },
     );

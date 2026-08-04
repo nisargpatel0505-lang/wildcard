@@ -8,19 +8,19 @@ import 'package:wildcard/domain/random_streams.dart';
 import 'package:wildcard/domain/scoring_engine.dart';
 
 void main() {
-  group('new rank and position Jokers', () {
+  group('distinctive rank and position Jokers', () {
     final rankCases = <({String joker, String cards, int expectedRankSum})>[
-      (joker: 'ice_pick', cards: 'AD', expectedRankSum: 19),
-      (joker: 'union_boss', cards: 'AC', expectedRankSum: 19),
-      (joker: 'gravedigger', cards: 'AS', expectedRankSum: 19),
-      (joker: 'rose_tint', cards: 'AH', expectedRankSum: 18),
-      (joker: 'odd_job', cards: '7S', expectedRankSum: 10),
-      (joker: 'prime_time', cards: '5H', expectedRankSum: 9),
-      (joker: 'kingpin', cards: 'KS', expectedRankSum: 21),
+      (joker: 'ice_pick', cards: 'AD', expectedRankSum: 30),
+      (joker: 'union_boss', cards: 'AC', expectedRankSum: 15),
+      (joker: 'gravedigger', cards: 'AS', expectedRankSum: 15),
+      (joker: 'rose_tint', cards: 'AH', expectedRankSum: 30),
+      (joker: 'odd_job', cards: '7S', expectedRankSum: 7),
+      (joker: 'prime_time', cards: '5H', expectedRankSum: 5),
+      (joker: 'kingpin', cards: 'KS', expectedRankSum: 26),
     ];
 
     for (final testCase in rankCases) {
-      test('${testCase.joker} adds its exact rank amount', () {
+      test('${testCase.joker} applies its reworked card scoring', () {
         final result = _engine(
           jokers: <String>[testCase.joker],
         ).scoreHand(_cards(testCase.cards));
@@ -39,12 +39,12 @@ void main() {
       expect(result.perCard, <int>[30]);
     });
 
-    test('Leadoff adds six only to the first scoring card', () {
+    test('Leadoff retriggers only the first scoring card', () {
       final result = _engine(
         jokers: const <String>['leadoff'],
       ).scoreHand(_cards('10S 10H'));
-      expect(result.rankSum, 26);
-      expect(result.perCard, <int>[16, 10]);
+      expect(result.rankSum, 30);
+      expect(result.perCard, <int>[10, 10]);
     });
 
     test('Leadoff advances past a rank-suppressed scoring card', () {
@@ -53,16 +53,19 @@ void main() {
         modifiers: const <HeatModifier>[HeatModifier.frostbite],
       ).scoreHand(_cards('10S 10H'));
       expect(result.scoringFlags, <bool>[true, true]);
-      expect(result.rankSum, 16);
-      expect(result.perCard, <int>[0, 16]);
+      expect(result.rankSum, 20);
+      expect(result.perCard, <int>[0, 10]);
     });
 
-    test('Closer triples only the last scoring card rank', () {
+    test('Closer multiplies the final hand from unused discards', () {
       final result = _engine(
         jokers: const <String>['closer'],
+        handsLeft: 1,
+        discardsLeft: 3,
       ).scoreHand(_cards('10S 10H'));
-      expect(result.rankSum, 40);
-      expect(result.perCard, <int>[10, 30]);
+      expect(result.rankSum, 20);
+      expect(result.perCard, <int>[10, 10]);
+      expect(_jokerXFactor(result), closeTo(math.pow(1.15, 3), 1e-12));
     });
   });
 
@@ -306,6 +309,7 @@ void main() {
           .toList();
       final held = <String>['rarity_hunter', ...raritySupport];
       final premiumCount = held.where((id) {
+        if (id == 'rarity_hunter') return false;
         final rarity = jokersById[id]!.rarity;
         return rarity == JokerRarity.rare || rarity == JokerRarity.wild;
       }).length;
@@ -378,7 +382,7 @@ void main() {
 
       state.runCoins = 0;
       final broke = engine.scoreHand(_cards('7S'));
-      expect(_jokerXFactor(broke), 1.8);
+      expect(_jokerXEvents(broke), isEmpty);
       engine.applyOnScored(broke);
       expect(state.runCoins, 0);
     });

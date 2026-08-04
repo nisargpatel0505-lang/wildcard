@@ -121,6 +121,7 @@ class JokerDefinition {
     required this.effect,
     this.starter = false,
     this.stateKey,
+    this.legacyLevelDescription,
   });
 
   final String id;
@@ -132,6 +133,9 @@ class JokerDefinition {
   final JokerEffect effect;
   final bool starter;
   final String? stateKey;
+  final String? legacyLevelDescription;
+
+  String get levelDescription => legacyLevelDescription ?? description;
 
   int get startBoostPrice => switch (rarity) {
     JokerRarity.common => 6,
@@ -140,6 +144,13 @@ class JokerDefinition {
     JokerRarity.wild => 30,
   };
 }
+
+/// Number of Jokers discoverable in public Arcade progression.
+///
+/// Keep this alongside [jokerCatalog] so collection milestones cannot drift
+/// to an unreachable number when legacy-only definitions are retained for
+/// authored Levels and old active saves.
+const int activePublicJokerCount = 89;
 
 const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
   JokerDefinition(
@@ -156,7 +167,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'presser',
     name: 'Suit Presser',
     rarity: JokerRarity.common,
-    description: 'Hearts count +4 rank.',
+    description: 'Each scoring Heart adds +0.15 Multiplier.',
+    legacyLevelDescription: 'Hearts count +4 rank.',
     price: 4,
     unlock: 0,
     starter: true,
@@ -166,7 +178,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'retainer',
     name: 'Royal Retainer',
     rarity: JokerRarity.common,
-    description: 'Face cards (J, Q, K) count +5 rank.',
+    description: 'Each scoring J, Q or K adds +0.12 Multiplier.',
+    legacyLevelDescription: 'Face cards (J, Q, K) count +5 rank.',
     price: 5,
     unlock: 0,
     starter: true,
@@ -176,7 +189,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'even',
     name: 'Even Odds',
     rarity: JokerRarity.common,
-    description: 'Even-ranked cards count +3 rank.',
+    description: '×1.5 Multiplier when 3+ played cards are all even.',
+    legacyLevelDescription: 'Even-ranked cards count +3 rank.',
     price: 4,
     unlock: 0,
     starter: true,
@@ -186,16 +200,20 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'acemag',
     name: 'Ace Magnet',
     rarity: JokerRarity.common,
-    description: 'Aces count +10 extra rank (25 total).',
+    description:
+        'Your first scoring Ace each Heat adds an unenhanced copy for the next Heat.',
+    legacyLevelDescription: 'Aces count +10 extra rank (25 total).',
     price: 5,
     unlock: 45,
+    stateKey: 'ace_magnet_heat',
     effect: JokerEffect.aceMagnet,
   ),
   JokerDefinition(
     id: 'lowball',
     name: 'Low Ball',
     rarity: JokerRarity.common,
-    description: 'Cards ranked 6 or lower count double rank.',
+    description: 'Each scoring card ranked 6 or lower scores again.',
+    legacyLevelDescription: 'Cards ranked 6 or lower count double rank.',
     price: 5,
     unlock: 0,
     starter: true,
@@ -281,7 +299,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'inktrade',
     name: 'Ink Trade',
     rarity: JokerRarity.common,
-    description: 'Black cards count +3 rank.',
+    description: '×1.7 Multiplier when 3+ played cards are all black.',
+    legacyLevelDescription: 'Black cards count +3 rank.',
     price: 5,
     unlock: 40,
     effect: JokerEffect.inkTrade,
@@ -290,7 +309,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'triple3',
     name: 'Triple Threat',
     rarity: JokerRarity.common,
-    description: 'Every 3 scores triple rank.',
+    description: 'The third scoring hand of each Heat gets ×2.5 Multiplier.',
+    legacyLevelDescription: 'Every 3 scores triple rank.',
     price: 4,
     unlock: 40,
     effect: JokerEffect.tripleThreat,
@@ -370,15 +390,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     effect: JokerEffect.butcher,
   ),
   JokerDefinition(
-    id: 'collector',
-    name: 'Collector',
-    rarity: JokerRarity.uncommon,
-    description: '+0.04 Multiplier per card added to your deck this run.',
-    price: 6,
-    unlock: 65,
-    effect: JokerEffect.collector,
-  ),
-  JokerDefinition(
     id: 'boostfiend',
     name: 'Boost Fiend',
     rarity: JokerRarity.uncommon,
@@ -395,15 +406,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 5,
     unlock: 45,
     effect: JokerEffect.piggyBank,
-  ),
-  JokerDefinition(
-    id: 'modded',
-    name: 'Modded Out',
-    rarity: JokerRarity.uncommon,
-    description: '×1.5 Multiplier during Heat Modifier Heats.',
-    price: 7,
-    unlock: 95,
-    effect: JokerEffect.moddedOut,
   ),
   JokerDefinition(
     id: 'tailor',
@@ -431,15 +433,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 7,
     unlock: 120,
     effect: JokerEffect.survivor,
-  ),
-  JokerDefinition(
-    id: 'cleaner',
-    name: 'Cleaner',
-    rarity: JokerRarity.common,
-    description: '+0.25 Multiplier if your deck has fewer than 45 cards.',
-    price: 5,
-    unlock: 70,
-    effect: JokerEffect.cleaner,
   ),
   JokerDefinition(
     id: 'printer',
@@ -509,7 +502,9 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'cheat',
     name: 'The Cheat',
     rarity: JokerRarity.rare,
-    description: 'You may play 6 cards. The best 5 form the hand.',
+    description:
+        'You may play 6 cards. The best 5 form the hand; playing 6 gets ×1.25 Multiplier.',
+    legacyLevelDescription: 'You may play 6 cards. The best 5 form the hand.',
     price: 8,
     unlock: 200,
     effect: JokerEffect.theCheat,
@@ -534,37 +529,22 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     effect: JokerEffect.openingAct,
   ),
   JokerDefinition(
-    id: 'clutch_gear',
-    name: 'Clutch Gear',
-    rarity: JokerRarity.common,
-    description: '+0.60 Multiplier when only 1 play remains.',
-    price: 5,
-    unlock: 40,
-    effect: JokerEffect.clutchGear,
-  ),
-  JokerDefinition(
     id: 'number_station',
     name: 'Number Station',
     rarity: JokerRarity.common,
-    description: '2s, 3s and 4s count +4 rank.',
+    description: 'Each distinct 2, 3 or 4 played gives ×1.20 Multiplier.',
+    legacyLevelDescription: '2s, 3s and 4s count +4 rank.',
     price: 4,
     unlock: 35,
     effect: JokerEffect.numberStation,
-  ),
-  JokerDefinition(
-    id: 'cold_adapter',
-    name: 'Cold Adapter',
-    rarity: JokerRarity.common,
-    description: '+0.30 Multiplier during a Cold Deck Heat.',
-    price: 4,
-    unlock: 35,
-    effect: JokerEffect.coldAdapter,
   ),
   JokerDefinition(
     id: 'frequency_meter',
     name: 'Frequency Meter',
     rarity: JokerRarity.common,
     description:
+        '×1.8 Multiplier when you play a rank held 5+ times in your deck.',
+    legacyLevelDescription:
         '×1.4 Multiplier if your deck has one most common rank and you play it.',
     price: 5,
     unlock: 60,
@@ -580,29 +560,13 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     effect: JokerEffect.panicButton,
   ),
   JokerDefinition(
-    id: 'storm_harness',
-    name: 'Storm Harness',
-    rarity: JokerRarity.uncommon,
-    description: '×1.4 Multiplier during any Heat Modifier.',
-    price: 7,
-    unlock: 60,
-    effect: JokerEffect.stormHarness,
-  ),
-  JokerDefinition(
-    id: 'encore',
-    name: 'Encore',
-    rarity: JokerRarity.common,
-    description:
-        '+0.30 Multiplier if this hand type matches your last play this Heat.',
-    price: 5,
-    unlock: 55,
-    effect: JokerEffect.encore,
-  ),
-  JokerDefinition(
     id: 'guillotine',
     name: 'Guillotine',
     rarity: JokerRarity.common,
-    description: '×1.5 Multiplier while your deck has fewer than 42 cards.',
+    description:
+        '×1.15 Multiplier for every 5 cards removed from the starting 52, up to ×2.01.',
+    legacyLevelDescription:
+        '×1.5 Multiplier while your deck has fewer than 42 cards.',
     price: 5,
     unlock: 65,
     effect: JokerEffect.guillotine,
@@ -615,15 +579,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 7,
     unlock: 110,
     effect: JokerEffect.redline,
-  ),
-  JokerDefinition(
-    id: 'color_wash',
-    name: 'Color Wash',
-    rarity: JokerRarity.uncommon,
-    description: '+0.45 Multiplier if every played card is one colour.',
-    price: 7,
-    unlock: 100,
-    effect: JokerEffect.colorWash,
   ),
   JokerDefinition(
     id: 'master_class',
@@ -643,15 +598,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 8,
     unlock: 190,
     effect: JokerEffect.dangerMusic,
-  ),
-  JokerDefinition(
-    id: 'rehearsal_tape',
-    name: 'Rehearsal Tape',
-    rarity: JokerRarity.uncommon,
-    description: '×1.3 Multiplier on the first hand of each Heat.',
-    price: 7,
-    unlock: 180,
-    effect: JokerEffect.rehearsalTape,
   ),
   JokerDefinition(
     id: 'prism_lens',
@@ -677,7 +623,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'ice_pick',
     name: 'Ice Pick',
     rarity: JokerRarity.common,
-    description: 'Diamonds count +4 rank.',
+    description: 'The first scoring Diamond scores again.',
+    legacyLevelDescription: 'Diamonds count +4 rank.',
     price: 4,
     unlock: 35,
     effect: JokerEffect.icePick,
@@ -686,7 +633,9 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'union_boss',
     name: 'Union Boss',
     rarity: JokerRarity.common,
-    description: 'Clubs count +4 rank.',
+    description:
+        '+0.12 Multiplier per Club beyond the starting 13, up to +1.20.',
+    legacyLevelDescription: 'Clubs count +4 rank.',
     price: 4,
     unlock: 35,
     effect: JokerEffect.unionBoss,
@@ -695,7 +644,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'gravedigger',
     name: 'Gravedigger',
     rarity: JokerRarity.common,
-    description: 'Spades count +4 rank.',
+    description: '×1.10 Multiplier per card destroyed, counting the first 5.',
+    legacyLevelDescription: 'Spades count +4 rank.',
     price: 4,
     unlock: 35,
     effect: JokerEffect.gravedigger,
@@ -704,7 +654,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'rose_tint',
     name: 'Rose Tint',
     rarity: JokerRarity.common,
-    description: 'Red cards count +3 rank.',
+    description: 'Red scoring cards score again; black printed rank scores 0.',
+    legacyLevelDescription: 'Red cards count +3 rank.',
     price: 5,
     unlock: 40,
     effect: JokerEffect.roseTint,
@@ -713,7 +664,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'odd_job',
     name: 'Odd Job',
     rarity: JokerRarity.common,
-    description: 'Odd-ranked cards count +3 rank.',
+    description: '×1.6 Multiplier when 3+ played cards are all odd.',
+    legacyLevelDescription: 'Odd-ranked cards count +3 rank.',
     price: 5,
     unlock: 40,
     effect: JokerEffect.oddJob,
@@ -722,7 +674,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'prime_time',
     name: 'Prime Time',
     rarity: JokerRarity.common,
-    description: 'Ranks 2, 3, 5 and 7 count +4 rank.',
+    description: 'Each scoring 2, 3, 5 or 7 gives ×1.12 Multiplier.',
+    legacyLevelDescription: 'Ranks 2, 3, 5 and 7 count +4 rank.',
     price: 5,
     unlock: 55,
     effect: JokerEffect.primeTime,
@@ -731,19 +684,12 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'kingpin',
     name: 'Kingpin',
     rarity: JokerRarity.common,
-    description: 'Kings count +8 rank.',
+    description:
+        'Kings score again; playing an Ace with a King also gives ×1.5 Multiplier.',
+    legacyLevelDescription: 'Kings count +8 rank.',
     price: 5,
     unlock: 60,
     effect: JokerEffect.kingpin,
-  ),
-  JokerDefinition(
-    id: 'twin_flame',
-    name: 'Twin Flame',
-    rarity: JokerRarity.common,
-    description: '×1.5 Multiplier when exactly 2 cards are played.',
-    price: 5,
-    unlock: 40,
-    effect: JokerEffect.twinFlame,
   ),
   JokerDefinition(
     id: 'trident',
@@ -753,15 +699,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 5,
     unlock: 55,
     effect: JokerEffect.trident,
-  ),
-  JokerDefinition(
-    id: 'quartet',
-    name: 'Quartet',
-    rarity: JokerRarity.common,
-    description: '×1.6 Multiplier when exactly 4 cards are played.',
-    price: 5,
-    unlock: 55,
-    effect: JokerEffect.quartet,
   ),
   JokerDefinition(
     id: 'face_value',
@@ -799,15 +736,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 8,
     unlock: 65,
     effect: JokerEffect.underdog,
-  ),
-  JokerDefinition(
-    id: 'frontrunner',
-    name: 'Frontrunner',
-    rarity: JokerRarity.uncommon,
-    description: '×1.6 Multiplier while Heat score is above 80% of target.',
-    price: 6,
-    unlock: 65,
-    effect: JokerEffect.frontrunner,
   ),
   JokerDefinition(
     id: 'marathoner',
@@ -924,7 +852,9 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'closer',
     name: 'Closer',
     rarity: JokerRarity.uncommon,
-    description: 'The last scoring card scores ×3 rank.',
+    description:
+        'Final hand gets ×1.15 Multiplier per unused discard (up to ×2.01).',
+    legacyLevelDescription: 'The last scoring card scores ×3 rank.',
     price: 6,
     unlock: 65,
     effect: JokerEffect.closer,
@@ -933,7 +863,8 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'leadoff',
     name: 'Leadoff',
     rarity: JokerRarity.common,
-    description: 'The first scoring card scores +6 rank.',
+    description: 'The first scoring card scores again.',
+    legacyLevelDescription: 'The first scoring card scores +6 rank.',
     price: 5,
     unlock: 40,
     effect: JokerEffect.leadoff,
@@ -955,15 +886,6 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     price: 8,
     unlock: 110,
     effect: JokerEffect.rarityHunter,
-  ),
-  JokerDefinition(
-    id: 'warm_up',
-    name: 'Warm-Up',
-    rarity: JokerRarity.uncommon,
-    description: '+0.60 Multiplier on the first hand of each Heat.',
-    price: 6,
-    unlock: 45,
-    effect: JokerEffect.warmUp,
   ),
   JokerDefinition(
     id: 'overclock',
@@ -996,7 +918,10 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
     id: 'fragile_genius',
     name: 'Fragile Genius',
     rarity: JokerRarity.rare,
-    description: '×4 Multiplier; shatters if a hand scores below the last.',
+    description:
+        '×4 Multiplier; shatters only if a hand scores below half the last.',
+    legacyLevelDescription:
+        '×4 Multiplier; shatters if a hand scores below the last.',
     price: 8,
     unlock: 200,
     stateKey: 'fragile',
@@ -1086,18 +1011,191 @@ const List<JokerDefinition> jokerCatalog = <JokerDefinition>[
   ),
 ];
 
-/// Counts only Jokers that exist in this public build.
+/// Retired public Jokers retained solely for save and authored-Level lookup.
 ///
-/// Older developer saves can legitimately contain a test-only Joker ID. Keep
-/// that unknown ID round-trippable, but do not let it produce `103 / 102`, alter
-/// chest newcomer pricing or advance public collection gates.
+/// Keeping these definitions outside [jokerCatalog] prevents them from entering
+/// shops, start-boost selection, chest rewards or public collection totals while
+/// [jokersById] continues to resolve runs and Level JSON authored before their
+/// retirement.
+const List<JokerDefinition> legacyJokerCatalog = <JokerDefinition>[
+  JokerDefinition(
+    id: 'color_wash',
+    name: 'Color Wash',
+    rarity: JokerRarity.uncommon,
+    description: '+0.45 Multiplier if every played card is one colour.',
+    price: 7,
+    unlock: 100,
+    effect: JokerEffect.colorWash,
+  ),
+  JokerDefinition(
+    id: 'storm_harness',
+    name: 'Storm Harness',
+    rarity: JokerRarity.uncommon,
+    description: '×1.4 Multiplier during any Heat Modifier.',
+    price: 7,
+    unlock: 60,
+    effect: JokerEffect.stormHarness,
+  ),
+  JokerDefinition(
+    id: 'warm_up',
+    name: 'Warm-Up',
+    rarity: JokerRarity.uncommon,
+    description: '+0.60 Multiplier on the first hand of each Heat.',
+    price: 6,
+    unlock: 45,
+    effect: JokerEffect.warmUp,
+  ),
+  JokerDefinition(
+    id: 'frontrunner',
+    name: 'Frontrunner',
+    rarity: JokerRarity.uncommon,
+    description: '×1.6 Multiplier while Heat score is above 80% of target.',
+    price: 6,
+    unlock: 65,
+    effect: JokerEffect.frontrunner,
+  ),
+  JokerDefinition(
+    id: 'collector',
+    name: 'Collector',
+    rarity: JokerRarity.uncommon,
+    description: '+0.04 Multiplier per card added to your deck this run.',
+    price: 6,
+    unlock: 65,
+    effect: JokerEffect.collector,
+  ),
+  JokerDefinition(
+    id: 'cold_adapter',
+    name: 'Cold Adapter',
+    rarity: JokerRarity.common,
+    description: '+0.30 Multiplier during a Cold Deck Heat.',
+    price: 4,
+    unlock: 35,
+    effect: JokerEffect.coldAdapter,
+  ),
+  JokerDefinition(
+    id: 'rehearsal_tape',
+    name: 'Rehearsal Tape',
+    rarity: JokerRarity.uncommon,
+    description: '×1.3 Multiplier on the first hand of each Heat.',
+    price: 7,
+    unlock: 180,
+    effect: JokerEffect.rehearsalTape,
+  ),
+  JokerDefinition(
+    id: 'modded',
+    name: 'Modded Out',
+    rarity: JokerRarity.uncommon,
+    description: '×1.5 Multiplier during Heat Modifier Heats.',
+    price: 7,
+    unlock: 95,
+    effect: JokerEffect.moddedOut,
+  ),
+  JokerDefinition(
+    id: 'encore',
+    name: 'Encore',
+    rarity: JokerRarity.common,
+    description:
+        '+0.30 Multiplier if this hand type matches your last play this Heat.',
+    price: 5,
+    unlock: 55,
+    effect: JokerEffect.encore,
+  ),
+  JokerDefinition(
+    id: 'cleaner',
+    name: 'Cleaner',
+    rarity: JokerRarity.common,
+    description: '+0.25 Multiplier if your deck has fewer than 45 cards.',
+    price: 5,
+    unlock: 70,
+    effect: JokerEffect.cleaner,
+  ),
+  JokerDefinition(
+    id: 'clutch_gear',
+    name: 'Clutch Gear',
+    rarity: JokerRarity.common,
+    description: '+0.60 Multiplier when only 1 play remains.',
+    price: 5,
+    unlock: 40,
+    effect: JokerEffect.clutchGear,
+  ),
+  JokerDefinition(
+    id: 'twin_flame',
+    name: 'Twin Flame',
+    rarity: JokerRarity.common,
+    description: '×1.5 Multiplier when exactly 2 cards are played.',
+    price: 5,
+    unlock: 40,
+    effect: JokerEffect.twinFlame,
+  ),
+  JokerDefinition(
+    id: 'quartet',
+    name: 'Quartet',
+    rarity: JokerRarity.common,
+    description: '×1.6 Multiplier when exactly 4 cards are played.',
+    price: 5,
+    unlock: 55,
+    effect: JokerEffect.quartet,
+  ),
+];
+
+/// Recommended replacement chain for retired Joker IDs.
+///
+/// Durable collection ownership follows this map during account decoding so a
+/// retired unlock is replaced without losing earned progress. In-progress run
+/// saves deliberately keep their original equipped IDs until that run ends. A
+/// value may itself be retired; callers must follow the chain to its active
+/// endpoint rather than rewriting only one hop.
+const Map<String, String> retiredJokerReplacementIds = <String, String>{
+  'color_wash': 'uniform',
+  'storm_harness': 'survivor',
+  'warm_up': 'opening_act',
+  'frontrunner': 'redline',
+  'collector': 'printer',
+  'cold_adapter': 'modded',
+  'rehearsal_tape': 'opening_act',
+  'modded': 'survivor',
+  'encore': 'doubledown',
+  'cleaner': 'guillotine',
+  'clutch_gear': 'lastcall',
+  'twin_flame': 'trident',
+  'quartet': 'fulltable',
+};
+
+/// Converts retired account unlocks to their active endpoint.
+///
+/// Active-run saves intentionally keep their exact equipped IDs; this helper
+/// is only for durable collection ownership, where leaving a retired ID would
+/// make a previously earned unlock disappear without compensation.
+Set<String> migrateRetiredJokerUnlocks(Iterable<String> source) {
+  final activeIds = jokerCatalog.map((joker) => joker.id).toSet();
+  final result = <String>{};
+  for (final original in source) {
+    var id = original;
+    final seen = <String>{};
+    while (true) {
+      final replacement = retiredJokerReplacementIds[id];
+      if (replacement == null) break;
+      if (!seen.add(id)) break;
+      id = replacement;
+    }
+    if (activeIds.contains(id) || (devJokerAvailable && id == 'devx20')) {
+      result.add(id);
+    }
+  }
+  return result;
+}
+
+/// Counts only Jokers in the active public catalogue.
+///
+/// Legacy and developer-only IDs remain round-trippable, but do not alter chest
+/// newcomer pricing or advance public collection gates.
 int publicUnlockedJokerCount(Iterable<String> ownedIds) {
   final owned = ownedIds is Set<String> ? ownedIds : ownedIds.toSet();
   return jokerCatalog.where((joker) => owned.contains(joker.id)).length;
 }
 
 /// Owner-only test Joker. It remains outside [jokerCatalog], so public
-/// collection counts, chest odds and shop pools stay fixed at 102 Jokers.
+/// collection counts, chest odds and shop pools stay fixed at 89 Jokers.
 const JokerDefinition devTwentyXJoker = JokerDefinition(
   id: 'devx20',
   name: 'DEV ×20',
@@ -1113,6 +1211,7 @@ bool get devJokerAvailable => _isOwnerBuild && !_isReleaseMode;
 
 final Map<String, JokerDefinition> jokersById = <String, JokerDefinition>{
   for (final joker in jokerCatalog) joker.id: joker,
+  for (final joker in legacyJokerCatalog) joker.id: joker,
   if (devJokerAvailable) devTwentyXJoker.id: devTwentyXJoker,
 };
 

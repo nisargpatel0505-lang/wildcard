@@ -98,11 +98,40 @@ with tempfile.TemporaryDirectory() as directory:
     with open(api.ANALYTICS_DB, encoding="utf-8") as handle:
         assert handle.read() == "{broken"
 
+with tempfile.TemporaryDirectory() as directory:
+    api.ANALYTICS_DB = os.path.join(directory, "flutter-analytics.json")
+    now = datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc)
+    accepted = api.record_analytics({
+        "v": "8.7.0",
+        "p": "android",
+        "events": [
+            {"n": "run_start", "m": "house-paupers_table"},
+            {
+                "n": "run_end",
+                "m": "house-paupers_table",
+                "o": "lost",
+                "h": "4-6",
+            },
+        ],
+    }, now=now)
+    assert accepted == 2
+    with open(api.ANALYTICS_DB, encoding="utf-8") as handle:
+        flutter_day = json.load(handle)["days"]["2026-08-04"]
+    assert flutter_day["versions"]["8.7.0"] == {
+        "run_end": 1,
+        "run_start": 1,
+    }
+    assert flutter_day["modes"]["house-paupers_table"] == {
+        "run_end": 1,
+        "run_start": 1,
+    }
+
 assert rejected({"v": "6.9.10", "p": "android", "events": [{"n": "app_open", "uid": "x"}]})
 assert rejected({"v": "6.9.10", "p": "android", "events": [{"n": "run_end", "m": "normal", "o": "lost", "h": "6"}]})
 assert rejected({"v": "6.9.10", "p": "android", "events": [{"n": "score", "score": 999}]})
 assert rejected({"v": "6.9.10", "p": "other", "events": [{"n": "app_open"}]})
 assert rejected({"v": "6.9.10", "p": "android", "events": [{"n": "run_start", "m": "endless"}]})
+assert rejected({"v": "8.7.0", "p": "android", "events": [{"n": "run_start", "m": "house-made_up"}]})
 assert rejected({"v": "9.9.9", "p": "android", "events": [{"n": "app_open"}]})
 assert rejected({"v": "6.9.10", "p": [], "events": [{"n": "app_open"}]})
 assert rejected({"v": "6.9.10", "p": "android", "events": [{"n": []}]})

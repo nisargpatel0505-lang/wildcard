@@ -320,11 +320,16 @@ class _WildcardAppState extends State<WildcardApp> {
           mode: request.mode,
           difficulty: request.difficulty,
           dailyDate: dailyDate,
-          unlockedJokerIds: widget.controller.account.unlockedJokerIds,
+          unlockedJokerIds: request.mode == RunMode.daily
+              ? jokerCatalog.map((joker) => joker.id).toSet()
+              : widget.controller.account.unlockedJokerIds,
           initialJokerIds: guided ? const ['copper', 'polish'] : const [],
           startBoostJokerId: starter?.id,
           startBoostCost: starter == null ? 0 : starterJokerPrice(starter),
-          stake: request.mode == RunMode.daily ? 0 : request.stake,
+          stake: request.mode == RunMode.daily || request.houseRule != null
+              ? 0
+              : request.stake,
+          houseRule: request.houseRule,
           guidedFirstRun: guided,
           scoringPace: widget.controller.account.speed,
         ),
@@ -332,7 +337,11 @@ class _WildcardAppState extends State<WildcardApp> {
           dailyDate: dailyDate,
         ),
       );
-      widget.controller.pi.queueRunStart(request.mode.name);
+      widget.controller.pi.queueRunStart(
+        request.houseRule == null
+            ? request.mode.name
+            : 'house-${request.houseRule!.id}',
+      );
       final navigator = navigatorKey.currentState;
       if (navigator == null) {
         game.dispose();

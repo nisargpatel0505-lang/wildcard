@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'cards.dart';
+import 'arcade_house_rules.dart';
 import 'deck_integrity.dart';
 import 'economy.dart';
 import 'game_rules.dart';
@@ -72,6 +73,9 @@ const Set<String> legacyRunSaveFields = <String>{
   'runId',
   'telemetryMode',
   'dailyDate',
+  'houseRuleId',
+  'houseRuleTargetTax',
+  'houseRuleHandCounts',
   'difficulty',
   'rngSeed',
   'rngCounters',
@@ -252,6 +256,8 @@ class LegacyRunSave {
       previousHandType: _handType(raw['prevHandType']),
       previousGauntletModifierName: raw['prevGauntletMod']?.toString(),
       endless: raw['endless'] == true,
+      houseRule: ArcadeHouseRule.fromId(raw['houseRuleId']),
+      houseRuleTargetTax: _int(raw['houseRuleTargetTax']),
     );
   }
 

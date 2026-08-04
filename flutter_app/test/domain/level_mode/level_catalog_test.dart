@@ -191,7 +191,7 @@ void main() {
     });
 
     test(
-      'validates every referenced Joker against the native 102-Joker catalog',
+      'validates referenced Jokers against active and legacy definitions',
       () {
         expect(
           () => LevelCatalog.fromJsonString(productionSource),

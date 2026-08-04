@@ -739,7 +739,7 @@ class _HudCell extends StatelessWidget {
               softWrap: false,
               style: TextStyle(
                 color: tokens.creamDim,
-                fontSize: compact ? 7.5 : 8.5,
+                fontSize: compact ? 8.5 : 9.5,
                 height: 1,
                 letterSpacing: 0.1,
               ),
@@ -897,7 +897,7 @@ class _ModifierPanel extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             detail,
-            maxLines: compact ? 2 : 3,
+            maxLines: compact && blocked.isEmpty ? 2 : 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: tokens.cream,
@@ -1088,7 +1088,7 @@ class _LevelRulePanel extends StatelessWidget {
                   Expanded(
                     child: Text(
                       rules[index],
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: tokens.cream,
@@ -1253,6 +1253,7 @@ class _JokerSection extends StatelessWidget {
                               : null,
                           triggerSequence: presentationSequence,
                           height: cardHeight,
+                          useLegacyLevelDescription: state.legacyJokerEffects,
                           onTap: joker == null || onInspect == null
                               ? null
                               : () => onInspect!(joker),
@@ -1573,8 +1574,12 @@ class _EquationValueState extends State<_EquationValue>
     final procLabel = widget.procLabel;
     final procActive = procKind != null && procLabel?.isNotEmpty == true;
     final procName = procKind?.name;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaleAllowance = (textScale - 1).clamp(0.0, 0.5);
+    final cellHeight = (compact ? 42.0 : 48.0) + (scaleAllowance * 24.0);
+    final labelHeight = (compact ? 12.0 : 13.0) + (scaleAllowance * 8.0);
     return SizedBox(
-      height: compact ? 42 : 48,
+      height: cellHeight,
       child: Semantics(
         excludeSemantics: true,
         liveRegion: procActive,
@@ -1596,44 +1601,46 @@ class _EquationValueState extends State<_EquationValue>
           ),
           child: Column(
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: AnimatedBuilder(
-                  animation: _pop,
-                  builder: (context, _) {
-                    final t = Curves.easeOutCubic.transform(_pop.value);
-                    // Swell and settle while the number rolls up.
-                    final scale = 1 + 0.18 * (1 - t) * (1 - t);
-                    final glow = (1 - t).clamp(0.0, 1.0);
-                    return Transform.scale(
-                      scale: scale,
-                      child: Text(
-                        _display(t),
-                        key: ValueKey(
-                          'equation-${widget.label.toLowerCase()}-value',
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: AnimatedBuilder(
+                    animation: _pop,
+                    builder: (context, _) {
+                      final t = Curves.easeOutCubic.transform(_pop.value);
+                      // Swell and settle while the number rolls up.
+                      final scale = 1 + 0.18 * (1 - t) * (1 - t);
+                      final glow = (1 - t).clamp(0.0, 1.0);
+                      return Transform.scale(
+                        scale: scale,
+                        child: Text(
+                          _display(t),
+                          key: ValueKey(
+                            'equation-${widget.label.toLowerCase()}-value',
+                          ),
+                          style: TextStyle(
+                            color: Color.lerp(color, Colors.white, glow * 0.85),
+                            fontFamily: 'Bungee',
+                            fontSize: compact ? 23 : 28,
+                            height: 1,
+                            shadows: glow <= 0.02
+                                ? null
+                                : [
+                                    Shadow(
+                                      color: color.withValues(alpha: glow),
+                                      blurRadius: 10 * glow,
+                                    ),
+                                  ],
+                          ),
                         ),
-                        style: TextStyle(
-                          color: Color.lerp(color, Colors.white, glow * 0.85),
-                          fontFamily: 'Bungee',
-                          fontSize: compact ? 23 : 28,
-                          height: 1,
-                          shadows: glow <= 0.02
-                              ? null
-                              : [
-                                  Shadow(
-                                    color: color.withValues(alpha: glow),
-                                    blurRadius: 10 * glow,
-                                  ),
-                                ],
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: compact ? 2 : 3),
               SizedBox(
-                height: compact ? 12 : 13,
+                height: labelHeight,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 140),
                   switchInCurve: Curves.easeOut,
@@ -1660,15 +1667,18 @@ class _EquationValueState extends State<_EquationValue>
                             ),
                           ),
                         )
-                      : Text(
-                          widget.label,
+                      : FittedBox(
                           key: ValueKey('equation-label-${widget.label}'),
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: context.wildcard.creamDim,
-                            fontSize: compact ? 7.5 : 8.5,
-                            height: 1,
-                            letterSpacing: 0.25,
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.label,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: context.wildcard.creamDim,
+                              fontSize: compact ? 9 : 9.5,
+                              height: 1,
+                              letterSpacing: 0.25,
+                            ),
                           ),
                         ),
                 ),
@@ -1961,7 +1971,7 @@ class _TableArea extends StatelessWidget {
                   label: 'Discard ($selectedCount)',
                   onPressed: canAct ? onDiscard : null,
                   variant: WildcardButtonVariant.danger,
-                  minHeight: compact ? 47 : 51,
+                  minHeight: compact ? 48 : 51,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 5,
                     vertical: 7,
@@ -1978,7 +1988,7 @@ class _TableArea extends StatelessWidget {
                   label: 'Play Hand',
                   onPressed: canAct ? onPlay : null,
                   variant: WildcardButtonVariant.success,
-                  minHeight: compact ? 47 : 51,
+                  minHeight: compact ? 48 : 51,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 5,
                     vertical: 7,
@@ -1998,7 +2008,7 @@ class _TableArea extends StatelessWidget {
               label: 'Abandon',
               onPressed: busy ? null : onAbandon,
               variant: WildcardButtonVariant.ghost,
-              minHeight: 44,
+              minHeight: 48,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               textAlign: TextAlign.center,
               fontSize: 9.5,
@@ -2027,7 +2037,7 @@ class _TableControl extends StatelessWidget {
       enabled: onTap != null,
       label: label,
       child: SizedBox(
-        height: 44,
+        height: 48,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: tokens.panel.withValues(alpha: 0.82),

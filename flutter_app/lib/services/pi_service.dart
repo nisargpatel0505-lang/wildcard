@@ -139,7 +139,8 @@ class PiService {
   }
 
   static bool _validMode(String mode) =>
-      const {'normal', 'daily', 'gauntlet'}.contains(mode);
+      const {'normal', 'daily', 'gauntlet'}.contains(mode) ||
+      RegExp(r'^house-[a-z0-9_]{1,40}$').hasMatch(mode);
 
   static String _heatBand(int heat) {
     if (heat <= 3) return '1-3';

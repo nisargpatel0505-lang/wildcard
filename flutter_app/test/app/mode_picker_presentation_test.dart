@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/app/screens/mode_picker_screen.dart';
 import 'package:wildcard/domain/account_state.dart';
+import 'package:wildcard/domain/arcade_house_rules.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
@@ -73,6 +74,62 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('unlocked House Rule selection remains phone-safe', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 568);
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPhysicalSize();
+    });
+    RunLaunchRequest? request;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: WildcardTheme.build(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: ModePickerScreen(
+          account: AccountState(tutorialDone: true, bestClearedHeat: 12),
+          onLaunch: (value) => request = value,
+          onOpenTutorial: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -420));
+    await tester.pumpAndSettle();
+    final picker = find.byKey(const Key('house-rule-picker'));
+    expect(picker, findsOneWidget);
+    await tester.ensureVisible(picker);
+    await tester.tap(picker);
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining("Paupers' Table").last);
+    await tester.pumpAndSettle();
+
+    expect(find.text("PAUPERS' TABLE"), findsOneWidget);
+    expect(
+      find.text('Jacks, Queens and Kings still form hands but score 0 rank.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('HOUSE RULE TABLE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final deal = find.text('DEAL THIS RUN');
+    await tester.ensureVisible(deal);
+    await tester.drag(find.byType(ListView), const Offset(0, -120));
+    await tester.pumpAndSettle();
+    await tester.tap(deal);
+    await tester.pump();
+    expect(request?.houseRule, ArcadeHouseRule.paupersTable);
+    expect(request?.stake, 0);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('reduced motion keeps the setup atmosphere still', (
     tester,

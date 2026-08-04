@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wildcard/domain/joker_catalog.dart';
 import 'package:wildcard/domain/long_term_progression.dart';
 
 void main() {
@@ -27,6 +28,14 @@ void main() {
       longTermFamilyTiers(LongTermFamily.endless).map((tier) => tier.threshold),
       <int>[1, 5, 10, 25, 50, 100],
     );
+  });
+
+  test('final Joker milestone tracks the active public catalogue', () {
+    final finalTier = longTermFamilyTiers(LongTermFamily.jokerDiscovery).last;
+    expect(jokerCatalog, hasLength(activePublicJokerCount));
+    expect(finalTier.id, 'tier_jokers_100');
+    expect(finalTier.threshold, activePublicJokerCount);
+    expect(finalTier.description, contains('$activePublicJokerCount'));
   });
 
   test('completed future tiers remain locked behind manual earlier claims', () {

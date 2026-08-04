@@ -229,6 +229,50 @@ void main() {
   });
 
   test(
+    'House Rule result keeps its score in history without entering Classic bests',
+    () async {
+      final app = await AppController.bootstrap();
+      addTearDown(app.dispose);
+      final callbacks = app.gamePersistenceCallbacks();
+
+      expect(
+        await callbacks.mutateAccount(
+          const AccountMutation(
+            claimId: 'house-echo:finished',
+            kind: AccountMutationKind.runFinished,
+            runMode: RunMode.normal,
+            arcadeHouseRuleId: 'echo_table',
+            displayScore: 4321,
+            bestHeat: 99,
+            bestClearedHeat: 98,
+            bestScore: 999999,
+            won: false,
+            handsPlayed: 7,
+            stagesCleared: 4,
+            leaderboardEligible: false,
+          ),
+        ),
+        isTrue,
+      );
+
+      expect(app.account.bestScore, 0);
+      expect(app.account.bestHeat, 0);
+      expect(app.account.bestClearedHeat, 0);
+      expect(app.account.topRuns, isEmpty);
+      expect(app.account.runLog, hasLength(1));
+      expect(app.account.runLog.single.modeCode, 'H');
+      expect(app.account.runLog.single.score, 4321);
+
+      final preferences = await SharedPreferences.getInstance();
+      final reloaded = AccountState.decode(
+        preferences.getString('wildcard_save_v1')!,
+      );
+      expect(reloaded.runLog.single.modeCode, 'H');
+      expect(reloaded.runLog.single.score, 4321);
+    },
+  );
+
+  test(
     'paid forced-ad entitlement cannot claim a phantom run double',
     () async {
       final app = await AppController.bootstrap();

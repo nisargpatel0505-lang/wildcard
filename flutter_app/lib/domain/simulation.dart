@@ -469,6 +469,7 @@ class _RunSimulation {
       state.handsLeft--;
       state.handsPlayedThisStage++;
       engine.applyOnScored(result);
+      _applyArcadePostScoreJokerHooks(selected, result.scoringFlags);
       engine.resolveGlassCardShatters(selected, result.scoringFlags);
       for (final card in selected) {
         hand.remove(card);
@@ -479,6 +480,44 @@ class _RunSimulation {
       if (state.stageScore >= _target) return true;
     }
     return state.stageScore >= _target;
+  }
+
+  /// Mirrors committed controller-side Joker mutations that must never run
+  /// during score previews. Keeping this hook in the deterministic harness
+  /// prevents the smart bots from evaluating a different game from players.
+  void _applyArcadePostScoreJokerHooks(
+    List<PlayingCard> played,
+    List<bool> scoringFlags,
+  ) {
+    if (!state.isJokerActive('acemag') ||
+        (state.jokerState['ace_magnet_heat'] ?? 0) > 0) {
+      return;
+    }
+    for (var index = 0; index < played.length; index++) {
+      final card = played[index];
+      if (!scoringFlags[index] ||
+          card.rank != CardRank.ace ||
+          state.cardRankSuppressed(card) ||
+          (state.isJokerActive('rose_tint') && !card.isRed)) {
+        continue;
+      }
+      if (exactCardCount(state.cards, card.rank, card.suit) >=
+          maximumExactCardCopies) {
+        continue;
+      }
+      state.cards.add(
+        card.copyWith(
+          clearEnhancement: true,
+          copied: true,
+          uid: 'sim-acemag-$seed-$totalHands-${state.cards.length}',
+          selected: false,
+          isNew: true,
+        ),
+      );
+      state.copiedCount = state.cards.where((item) => item.copied).length;
+      state.jokerState['ace_magnet_heat'] = 1;
+      return;
+    }
   }
 
   int get _target {
@@ -1224,9 +1263,10 @@ class _RunSimulation {
     final fragileFloor = state.isJokerActive('fragile_genius')
         ? state.jokerState['fragile']
         : null;
+    final fragileSafeScore = fragileFloor == null ? null : fragileFloor * .5;
     final canPreserveFragile =
-        fragileFloor != null &&
-        plays.any((play) => play.result.total >= fragileFloor);
+        fragileSafeScore != null &&
+        plays.any((play) => play.result.total >= fragileSafeScore);
     _ScoredPlay selected = plays.first;
     var selectedUtility = double.negativeInfinity;
     for (final play in shortlist) {
@@ -1265,7 +1305,7 @@ class _RunSimulation {
           utility += 3.0;
         }
       }
-      if (canPreserveFragile && play.result.total < fragileFloor) {
+      if (canPreserveFragile && play.result.total < fragileSafeScore) {
         utility -= 10000;
       }
       if (utility > selectedUtility + 0.001 ||
