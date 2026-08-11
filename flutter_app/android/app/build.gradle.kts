@@ -75,6 +75,11 @@ android {
         }
         release {
             signingConfig = signingConfigs.getByName("wildcardRelease")
+            // AGP 9/R8 full mode can strip the reflective no-arg constructor
+            // from Room-generated databases even when the class name is kept
+            // by the library's consumer rules. WorkManager is initialized by
+            // AndroidX Startup before Flutter, so preserve that constructor.
+            proguardFiles("proguard-rules.pro")
             // Internal Play builds pass both the matching Gradle property and
             // Dart define so the manifest app ID and Dart ad-unit IDs agree.
             manifestPlaceholders["wildcardAdmobAppId"] = releaseAdMobAppId

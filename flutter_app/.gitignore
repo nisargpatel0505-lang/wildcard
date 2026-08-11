@@ -34,8 +34,10 @@ migrate_working_dir/
 /coverage/
 /android/.gradle/
 /android/.kotlin/
+/android/build/
 /android/local.properties
 /android/key.properties
+/releases/
 
 # Symbolication related
 app.*.symbols
