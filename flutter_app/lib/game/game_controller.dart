@@ -1085,7 +1085,11 @@ class GameController extends ChangeNotifier {
     pendingTransition = null;
     failureReason = reason;
     final reviveAvailable =
-        reason == 'plays' && !state.isDaily && !reviveUsed && hand.isNotEmpty;
+        !astraEnabled &&
+        reason == 'plays' &&
+        !state.isDaily &&
+        !reviveUsed &&
+        hand.isNotEmpty;
     if (reviveAvailable) {
       terminalPending = true;
       phase = RunPhase.revive;

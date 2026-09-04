@@ -11,6 +11,19 @@ Future<void> _noWait(Duration _) async {}
 
 void main() {
   test(
+    'Astra defeat ends cleanly without an unavailable ad revive',
+    () async {
+      final game = await _start();
+      addTearDown(game.dispose);
+      game.state.handsLeft = 1;
+      await game.toggleCard(game.hand.first.uid!);
+      await game.playSelected();
+      expect(game.phase, RunPhase.ended);
+      expect(game.reviveUsed, isFalse);
+    },
+    skip: !astraEnabled,
+  );
+  test(
     'draft has three distinct hand engines and zero account progression',
     () {
       for (var seed = 0; seed < 30; seed++) {

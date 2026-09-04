@@ -14,6 +14,8 @@ separate local save. It cannot use Internet or Billing permissions; native
 Play Games and legacy-save migration are disabled. Dart service entrypoints
 also reject online initialization. No real purchases, advertising, analytics,
 cloud writes, or leaderboard submissions occur. Daily is offline practice here.
+Ad revive, coin-double and mission-refresh offers are removed from this build;
+defeats proceed directly to earned results.
 Developer tools remain available through the existing Settings code. No developer
 Joker or free coin grant is automatically enabled.
 

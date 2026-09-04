@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../domain/account_state.dart';
+import '../../domain/astra_progression.dart';
 import '../../domain/cards.dart';
 import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
@@ -877,6 +878,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       doubleClaimId,
     );
     final doubleEligible =
+        !astraEnabled &&
         !abandoned &&
         result?.reason != RunEndReason.dailyComplete &&
         doubleBase > 0;
