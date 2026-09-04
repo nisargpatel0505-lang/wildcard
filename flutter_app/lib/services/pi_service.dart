@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/app_constants.dart';
+import '../domain/astra_progression.dart';
 
 class DailyBoardEntry {
   const DailyBoardEntry({required this.name, required this.score});
@@ -55,11 +56,13 @@ class PiService {
   String _appVersion = '8.0.0';
 
   Future<void> initialize() async {
+    if (astraEnabled) return;
     final package = await PackageInfo.fromPlatform();
     _appVersion = package.version;
   }
 
   Future<DailyBoardSnapshot> fetchDailyBoard({String? date}) async {
+    if (astraEnabled) return const DailyBoardSnapshot(entries: []);
     final query = date == null || date.isEmpty
         ? null
         : <String, String>{'date': date};
@@ -109,6 +112,7 @@ class PiService {
   }
 
   void _queue(Map<String, String> event) {
+    if (astraEnabled) return;
     if (_analyticsQueue.length >= 12) _analyticsQueue.removeAt(0);
     _analyticsQueue.add(event);
     _flushTimer ??= Timer(const Duration(seconds: 45), () {
@@ -118,6 +122,7 @@ class PiService {
   }
 
   Future<void> flushAnalytics() async {
+    if (astraEnabled) return;
     if (_analyticsQueue.isEmpty) return;
     final events = _analyticsQueue.take(12).toList(growable: false);
     _analyticsQueue.removeRange(0, events.length);

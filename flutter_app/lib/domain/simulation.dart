@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'astra_progression.dart';
 import 'cards.dart';
 import 'deck_integrity.dart';
 import 'economy.dart';
@@ -36,6 +37,7 @@ class SimulationConfig {
     this.continueEndless = false,
     this.bossBlockedJokers,
     this.bossTargetMultiplier,
+    this.astraEconomy = false,
   });
 
   final int runs;
@@ -66,6 +68,10 @@ class SimulationConfig {
   /// target). These values never flow into the live controller or saved runs.
   final int? bossBlockedJokers;
   final double? bossTargetMultiplier;
+
+  /// Explicit candidate switch so one process compares unchanged baseline and
+  /// experiment across matched seeds using the same authoritative scorer.
+  final bool astraEconomy;
 }
 
 class SimulatedRunResult {
@@ -93,6 +99,8 @@ class SimulatedRunResult {
     required this.handsWithJokerTrigger,
     required this.handTypeCounts,
     required this.invariantFailures,
+    this.firstShopAffordableOffers = 0,
+    this.freeRerollsUsed = 0,
   });
 
   final int seed;
@@ -118,6 +126,8 @@ class SimulatedRunResult {
   final int handsWithJokerTrigger;
   final Map<HandType, int> handTypeCounts;
   final List<String> invariantFailures;
+  final int firstShopAffordableOffers;
+  final int freeRerollsUsed;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'seed': seed,
@@ -148,6 +158,8 @@ class SimulatedRunResult {
         entry.key.legacyName: entry.value,
     },
     'invariantFailures': invariantFailures,
+    'firstShopAffordableOffers': firstShopAffordableOffers,
+    'freeRerollsUsed': freeRerollsUsed,
   };
 }
 
@@ -258,6 +270,7 @@ class SimulationBatchReport {
     'initialJokers': config.initialJokers,
     'allJokersUnlocked': config.allJokersUnlocked,
     'discoveredJokerIds': config.discoveredJokerIds,
+    'astraEconomy': config.astraEconomy,
     'wins': wins,
     'winRate': winRate,
     'averageHeatsCleared': averageHeatsCleared,
@@ -341,6 +354,10 @@ class _RunSimulation {
   var wildMissShops = 0;
   var shopsVisited = 0;
   var jokersBought = 0;
+  var firstShopAffordableOffers = 0;
+  var freeRerollsUsed = 0;
+  bool get _astra =>
+      usesAstraEconomy(config.mode, enabled: config.astraEconomy);
   var modifierSlotsFaced = 0;
   var bossHeatsFaced = 0;
   var bossBlockedJokerSlots = 0;
@@ -394,6 +411,8 @@ class _RunSimulation {
       handsWithJokerTrigger: handsWithJokerTrigger,
       handTypeCounts: Map<HandType, int>.unmodifiable(handTypeCounts),
       invariantFailures: List<String>.unmodifiable(failures),
+      firstShopAffordableOffers: firstShopAffordableOffers,
+      freeRerollsUsed: freeRerollsUsed,
     );
   }
 
@@ -1393,7 +1412,10 @@ class _RunSimulation {
   void _applyClearEconomyAndShop({required bool includeShop}) {
     final grade = gradeForPlays(state.handsPlayedThisStage);
     final interest = runCoinInterest(state.runCoins);
-    state.runCoins += runReward(state.stage) + interest + grade.bonus;
+    state.runCoins +=
+        (_astra ? astraRunReward(state.stage) : runReward(state.stage)) +
+        interest +
+        grade.bonus;
     WildcardScoringEngine(state).applyHeatClearJokerHooks();
     final inflation = state.hasModifier(HeatModifier.inflation);
     if (includeShop) _runShop(inflation: inflation);
@@ -1402,6 +1424,27 @@ class _RunSimulation {
   void _runShop({required bool inflation}) {
     shopsVisited++;
     final offers = _rollJokerOffers();
+    // Match live opening order: the shelf is drawn before any user reroll.
+    // Baseline retains its historical harness stream sequence unchanged.
+    final openingSupplies = _astra ? _rollSupplyOffers() : null;
+    if (state.stage == 1) {
+      firstShopAffordableOffers = offers
+          .where((joker) => joker.price + (inflation ? 2 : 0) <= state.runCoins)
+          .length;
+    }
+    if (_astra && astraOpeningShop(state.stage, endless: state.endless)) {
+      final needsNewOffers = config.strategy == SimulationStrategy.adaptive
+          ? _bestAdaptiveJokerPurchase(offers, inflation) == null
+          : !offers.any(
+              (joker) => joker.price + (inflation ? 2 : 0) <= state.runCoins,
+            );
+      if (needsNewOffers) {
+        freeRerollsUsed++;
+        offers
+          ..clear()
+          ..addAll(_rollJokerOffers(countForPity: false));
+      }
+    }
     final buyLimit = shopBuyLimit(
       stage: state.stage,
       endless: state.endless,
@@ -1457,7 +1500,7 @@ class _RunSimulation {
       offers.remove(joker);
     }
 
-    final supplyOffers = _rollSupplyOffers();
+    final supplyOffers = openingSupplies ?? _rollSupplyOffers();
     var supplyBuys = 0;
     if (config.strategy == SimulationStrategy.adaptive) {
       while (supplyBuys < 2 && supplyOffers.isNotEmpty) {
@@ -1511,7 +1554,7 @@ class _RunSimulation {
     _checkInvariants('Heat ${state.stage} shop');
   }
 
-  List<JokerDefinition> _rollJokerOffers() {
+  List<JokerDefinition> _rollJokerOffers({bool countForPity = true}) {
     final discovered = config.discoveredJokerIds?.toSet();
     final pool = jokerCatalog
         .where(
@@ -1522,16 +1565,21 @@ class _RunSimulation {
               jokerShopEligibleAtStage(joker, stage: state.stage),
         )
         .toList();
-    final count = shopOfferCount(
-      stage: state.stage,
-      endless: state.endless,
-      gauntlet: state.isGauntlet,
-    );
+    final count =
+        _astra && astraOpeningShop(state.stage, endless: state.endless)
+        ? 3
+        : shopOfferCount(
+            stage: state.stage,
+            endless: state.endless,
+            gauntlet: state.isGauntlet,
+          );
     final wildPool = pool
         .where((joker) => joker.rarity == JokerRarity.wild)
         .toList();
     final forceWild =
-        wildPool.isNotEmpty && wildMissShops >= wildPityAfterShops;
+        countForPity &&
+        wildPool.isNotEmpty &&
+        wildMissShops >= wildPityAfterShops;
     final offers = <JokerDefinition>[];
     if (forceWild) {
       final index = (state.nextRandom(RandomStream.shop) * wildPool.length)
@@ -1549,7 +1597,7 @@ class _RunSimulation {
     );
     if (offers.any((joker) => joker.rarity == JokerRarity.wild)) {
       wildMissShops = 0;
-    } else if (wildPool.isNotEmpty) {
+    } else if (countForPity && wildPool.isNotEmpty) {
       wildMissShops = math.min(wildPityAfterShops, wildMissShops + 1);
     }
     return offers;

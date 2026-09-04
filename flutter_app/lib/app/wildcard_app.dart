@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/app_constants.dart';
 import '../core/daily_utc_date.dart';
 import '../domain/account_state.dart';
+import '../domain/astra_progression.dart';
+import '../domain/astra_journey.dart';
 import '../domain/economy.dart';
 import '../domain/game_rules.dart';
 import '../domain/joker_catalog.dart';
@@ -15,6 +17,7 @@ import '../game/game_models.dart';
 import '../ui/wildcard_ui.dart';
 import 'app_controller.dart';
 import 'screens/cabinet_screen.dart';
+import 'screens/astra_journey_screen.dart';
 import 'screens/game_host_screen.dart';
 import 'screens/missions_screen.dart';
 import 'screens/mode_picker_screen.dart';
@@ -39,6 +42,17 @@ class _WildcardAppState extends State<WildcardApp> {
   bool acceptingPrivacy = false;
   bool launchingRun = false;
 
+  AstraJourneyStep? get _nextAstraGoal {
+    final steps = widget.controller.astraJourney;
+    for (final step in steps) {
+      if (step.ready) return step;
+    }
+    for (final step in steps) {
+      if (!step.claimed) return step;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -62,6 +76,28 @@ class _WildcardAppState extends State<WildcardApp> {
             fit: StackFit.expand,
             children: [
               WildcardHomeScreen(
+                astraGoalTitle:
+                    _nextAstraGoal?.title ?? 'Your table. Your rules.',
+                astraGoalDescription:
+                    _nextAstraGoal?.description ??
+                    'All Journey goals complete. Try a new starter or difficulty.',
+                astraGoalReward: _nextAstraGoal == null
+                    ? null
+                    : '+${_nextAstraGoal!.rewardCoins} coins',
+                astraGoalProgress: _nextAstraGoal?.progress ?? 1,
+                astraGoalProgressLabel:
+                    _nextAstraGoal?.progressLabel ?? 'Complete',
+                astraGoalReady: _nextAstraGoal?.ready ?? false,
+                onAstraJourney: () => _push(
+                  context,
+                  ListenableBuilder(
+                    listenable: widget.controller,
+                    builder: (_, _) => AstraJourneyScreen(
+                      steps: widget.controller.astraJourney,
+                      onClaim: widget.controller.claimAstraMilestone,
+                    ),
+                  ),
+                ),
                 coins: widget.controller.account.coins,
                 bestHeat: widget.controller.account.bestHeat,
                 playerTitle: widget.controller.equippedTitleName,
@@ -183,9 +219,13 @@ class _WildcardAppState extends State<WildcardApp> {
           difficulty: request.difficulty,
           dailyDate: dailyDate,
           unlockedJokerIds: widget.controller.account.unlockedJokerIds,
-          initialJokerIds: guided ? const ['copper', 'polish'] : const [],
+          initialJokerIds: guided && !astraEnabled
+              ? const ['copper', 'polish']
+              : const [],
           startBoostJokerId: starter?.id,
-          startBoostCost: starter == null ? 0 : starterJokerPrice(starter),
+          startBoostCost: starter == null || usesAstraEconomy(request.mode)
+              ? 0
+              : starterJokerPrice(starter),
           stake: request.mode == RunMode.daily ? 0 : request.stake,
           guidedFirstRun: guided,
           scoringPace: widget.controller.account.speed,
@@ -194,7 +234,7 @@ class _WildcardAppState extends State<WildcardApp> {
           dailyDate: dailyDate,
         ),
       );
-      widget.controller.pi.queueRunStart(request.mode.name);
+      if (!astraEnabled) widget.controller.pi.queueRunStart(request.mode.name);
       final navigator = navigatorKey.currentState;
       if (navigator == null) {
         game.dispose();
@@ -227,7 +267,9 @@ class _WildcardAppState extends State<WildcardApp> {
         unlockedJokerIds: widget.controller.account.unlockedJokerIds,
         pace: widget.controller.account.speed,
       );
-      widget.controller.pi.queueRunStart(game.state.mode.name);
+      if (!astraEnabled) {
+        widget.controller.pi.queueRunStart(game.state.mode.name);
+      }
       final navigator = navigatorKey.currentState;
       if (navigator == null) {
         game.dispose();

@@ -1,8 +1,12 @@
+import '../domain/astra_progression.dart';
+
 abstract final class AppConstants {
-  static const appName = 'WILDCARD';
+  static const appName = astraEnabled ? 'WILDCARD Astra' : 'WILDCARD';
   static const firebaseProjectId = 'wildcard-31d50';
   static const firebaseRegion = 'europe-west2';
-  static const androidPackageName = 'com.nisarg.wildcard';
+  static const androidPackageName = astraEnabled
+      ? 'com.nisarg.wildcard.astra'
+      : 'com.nisarg.wildcard';
 
   static const piOrigin = 'https://raspberrypi.tail20f574.ts.net';
   static const dailyBoardUrl = '$piOrigin/api/daily';

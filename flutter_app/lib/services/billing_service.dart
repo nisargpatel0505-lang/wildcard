@@ -8,6 +8,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import '../core/app_constants.dart';
+import '../domain/astra_progression.dart';
 import 'firebase_service.dart';
 
 enum BillingState { idle, loading, ready, unavailable }
@@ -64,6 +65,7 @@ class BillingService extends ChangeNotifier {
       AppConstants.playProductIds.every(_products.containsKey);
 
   Future<bool> initializeAfterPrivacyAcceptance() async {
+    if (astraEnabled) return false;
     if (ready) return true;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       _state = BillingState.unavailable;
@@ -107,6 +109,7 @@ class BillingService extends ChangeNotifier {
   }
 
   Future<bool> buy(String productId) async {
+    if (astraEnabled) return false;
     if (!ready) throw StateError('Google Play Billing is unavailable.');
     if (!_firebase.signedIn) {
       throw StateError('Sign in with Google before purchasing.');

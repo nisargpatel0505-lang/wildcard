@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../domain/account_state.dart';
+import '../domain/astra_progression.dart';
 import '../domain/cards.dart';
 import '../domain/deck_integrity.dart';
 import '../domain/economy.dart';
@@ -55,6 +56,8 @@ class GameController extends ChangeNotifier {
     if (config.startBoostJokerId case final id?) {
       if (jokersById.containsKey(id) &&
           (config.unlockedJokerIds.contains(id) ||
+              (usesAstraEconomy(config.mode) &&
+                  astraStarterJokerIds.contains(id)) ||
               (devJokerAvailable &&
                   jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
           !initialJokers.contains(id) &&
@@ -86,10 +89,13 @@ class GameController extends ChangeNotifier {
       pace: config.scoringPace,
       dailyDate: config.dailyDate,
       startBoostJoker: acceptedStartBoostId,
-      startBoostCost: acceptedStartBoostId == null
+      startBoostCost:
+          acceptedStartBoostId == null ||
+              (usesAstraEconomy(config.mode) &&
+                  astraStarterJokerIds.contains(acceptedStartBoostId))
           ? 0
           : math.max(0, config.startBoostCost),
-      stake: math.max(0, config.stake),
+      stake: astraEnabled ? 0 : math.max(0, config.stake),
       guidedFirstRun: config.guidedFirstRun,
       legacyBase: const <String, Object?>{},
       wait: wait ?? Future<void>.delayed,
@@ -178,6 +184,7 @@ class GameController extends ChangeNotifier {
   int totalScore = 0;
   int accountEarned = 0;
   int shopBuysUsed = 0;
+  int freeRerollUsedAtHeat = 0;
   int wildMissShops = 0;
   int boostsBought = 0;
   int bestPlay = 0;
@@ -221,9 +228,23 @@ class GameController extends ChangeNotifier {
       !isBusy &&
       !jokerBuyLimitReached &&
       pendingSwapOfferId == null &&
-      state.runCoins >= shopRerollCost &&
+      state.runCoins >= currentRerollCost &&
       _availableJokerPool().isNotEmpty;
   bool get jokerBuyLimitReached => shopBuysUsed >= currentJokerBuyLimit;
+  bool get hasFreeOpeningReroll =>
+      usesAstraEconomy(state.mode) &&
+      astraOpeningShop(state.stage, endless: state.endless) &&
+      freeRerollUsedAtHeat != state.stage;
+  int get currentRerollCost => hasFreeOpeningReroll ? 0 : shopRerollCost;
+  int get currentJokerOfferCount =>
+      usesAstraEconomy(state.mode) &&
+          astraOpeningShop(state.stage, endless: state.endless)
+      ? 3
+      : shopOfferCount(
+          stage: state.stage,
+          endless: state.endless,
+          gauntlet: state.isGauntlet,
+        );
   int get currentJokerBuyLimit => shopBuyLimit(
     stage: state.stage,
     endless: state.endless,
@@ -477,7 +498,9 @@ class GameController extends ChangeNotifier {
     }
     isBusy = true;
     try {
-      state.runCoins -= shopRerollCost;
+      final cost = currentRerollCost;
+      if (hasFreeOpeningReroll) freeRerollUsedAtHeat = state.stage;
+      state.runCoins -= cost;
       _rollJokerOffers(countForPity: false);
       await _save(RunCheckpoint.shopChanged);
     } finally {
@@ -795,8 +818,13 @@ class GameController extends ChangeNotifier {
     final heat = state.stage;
     final grade = gradeForPlays(state.handsPlayedThisStage);
     final interest = runCoinInterest(state.runCoins);
-    final runCoins = runReward(heat);
-    final accountCoins = state.isDaily ? 0 : accountReward(heat);
+    final astra = usesAstraEconomy(state.mode);
+    final runCoins = astra ? astraRunReward(heat) : runReward(heat);
+    final accountCoins = state.isDaily
+        ? 0
+        : astra
+        ? astraAccountReward(heat)
+        : accountReward(heat);
     state.runCoins += runCoins + interest + grade.bonus;
     scoringEngine.applyHeatClearJokerHooks();
     for (final modifier in state.modifiers) {
@@ -877,11 +905,7 @@ class GameController extends ChangeNotifier {
 
   void _rollJokerOffers({required bool countForPity}) {
     final pool = _availableJokerPool();
-    final count = shopOfferCount(
-      stage: state.stage,
-      endless: state.endless,
-      gauntlet: state.isGauntlet,
-    );
+    final count = currentJokerOfferCount;
     final wildPool = pool
         .where((joker) => joker.rarity == JokerRarity.wild)
         .toList();
@@ -1326,6 +1350,8 @@ class GameController extends ChangeNotifier {
           .toList(),
       'boughtThisShop': jokerBuyLimitReached,
       'shopBuysUsed': shopBuysUsed,
+      if (usesAstraEconomy(state.mode))
+        'astraFreeRerollUsedAtHeat': freeRerollUsedAtHeat,
       'guidedFirstRun': guidedFirstRun,
       'guideStep': guideStep,
       'shopGuideShown': shopGuideShown,
@@ -1367,6 +1393,7 @@ class GameController extends ChangeNotifier {
     totalScore = _integer(raw['totalScore']);
     accountEarned = _integer(raw['accountEarned']);
     shopBuysUsed = _integer(raw['shopBuysUsed']);
+    freeRerollUsedAtHeat = _integer(raw['astraFreeRerollUsedAtHeat']);
     wildMissShops = _integer(raw['wildMissShops']).clamp(0, wildPityAfterShops);
     boostsBought = _integer(raw['boostsBought']);
     bestPlay = _integer(raw['bestPlay']);
@@ -1405,11 +1432,7 @@ class GameController extends ChangeNotifier {
       if (jokersById.containsKey(key)) jokerScore[key] = value;
     });
     if (phase == RunPhase.shop) {
-      final maximumOffers = shopOfferCount(
-        stage: state.stage,
-        endless: state.endless,
-        gauntlet: state.isGauntlet,
-      );
+      final maximumOffers = currentJokerOfferCount;
       final seenRestoredIds = <String>{};
       var restoredPremium = false;
       for (final id in _stringList(raw['shopOfferIds'])) {

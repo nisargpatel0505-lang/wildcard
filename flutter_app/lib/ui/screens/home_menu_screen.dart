@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../domain/astra_progression.dart';
+import 'astra_home_content.dart';
 import '../widgets/wildcard_background.dart';
 import '../widgets/wildcard_button.dart';
 import '../wildcard_theme.dart';
@@ -26,6 +28,13 @@ class WildcardHomeScreen extends StatelessWidget {
     this.musicEnabled = true,
     this.fastScoring = false,
     this.backgroundAsset,
+    this.astraGoalTitle,
+    this.astraGoalDescription,
+    this.astraGoalReward,
+    this.astraGoalProgress = 0,
+    this.astraGoalProgressLabel = '',
+    this.astraGoalReady = false,
+    this.onAstraJourney,
     this.onResume,
     this.onNewRun,
     this.onJokerUnlocks,
@@ -53,6 +62,13 @@ class WildcardHomeScreen extends StatelessWidget {
   final bool musicEnabled;
   final bool fastScoring;
   final String? backgroundAsset;
+  final String? astraGoalTitle;
+  final String? astraGoalDescription;
+  final String? astraGoalReward;
+  final double astraGoalProgress;
+  final String astraGoalProgressLabel;
+  final bool astraGoalReady;
+  final VoidCallback? onAstraJourney;
 
   final VoidCallback? onResume;
   final VoidCallback? onNewRun;
@@ -69,6 +85,34 @@ class WildcardHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (astraEnabled) {
+      return AstraHomeContent(
+        coins: coins,
+        bestHeat: bestHeat ?? 0,
+        hasSavedRun: hasSavedRun,
+        backgroundAsset: backgroundAsset,
+        goalTitle: astraGoalTitle,
+        goalDescription: astraGoalDescription,
+        goalReward: astraGoalReward,
+        goalProgress: astraGoalProgress,
+        goalProgressLabel: astraGoalProgressLabel,
+        goalReady: astraGoalReady,
+        dailyRewardAvailable: dailyRewardAvailable,
+        dailyRewardLabel: dailyRewardLabel,
+        cabinetAttention: cabinetAttention,
+        missionsAttention: weeklyMissionsAttention,
+        onPlay: onNewRun ?? _noOp,
+        onResume: onResume ?? _noOp,
+        onJourney: onAstraJourney ?? onCabinet ?? _noOp,
+        onVault: onJokerUnlocks ?? _noOp,
+        onShop: onShop ?? _noOp,
+        onCabinet: onCabinet ?? _noOp,
+        onMissions: onWeeklyMissions ?? _noOp,
+        onSettings: onSettings ?? _noOp,
+        onMore: onMore ?? _noOp,
+        onDailyReward: onDailyReward ?? _noOp,
+      );
+    }
     return Scaffold(
       backgroundColor: context.wildcard.pageBackground,
       body: WildcardBackground(

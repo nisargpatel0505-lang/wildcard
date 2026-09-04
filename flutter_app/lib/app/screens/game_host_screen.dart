@@ -766,6 +766,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       jokerBuysUsed: game.shopBuysUsed,
       jokerBuyLimit: game.currentJokerBuyLimit,
       rerollAvailable: game.canReroll,
+      rerollCost: game.currentRerollCost,
       busy: game.isBusy,
       onBack: _confirmAbandon,
       onInspectHeldJoker: _inspectJoker,

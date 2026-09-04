@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_controller.dart';
 import '../../core/app_constants.dart';
+import '../../domain/astra_progression.dart';
 import '../../core/daily_utc_date.dart';
 import '../../services/pi_service.dart';
 import '../../services/play_games_service.dart';
@@ -29,33 +30,35 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const HowToPlayScreen()),
             );
           }),
-          _button(context, 'WILDCARD Daily Board', Icons.today_outlined, () {
-            Navigator.push(
+          if (!astraEnabled)
+            _button(context, 'WILDCARD Daily Board', Icons.today_outlined, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DailyBoardScreen(controller: controller),
+                ),
+              );
+            }),
+          if (!astraEnabled)
+            _button(
               context,
-              MaterialPageRoute(
-                builder: (_) => DailyBoardScreen(controller: controller),
-              ),
-            );
-          }),
-          _button(
-            context,
-            'Official Play Games Rankings',
-            Icons.emoji_events_outlined,
-            () async {
-              if (!controller.playGames.signedIn) {
-                if (!await controller.playGames.signIn()) return;
-              }
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        OfficialRankingsScreen(controller: controller),
-                  ),
-                );
-              }
-            },
-          ),
+              'Official Play Games Rankings',
+              Icons.emoji_events_outlined,
+              () async {
+                if (!controller.playGames.signedIn) {
+                  if (!await controller.playGames.signIn()) return;
+                }
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OfficialRankingsScreen(controller: controller),
+                    ),
+                  );
+                }
+              },
+            ),
           _button(context, 'Privacy Policy', Icons.privacy_tip_outlined, () {
             launchUrl(
               Uri.parse(AppConstants.privacyPolicyUrl),

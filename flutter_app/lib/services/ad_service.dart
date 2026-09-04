@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/app_constants.dart';
+import '../domain/astra_progression.dart';
 import 'forced_ad_policy.dart';
 
 enum AdServiceState {
@@ -77,6 +78,7 @@ class AdService extends ChangeNotifier {
 
   /// Must only be called after WILDCARD's first-launch privacy gate is accepted.
   Future<bool> initializeAfterPrivacyAcceptance() async {
+    if (astraEnabled) return false;
     if (ready) return true;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       _state = AdServiceState.unavailable;

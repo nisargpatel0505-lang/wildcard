@@ -11,6 +11,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/app_constants.dart';
+import '../domain/astra_progression.dart';
 import '../firebase_options.dart';
 
 class FirebaseService extends ChangeNotifier {
@@ -29,6 +30,7 @@ class FirebaseService extends ChangeNotifier {
   bool get signedIn => user != null;
 
   Future<bool> initializeAfterPrivacyAcceptance() async {
+    if (astraEnabled) return false;
     if (_initialized) return true;
     if (_initializing) {
       while (_initializing) {

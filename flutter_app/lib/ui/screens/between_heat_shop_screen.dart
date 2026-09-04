@@ -666,7 +666,17 @@ class _ShopOfferHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 5),
-                CoinPrice(rerollCost, compact: true),
+                if (rerollCost == 0)
+                  Text(
+                    'FREE',
+                    style: TextStyle(
+                      color: tokens.gold,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  )
+                else
+                  CoinPrice(rerollCost, compact: true),
               ],
             ),
             style: OutlinedButton.styleFrom(

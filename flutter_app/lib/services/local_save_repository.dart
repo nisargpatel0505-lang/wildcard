@@ -203,7 +203,11 @@ class LocalSaveRepository {
       throw const FormatException('Account save is too large');
     }
     jsonDecode(value);
-    await _preferences.setString(AppConstants.legacyAccountKey, value);
+    if (!await _preferences.setString(AppConstants.legacyAccountKey, value)) {
+      throw StateError(
+        'Account save could not be stored. Check available phone storage.',
+      );
+    }
   }
 
   Future<void> writeRunJson(String value) async {
@@ -211,7 +215,11 @@ class LocalSaveRepository {
       throw const FormatException('Run save is too large');
     }
     jsonDecode(value);
-    await _preferences.setString(AppConstants.legacyRunKey, value);
+    if (!await _preferences.setString(AppConstants.legacyRunKey, value)) {
+      throw StateError(
+        'Run save could not be stored. Check available phone storage.',
+      );
+    }
   }
 
   Future<void> writeCloudOwner(String? uid) async {

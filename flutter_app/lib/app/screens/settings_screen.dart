@@ -7,6 +7,7 @@ import '../../app/app_controller.dart';
 import '../../app/developer_access.dart';
 import '../../core/app_constants.dart';
 import '../../domain/account_state.dart';
+import '../../domain/astra_progression.dart';
 import '../../domain/joker_catalog.dart';
 import '../../domain/progression_catalog.dart';
 import '../../services/haptics_service.dart';
@@ -80,81 +81,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const ScreenSectionTitle('Developer build'),
                 _developerPanel(account),
               ],
-              const ScreenSectionTitle('Daily Board'),
-              DailyBoardNameEditor(
-                accountName: account.playerName,
-                signedIn: widget.controller.signedIn,
-                disabled: busy,
-                onSave: _saveBoardName,
-              ),
-              const ScreenSectionTitle('Google account & cloud'),
-              _statusCard(
-                icon: widget.controller.signedIn
-                    ? Icons.cloud_done_outlined
-                    : Icons.cloud_off_outlined,
-                title: widget.controller.signedIn
-                    ? (widget.controller.firebase.user?.displayName ??
-                          widget.controller.firebase.user?.email ??
-                          'Google player')
-                    : 'Guest play',
-                subtitle: widget.controller.cloudStatus,
-              ),
-              const SizedBox(height: 8),
-              if (!widget.controller.signedIn)
-                WildcardButton(
-                  label: 'Sign in with Google',
-                  icon: const Icon(Icons.login_rounded),
-                  onPressed: busy ? null : _signIn,
-                )
-              else ...[
-                WildcardButton(
-                  label: 'Back Up Now',
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  onPressed: busy ? null : _cloudSave,
+              if (astraEnabled)
+                const WildcardCard(
+                  child: Text(
+                    'WILDCARD ASTRA\nA separate offline experiment. Your Play game, purchases and cloud save are untouched. Progress here stays on this phone.',
+                    style: TextStyle(fontSize: 14, height: 1.4),
+                  ),
+                ),
+              if (!astraEnabled) ...[
+                const ScreenSectionTitle('Daily Board'),
+                DailyBoardNameEditor(
+                  accountName: account.playerName,
+                  signedIn: widget.controller.signedIn,
+                  disabled: busy,
+                  onSave: _saveBoardName,
+                ),
+                const ScreenSectionTitle('Google account & cloud'),
+                _statusCard(
+                  icon: widget.controller.signedIn
+                      ? Icons.cloud_done_outlined
+                      : Icons.cloud_off_outlined,
+                  title: widget.controller.signedIn
+                      ? (widget.controller.firebase.user?.displayName ??
+                            widget.controller.firebase.user?.email ??
+                            'Google player')
+                      : 'Guest play',
+                  subtitle: widget.controller.cloudStatus,
+                ),
+                const SizedBox(height: 8),
+                if (!widget.controller.signedIn)
+                  WildcardButton(
+                    label: 'Sign in with Google',
+                    icon: const Icon(Icons.login_rounded),
+                    onPressed: busy ? null : _signIn,
+                  )
+                else ...[
+                  WildcardButton(
+                    label: 'Back Up Now',
+                    icon: const Icon(Icons.cloud_upload_outlined),
+                    onPressed: busy ? null : _cloudSave,
+                  ),
+                  const SizedBox(height: 8),
+                  WildcardButton(
+                    label: 'Sign Out',
+                    icon: const Icon(Icons.logout_rounded),
+                    onPressed: busy ? null : _signOut,
+                    variant: WildcardButtonVariant.ghost,
+                  ),
+                ],
+                const ScreenSectionTitle('Play services'),
+                _serviceStatus(
+                  'Play Games rankings',
+                  widget.controller.playGames.signedIn,
+                  widget.controller.playGames.lastError,
                 ),
                 const SizedBox(height: 8),
                 WildcardButton(
-                  label: 'Sign Out',
-                  icon: const Icon(Icons.logout_rounded),
-                  onPressed: busy ? null : _signOut,
+                  label: widget.controller.playGames.signedIn
+                      ? 'Open Official Rankings'
+                      : 'Connect Play Games',
+                  onPressed: busy ? null : _playGames,
                   variant: WildcardButtonVariant.ghost,
                 ),
-              ],
-              const ScreenSectionTitle('Play services'),
-              _serviceStatus(
-                'Play Games rankings',
-                widget.controller.playGames.signedIn,
-                widget.controller.playGames.lastError,
-              ),
-              const SizedBox(height: 8),
-              WildcardButton(
-                label: widget.controller.playGames.signedIn
-                    ? 'Open Official Rankings'
-                    : 'Connect Play Games',
-                onPressed: busy ? null : _playGames,
-                variant: WildcardButtonVariant.ghost,
-              ),
-              const SizedBox(height: 8),
-              _serviceStatus(
-                'Google Play Billing',
-                widget.controller.billing.state == BillingState.ready,
-                widget.controller.billing.lastError,
-              ),
-              const SizedBox(height: 8),
-              _serviceStatus(
-                'Advertising consent',
-                widget.controller.ads.state == AdServiceState.ready,
-                widget.controller.ads.lastError,
-              ),
-              if (widget.controller.ads.privacyOptionsRequired) ...[
                 const SizedBox(height: 8),
-                WildcardButton(
-                  label: 'Advertising Privacy Choices',
-                  onPressed: busy
-                      ? null
-                      : () => widget.controller.ads.showPrivacyOptions(),
-                  variant: WildcardButtonVariant.ghost,
+                _serviceStatus(
+                  'Google Play Billing',
+                  widget.controller.billing.state == BillingState.ready,
+                  widget.controller.billing.lastError,
                 ),
+                const SizedBox(height: 8),
+                _serviceStatus(
+                  'Advertising consent',
+                  widget.controller.ads.state == AdServiceState.ready,
+                  widget.controller.ads.lastError,
+                ),
+                if (widget.controller.ads.privacyOptionsRequired) ...[
+                  const SizedBox(height: 8),
+                  WildcardButton(
+                    label: 'Advertising Privacy Choices',
+                    onPressed: busy
+                        ? null
+                        : () => widget.controller.ads.showPrivacyOptions(),
+                    variant: WildcardButtonVariant.ghost,
+                  ),
+                ],
               ],
               const ScreenSectionTitle('Privacy & data'),
               WildcardButton(

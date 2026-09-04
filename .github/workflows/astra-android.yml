@@ -1,0 +1,84 @@
+name: WILDCARD Astra phone APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/astra-6-experiment
+    paths:
+      - flutter_app/**
+      - .github/workflows/astra-android.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wildcard-astra-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-astra:
+    if: github.ref == 'refs/heads/agent/astra-6-experiment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: flutter_app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.44.7'
+          cache: true
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+      - name: Restore Astra-only signing identity
+        env:
+          ASTRA_KEYSTORE: ${{ secrets.ASTRA_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ASTRA_KEYSTORE"
+          mkdir -p "$HOME/.android"
+          printf '%s' "$ASTRA_KEYSTORE" | base64 --decode > "$HOME/.android/wildcard-astra.keystore"
+          chmod 600 "$HOME/.android/wildcard-astra.keystore"
+      - name: Analyze
+        run: flutter analyze --no-pub
+      - name: Test Astra progression and release startup protection
+        run: |
+          mapfile -t astra_tests < <(find test -type f -name '*astra*test.dart' | sort)
+          test "${#astra_tests[@]}" -gt 0
+          flutter test --no-pub --concurrency=1 --dart-define=WILDCARD_ASTRA_BUILD=true "${astra_tests[@]}" test/release_startup_keep_rule_test.dart
+      - name: Build isolated offline ARM64 APK
+        run: flutter build apk --release --no-pub --target-platform android-arm64 --dart-define=WILDCARD_ASTRA_BUILD=true
+      - name: Verify packaged identity and offline permissions
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          apkanalyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          test -x "$apkanalyzer"
+          test "$("$apkanalyzer" manifest application-id "$apk")" = 'com.nisarg.wildcard.astra'
+          test "$("$apkanalyzer" manifest version-code "$apk")" = '73'
+          "$apkanalyzer" manifest permissions "$apk" > build/astra-permissions.txt
+          if grep -Eq 'android.permission.INTERNET|com.android.vending.BILLING' build/astra-permissions.txt; then
+            echo 'Astra must not include Internet or Billing permissions.' >&2
+            exit 1
+          fi
+          mkdir -p build/astra-delivery
+          cp "$apk" build/astra-delivery/WILDCARD-Astra-v9.0.0-code73-arm64.apk
+          cp build/astra-permissions.txt build/astra-delivery/permissions.txt
+          "$apkanalyzer" manifest print "$apk" > build/astra-delivery/AndroidManifest.xml
+          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          "$build_tools/apksigner" verify --verbose --print-certs "$apk" > build/astra-delivery/signature.txt
+          grep -q 'CN=Android Debug' build/astra-delivery/signature.txt
+          sha256sum build/astra-delivery/*.apk > build/astra-delivery/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WILDCARD-Astra-v9.0.0-code73-arm64
+          path: flutter_app/build/astra-delivery/
+          if-no-files-found: error
+          retention-days: 14

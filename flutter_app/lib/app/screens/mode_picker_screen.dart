@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/developer_access.dart';
 import '../../core/daily_utc_date.dart';
 import '../../domain/account_state.dart';
+import '../../domain/astra_progression.dart';
 import '../../domain/economy.dart';
 import '../../domain/game_rules.dart';
 import '../../domain/joker_catalog.dart';
@@ -46,6 +47,14 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   RunDifficulty difficulty = RunDifficulty.medium;
   int stake = 0;
   String? startJokerId;
+  late final List<JokerDefinition> _astraChoices;
+
+  @override
+  void initState() {
+    super.initState();
+    _astraChoices = astraStarterChoices(DateTime.now().millisecondsSinceEpoch);
+    if (astraEnabled) startJokerId = _astraChoices.first.id;
+  }
 
   ProgressionGates get gates => ProgressionGates(
     tutorialDone: widget.account.tutorialDone,
@@ -68,6 +77,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (astraEnabled) return _buildAstra(context);
     return WildcardPageFrame(
       title: 'Choose Run',
       subtitle: 'Pick a table, then set your risk.',
@@ -169,6 +179,322 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
             fontSize: 16,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAstra(BuildContext context) {
+    final tokens = context.wildcard;
+    final normal = mode == RunMode.normal;
+    return WildcardPageFrame(
+      title: 'Your next run',
+      subtitle: normal
+          ? 'Choose an engine. The opening Joker is on us.'
+          : 'A different table. A different test.',
+      room: WildcardRoom.runSetup,
+      surface: WildcardUiSurface.modePicker,
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final entry in [
+                      (RunMode.normal, 'Normal', true),
+                      (
+                        RunMode.daily,
+                        'Daily',
+                        gates.dailyChallengeUnlocked && !dailyUsed,
+                      ),
+                      (RunMode.gauntlet, 'Gauntlet', gauntletAvailable),
+                    ])
+                      ChoiceChip(
+                        label: Text(entry.$2),
+                        avatar: entry.$3
+                            ? null
+                            : const Icon(Icons.lock_outline, size: 16),
+                        selected: mode == entry.$1,
+                        onSelected: entry.$3
+                            ? (_) => _selectAstraMode(entry.$1)
+                            : null,
+                        labelStyle: const TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.padded,
+                      ),
+                  ],
+                ),
+                if (!widget.account.tutorialDone) ...[
+                  const SizedBox(height: 10),
+                  WildcardCard(
+                    accent: WildcardCardAccent.gold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Your first deal starts here.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          'Learn the cards, your Jokers and the score preview in a short guided table.',
+                        ),
+                        const SizedBox(height: 10),
+                        WildcardButton(
+                          label: 'Play Tutorial',
+                          onPressed: _openTutorial,
+                          variant: WildcardButtonVariant.primary,
+                          fontSize: 14,
+                          minHeight: 52,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                if (normal) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'CHOOSE YOUR FREE STARTER',
+                          style: _heading(context, tokens.gold),
+                        ),
+                      ),
+                      Text(
+                        '1 of 3',
+                        style: TextStyle(
+                          color: tokens.creamDim,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'A loan for this run. Choose the style you want to build around.',
+                    style: TextStyle(
+                      color: tokens.creamDim,
+                      fontSize: 12.5,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final joker in _astraChoices) ...[
+                    _astraDraftCard(joker),
+                    const SizedBox(height: 9),
+                  ],
+                  const SizedBox(height: 4),
+                  const ScreenSectionTitle('Set your challenge'),
+                  SegmentedButton<RunDifficulty>(
+                    showSelectedIcon: false,
+                    segments: [
+                      for (final option in RunDifficulty.values)
+                        ButtonSegment(
+                          value: option,
+                          label: Text(option.displayName),
+                        ),
+                    ],
+                    selected: <RunDifficulty>{difficulty},
+                    onSelectionChanged: (selection) =>
+                        setState(() => difficulty = selection.first),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    switch (difficulty) {
+                      RunDifficulty.easy =>
+                        'Room to learn your engine. Lower targets give your build time to grow.',
+                      RunDifficulty.medium =>
+                        'The core WILDCARD challenge. Plan your discards and build synergies.',
+                      RunDifficulty.hard =>
+                        'Higher targets demand a stronger engine. Bring a plan.',
+                    },
+                    style: TextStyle(
+                      color: tokens.creamDim,
+                      fontSize: 12.5,
+                      height: 1.35,
+                    ),
+                  ),
+                ] else if (mode == RunMode.daily) ...[
+                  WildcardCard(
+                    accent: WildcardCardAccent.mint,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'THE DAILY TABLE',
+                          style: _heading(context, tokens.mint),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'One attempt. A fixed Medium seed and the full Joker pool. Your personal collection does not restrict the deal.',
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'No starter draft. No contract.',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    'Eight modified Heats. No quiet rounds. Make your build survive every rule change.',
+                    style: TextStyle(fontSize: 14, height: 1.4),
+                  ),
+                  const ScreenSectionTitle('Optional starter'),
+                  _starterPicker(),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            decoration: BoxDecoration(
+              color: tokens.ink.withValues(alpha: .97),
+              border: Border(top: BorderSide(color: tokens.line)),
+            ),
+            child: WildcardButton(
+              key: const Key('astra-deal-run'),
+              label: normal ? 'Deal My Run · Free Starter' : 'Deal This Run',
+              icon: const Icon(Icons.play_arrow_rounded),
+              onPressed: widget.account.tutorialDone ? _launch : null,
+              variant: WildcardButtonVariant.primary,
+              fontSize: 14,
+              minHeight: 58,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectAstraMode(RunMode value) => setState(() {
+    mode = value;
+    stake = 0;
+    startJokerId = value == RunMode.normal ? _astraChoices.first.id : null;
+    if (value != RunMode.normal) difficulty = RunDifficulty.medium;
+  });
+
+  Widget _astraDraftCard(JokerDefinition joker) {
+    final tokens = context.wildcard;
+    final selected = startJokerId == joker.id;
+    final (strategy, tip, icon) = switch (joker.id) {
+      'polish' => (
+        'THE PAIR BUILDER',
+        'Keep matching ranks. Pairs can grow into Full Houses.',
+        Icons.filter_2_outlined,
+      ),
+      'flushfund' => (
+        'THE SUIT SPECIALIST',
+        'Keep one suit together. Discard toward five matching suits.',
+        Icons.favorite_outline_rounded,
+      ),
+      _ => (
+        'THE STRAIGHT CHASER',
+        'Keep connected ranks. Discard to fill the missing number.',
+        Icons.stacked_line_chart_rounded,
+      ),
+    };
+    final accent = switch (joker.id) {
+      'polish' => tokens.gold,
+      'flushfund' => tokens.mint,
+      _ => tokens.violet,
+    };
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: '${joker.name}, free starter. ${joker.description}',
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          key: ValueKey('astra-starter-${joker.id}'),
+          onTap: () => setState(() => startJokerId = joker.id),
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: selected
+                  ? Color.alphaBlend(
+                      accent.withValues(alpha: .12),
+                      tokens.panelStrong,
+                    )
+                  : tokens.panelStrong.withValues(alpha: .94),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? accent : tokens.line,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: accent, size: 23),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        strategy,
+                        style: TextStyle(
+                          color: accent,
+                          fontFamily: 'SpaceGrotesk',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10.5,
+                          letterSpacing: .6,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      selected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: selected ? accent : tokens.creamDim,
+                      size: 22,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  joker.name,
+                  style: TextStyle(
+                    color: tokens.cream,
+                    fontFamily: 'SpaceGrotesk',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  joker.description,
+                  style: TextStyle(
+                    color: tokens.cream,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+                if (selected) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    tip,
+                    style: TextStyle(color: accent, fontSize: 12, height: 1.35),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -506,8 +832,9 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
 
   void _launch() {
     final joker = startJokerId == null ? null : jokersById[startJokerId];
-    final cost = joker == null ? 0 : starterJokerPrice(joker);
-    final launchStake = mode == RunMode.daily ? 0 : stake;
+    final freeDraft = astraEnabled && mode == RunMode.normal;
+    final cost = joker == null || freeDraft ? 0 : starterJokerPrice(joker);
+    final launchStake = astraEnabled || mode == RunMode.daily ? 0 : stake;
     if (launchStake + cost > widget.account.coins) {
       showWildcardToast(context, 'Not enough account coins.');
       return;

@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
 import '../domain/account_state.dart';
+import '../domain/astra_progression.dart';
 
 /// Local developer state is deliberately stored as an unknown legacy-save
 /// field so a debug install can keep its tools across restarts without
@@ -20,7 +21,7 @@ const String developerJokerGrantField = 'flutterDeveloperJokerGrant';
 /// performance build silently erase its developer state during bootstrap.
 /// This constant is false in release and allows the compiler to remove the
 /// guarded UI and code from the Play artifact.
-const bool developerBuild = !kReleaseMode;
+const bool developerBuild = !kReleaseMode || astraEnabled;
 
 // This is the SHA-256 of the existing local tester code. The code itself is
 // intentionally never stored in Flutter source. All references to this value

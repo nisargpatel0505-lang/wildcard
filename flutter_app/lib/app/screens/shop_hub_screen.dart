@@ -5,6 +5,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../app/app_controller.dart';
 import '../../core/app_constants.dart';
 import '../../domain/progression_catalog.dart';
+import '../../domain/astra_progression.dart';
 import '../../services/billing_service.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
@@ -51,7 +52,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
             TabBar(
               controller: tabs,
               tabs: const [
-                Tab(text: 'COIN STORE'),
+                Tab(text: astraEnabled ? 'EARN COINS' : 'COIN STORE'),
                 Tab(text: 'WARDROBE'),
               ],
             ),
@@ -68,6 +69,27 @@ class _ShopHubScreenState extends State<ShopHubScreen>
   }
 
   Widget _coinStore() {
+    if (astraEnabled) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _accountWalletCard(),
+          const SizedBox(height: 12),
+          const WildcardCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ScreenSectionTitle('Play. Build. Discover.'),
+                Text(
+                  'Clear Heats to earn coins, claim Journey goals from Home, and open Vaults to grow your collection.\n\nYour first Wood Vaults cost 60 coins until you own 15 Jokers, then 100. Gold Vaults cost 300.\n\nAstra has no ads or real-money purchases. Everything here is earned by playing.',
+                  style: TextStyle(fontSize: 15, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     final billing = widget.controller.billing;
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 30),
@@ -166,6 +188,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
   }
 
   Widget _rewardCoinsButton() {
+    if (astraEnabled) return const SizedBox.shrink();
     final left = widget.controller.rewardedViewsLeftToday;
     return WildcardButton(
       key: const Key('shop-reward-coins'),

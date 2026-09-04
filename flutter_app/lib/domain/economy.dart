@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'astra_progression.dart';
 import 'game_rules.dart';
 import 'joker_catalog.dart';
 
@@ -277,9 +278,13 @@ class JokerChestDefinition {
   final Map<JokerRarity, double> rarityWeights;
   final Map<JokerRarity, List<JokerRarity>> fallbackOrder;
 
-  /// Kept as a method so old UI call sites remain source-compatible. Vault
-  /// prices no longer change with collection size.
-  int price([int unlockedCount = 0]) => basePrice;
+  /// Astra gives the first five discoveries a short, earned introduction.
+  /// Production pricing remains constant.
+  int price([int unlockedCount = 0]) => astraEnabled
+      ? (tier == JokerChestTier.wood
+            ? astraWoodVaultPrice(unlockedCount)
+            : astraGoldVaultPrice)
+      : basePrice;
 
   /// Returns the exact live odds used by [roll].
   ///
@@ -433,6 +438,9 @@ int gauntletStakePayout(int stake, int cleared) =>
     (gauntletStakePayoutPerHundred[cleared.clamp(0, 8)] * stake / 100).round();
 
 int maximumStake(int accountCoins, {bool gauntlet = false}) {
+  // Measure the core earned-progression loop without the old wager dominating
+  // account income. Only the isolated experiment removes this optional system.
+  if (astraEnabled) return 0;
   var maximum = math.min(
     stakeHardMaximum,
     (accountCoins * 0.25 ~/ stakeStep) * stakeStep,

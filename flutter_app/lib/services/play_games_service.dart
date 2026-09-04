@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../domain/astra_progression.dart';
 
 enum LeaderboardTimeSpan {
   daily('daily'),
@@ -51,6 +52,7 @@ class PlayGamesService extends ChangeNotifier {
   Object? get lastError => _lastError;
 
   Future<bool> initializeAfterPrivacyAcceptance() async {
+    if (astraEnabled) return false;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
       await _channel.invokeMethod<void>('initialize');
@@ -80,6 +82,7 @@ class PlayGamesService extends ChangeNotifier {
   }
 
   Future<bool> signIn() async {
+    if (astraEnabled) return false;
     if (!_initialized) return false;
     try {
       final result = await _channel.invokeMapMethod<Object?, Object?>('signIn');

@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import '../core/app_constants.dart';
 import '../core/daily_utc_date.dart';
 import '../domain/account_state.dart';
+import '../domain/astra_progression.dart';
+import '../domain/astra_journey.dart';
 import '../domain/economy.dart';
 import '../domain/game_rules.dart';
 import '../domain/joker_catalog.dart';
@@ -50,7 +52,7 @@ class CloudAccountConflict implements Exception {
 bool effectiveNoAdsFor(
   AccountState account, {
   bool profileBuild = kProfileMode,
-}) => account.noAds || profileBuild;
+}) => account.noAds || profileBuild || astraEnabled;
 
 /// Coordinates durable progress and every consent-gated platform service.
 ///
@@ -169,7 +171,7 @@ class AppController extends ChangeNotifier {
 
     final releaseSafety = releaseSafeDeveloperAccountWithStatus(
       account,
-      releaseBuild: releaseBuild,
+      releaseBuild: releaseBuild && !astraEnabled,
     );
     onProgress?.call(.55, 'Verifying player progress…');
     final clearedDeveloperState = releaseSafety.clearedDeveloperState;
@@ -226,6 +228,11 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> startConsentGatedServices() async {
+    if (astraEnabled) {
+      cloudState = CloudLinkState.offline;
+      cloudStatus = 'Astra experiment — saved on this phone only';
+      return;
+    }
     if (onlineServicesStarted || !privacyAccepted) return;
     onlineServicesStarted = true;
     notifyListeners();
@@ -292,6 +299,38 @@ class AppController extends ChangeNotifier {
     bestClearedHeat: account.bestClearedHeat,
     unlockedJokers: publicUnlockedJokerCount(account.unlockedJokerIds),
   );
+
+  List<AstraJourneyStep> get astraJourney => astraJourneySteps(account);
+  bool _claimingAstraGoal = false;
+
+  Future<int> claimAstraMilestone(String id) async {
+    if (!astraEnabled || _claimingAstraGoal) return 0;
+    final goal = astraJourney.where((step) => step.id == id).firstOrNull;
+    if (goal == null || !goal.ready) return 0;
+    if (account.coins > 9999999 - goal.rewardCoins) {
+      throw StateError(
+        'Your wallet is full. Spend coins before claiming this goal.',
+      );
+    }
+    _claimingAstraGoal = true;
+    final before = account.encode();
+    try {
+      final previous = account.unknownFields[astraJourneyClaimKey];
+      final claims = previous is List
+          ? previous.whereType<String>().toSet()
+          : <String>{};
+      account.unknownFields[astraJourneyClaimKey] = [...claims, id];
+      account.coins += goal.rewardCoins;
+      await persistAccount(syncCloud: false);
+      return goal.rewardCoins;
+    } catch (_) {
+      account = AccountState.decode(before);
+      notifyListeners();
+      rethrow;
+    } finally {
+      _claimingAstraGoal = false;
+    }
+  }
 
   ProgressionSnapshot get progressionSnapshot => ProgressionSnapshot(
     bestHeat: account.bestHeat,
@@ -1123,6 +1162,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _sendFinishedRunServices(AccountMutation mutation) {
+    if (astraEnabled) return;
     final mode = mutation.runMode ?? RunMode.normal;
     final outcome = mutation.abandoned
         ? 'terminated'
@@ -1149,6 +1189,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _queueDailyScoreIfEligible(AccountMutation mutation) async {
+    if (astraEnabled) return;
     if (mutation.kind != AccountMutationKind.runFinished ||
         mutation.runMode != RunMode.daily ||
         developerToolsUnlocked(account)) {
@@ -1222,6 +1263,11 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> signInWithGoogle() async {
+    if (astraEnabled) {
+      throw StateError(
+        'Astra is a separate offline experiment. Your Play account is untouched.',
+      );
+    }
     if (!privacyAccepted) throw StateError('Accept the privacy policy first.');
     if (!firebase.initialized &&
         !await firebase.initializeAfterPrivacyAcceptance()) {
@@ -1528,6 +1574,7 @@ class AppController extends ChangeNotifier {
   }
 
   int get rewardedViewsLeftToday {
+    if (astraEnabled) return 0;
     final today = _todayString();
     if (account.adDate != today) return 5;
     return (5 - account.adViews).clamp(0, 5);
