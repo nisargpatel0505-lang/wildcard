@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -9,7 +11,7 @@ plugins {
 val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
 val astraDefinePresent = providers.gradleProperty("dart-defines").orElse("").get()
     .split(",").any { encoded ->
-        runCatching { String(java.util.Base64.getDecoder().decode(encoded)) }
+        runCatching { String(Base64.getDecoder().decode(encoded)) }
             .getOrNull() == "WILDCARD_ASTRA_BUILD=true"
     }
 require(astraDefinePresent) { "Build this isolated app with --dart-define=WILDCARD_ASTRA_BUILD=true" }
