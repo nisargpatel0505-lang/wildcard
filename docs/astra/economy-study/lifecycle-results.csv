@@ -1,0 +1,13 @@
+﻿cohort,schedule,target,targetCoins,inputRuns,inputMeanReward,paths,completedPaths,censoredPaths,medianRuns,p10Runs,p90Runs,meanRunsLowerBound,unreachable,packPlanFromZero
+Normal Easy new,recommended,Wood Vault,100,250,110.996,2000,2000,0,1.0,1.0,2.0,1.321,False,"[1, 0, 0]"
+Normal Easy new,recommended,Gold Vault,300,250,110.996,2000,2000,0,3.0,3.0,3.0,3.072,False,"[1, 0, 0]"
+Normal Medium new,recommended,Wood Vault,100,250,88.92,2000,2000,0,2.0,1.0,2.0,1.829,False,"[1, 0, 0]"
+Normal Medium new,recommended,Gold Vault,300,250,88.92,2000,2000,0,4.0,3.0,4.0,3.804,False,"[1, 0, 0]"
+Normal Medium full,recommended,Wood Vault,100,250,83.9,2000,2000,0,2.0,1.0,2.0,1.811,False,"[1, 0, 0]"
+Normal Medium full,recommended,Gold Vault,300,250,83.9,2000,2000,0,4.0,3.0,5.0,4.094,False,"[1, 0, 0]"
+Normal Hard full,recommended,Wood Vault,100,250,69.696,2000,2000,0,2.0,1.0,3.0,2.065,False,"[1, 0, 0]"
+Normal Hard full,recommended,Gold Vault,300,250,69.696,2000,2000,0,5.0,4.0,6.0,4.886,False,"[1, 0, 0]"
+Gauntlet full,gauntlet,Wood Vault,100,150,33.52,2000,2000,0,4.0,3.0,5.0,3.56,False,"[1, 0, 0]"
+Gauntlet full,gauntlet,Gold Vault,300,150,33.52,2000,2000,0,9.0,8.0,11.0,9.528,False,"[1, 0, 0]"
+Normal Medium baseline,current,Wood Vault,100,250,26.916,2000,2000,0,4.0,3.0,6.0,4.343,False,"[1, 0, 0]"
+Normal Medium baseline,current,Gold Vault,300,250,26.916,2000,2000,0,12.0,10.0,14.0,11.8,False,"[1, 0, 0]"

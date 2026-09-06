@@ -38,6 +38,7 @@ class SimulationConfig {
     this.bossBlockedJokers,
     this.bossTargetMultiplier,
     this.astraEconomy = false,
+    this.captureHeatCheckpoints = false,
   });
 
   final int runs;
@@ -72,6 +73,10 @@ class SimulationConfig {
   /// Explicit candidate switch so one process compares unchanged baseline and
   /// experiment across matched seeds using the same authoritative scorer.
   final bool astraEconomy;
+
+  /// Analysis-only observation after each attempted Heat, before its shop.
+  /// This never consumes randomness or changes the strategy's decisions.
+  final bool captureHeatCheckpoints;
 }
 
 class SimulatedRunResult {
@@ -101,6 +106,7 @@ class SimulatedRunResult {
     required this.invariantFailures,
     this.firstShopAffordableOffers = 0,
     this.freeRerollsUsed = 0,
+    this.heatCheckpoints = const <SimulatedHeatCheckpoint>[],
   });
 
   final int seed;
@@ -128,6 +134,7 @@ class SimulatedRunResult {
   final List<String> invariantFailures;
   final int firstShopAffordableOffers;
   final int freeRerollsUsed;
+  final List<SimulatedHeatCheckpoint> heatCheckpoints;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'seed': seed,
@@ -160,6 +167,67 @@ class SimulatedRunResult {
     'invariantFailures': invariantFailures,
     'firstShopAffordableOffers': firstShopAffordableOffers,
     'freeRerollsUsed': freeRerollsUsed,
+    if (heatCheckpoints.isNotEmpty)
+      'heatCheckpoints': heatCheckpoints.map((heat) => heat.toJson()).toList(),
+  };
+}
+
+/// Counts are observed; presentation/decision time can be modelled separately.
+class SimulatedHeatCheckpoint {
+  const SimulatedHeatCheckpoint({
+    required this.heat,
+    required this.cleared,
+    required this.target,
+    required this.heatScore,
+    required this.totalScore,
+    required this.handsPlayed,
+    required this.discardsUsed,
+    required this.selectedCards,
+    required this.jokerEvents,
+    required this.nonJokerEvents,
+    required this.luckySevenEvents,
+    required this.shopsVisited,
+    required this.jokersBought,
+    required this.suppliesBought,
+    required this.runCoinsBeforeClear,
+  });
+
+  final int heat;
+  final bool cleared;
+  final int target;
+  final int heatScore;
+  final int totalScore;
+  final int handsPlayed;
+  final int discardsUsed;
+  final int selectedCards;
+
+  /// Excludes Seven events, which have their own two-beat presentation.
+  final int jokerEvents;
+
+  /// Excludes Seven events as well.
+  final int nonJokerEvents;
+  final int luckySevenEvents;
+  final int shopsVisited;
+  final int jokersBought;
+  final int suppliesBought;
+  final int runCoinsBeforeClear;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'heat': heat,
+    'cleared': cleared,
+    'target': target,
+    'heatScore': heatScore,
+    'totalScore': totalScore,
+    'handsPlayed': handsPlayed,
+    'discardsUsed': discardsUsed,
+    'selectedCards': selectedCards,
+    'jokerEventsExcludingSeven': jokerEvents,
+    'nonJokerEventsExcludingSeven': nonJokerEvents,
+    'luckySevenEvents': luckySevenEvents,
+    'shopsVisitedBeforeThisHeat': shopsVisited,
+    'jokersBoughtBeforeThisHeat': jokersBought,
+    'suppliesBoughtBeforeThisHeat': suppliesBought,
+    'runCoinsBeforeClearReward': runCoinsBeforeClear,
   };
 }
 
@@ -364,6 +432,11 @@ class _RunSimulation {
   var bossTargetTotal = 0;
   var jokerTriggerEvents = 0;
   var handsWithJokerTrigger = 0;
+  var totalSelectedCards = 0;
+  var nonSevenJokerEvents = 0;
+  var nonSevenOtherEvents = 0;
+  var luckySevenEvents = 0;
+  final List<SimulatedHeatCheckpoint> heatCheckpoints = [];
   final Map<SupplyId, int> suppliesBought = <SupplyId, int>{};
   List<PlayingCard>? _cachedHand;
   List<_ScoredPlay>? _cachedScoredPlays;
@@ -375,10 +448,34 @@ class _RunSimulation {
     while (state.stage <= config.maxHeat) {
       final cleared = _playHeat();
       _checkInvariants('Heat ${state.stage} terminal');
+      if (config.captureHeatCheckpoints) {
+        heatCheckpoints.add(
+          SimulatedHeatCheckpoint(
+            heat: state.stage,
+            cleared: cleared,
+            target: _target,
+            heatScore: state.stageScore,
+            totalScore: totalScore,
+            handsPlayed: totalHands,
+            discardsUsed: totalDiscards,
+            selectedCards: totalSelectedCards,
+            jokerEvents: nonSevenJokerEvents,
+            nonJokerEvents: nonSevenOtherEvents,
+            luckySevenEvents: luckySevenEvents,
+            shopsVisited: shopsVisited,
+            jokersBought: jokersBought,
+            suppliesBought: suppliesBought.values.fold(0, (a, b) => a + b),
+            runCoinsBeforeClear: state.runCoins,
+          ),
+        );
+      }
       if (!cleared) break;
       state.stagesCleared++;
       final completed = _completionReached();
-      _applyClearEconomyAndShop(includeShop: !completed);
+      // Live GameController shows victory at Heat 12 and continueEndless()
+      // deals Heat 13 directly. The old harness incorrectly inserted a shop.
+      final entersEndless = config.continueEndless && state.stage == 12;
+      _applyClearEconomyAndShop(includeShop: !completed && !entersEndless);
       if (completed) {
         won = true;
         break;
@@ -413,6 +510,9 @@ class _RunSimulation {
       invariantFailures: List<String>.unmodifiable(failures),
       firstShopAffordableOffers: firstShopAffordableOffers,
       freeRerollsUsed: freeRerollsUsed,
+      heatCheckpoints: List<SimulatedHeatCheckpoint>.unmodifiable(
+        heatCheckpoints,
+      ),
     );
   }
 
@@ -444,6 +544,9 @@ class _RunSimulation {
     state.handsPlayedThisStage = 0;
     state.stageScore = 0;
 
+    // Mirror GameController._dealHeat: supply edits/shatters can require
+    // normalization before the next deck is shuffled.
+    normalizeDeckIntegrity(state.cards, shatteredCount: state.shatteredCount);
     final heatDeck = _shuffledHeatDeck();
     final hand = <PlayingCard>[];
     _refillHand(hand, heatDeck);
@@ -464,7 +567,9 @@ class _RunSimulation {
         _clearPlayCache();
       }
 
-      final selected = _choosePlay(hand, heatDeck, engine);
+      final choice = _choosePlay(hand, heatDeck, engine).toSet();
+      // The client scores selected cards in table order, not tap/choice order.
+      final selected = hand.where(choice.contains).toList(growable: false);
       if (selected.isEmpty || selected.length > state.effectiveMaxSelect) {
         failures.add('Heat ${state.stage}: strategy returned illegal play');
         return false;
@@ -478,6 +583,16 @@ class _RunSimulation {
       state.stageScore += result.total;
       totalScore += result.total;
       totalHands++;
+      totalSelectedCards += selected.length;
+      for (final event in result.events) {
+        if (event.type == ScoreEventType.seven) {
+          luckySevenEvents++;
+        } else if ((event.jokerIndex ?? -1) >= 0) {
+          nonSevenJokerEvents++;
+        } else {
+          nonSevenOtherEvents++;
+        }
+      }
       handTypeCounts[result.handType] =
           (handTypeCounts[result.handType] ?? 0) + 1;
       final triggerCount = result.events
@@ -547,8 +662,19 @@ class _RunSimulation {
   }
 
   void _refillHand(List<PlayingCard> hand, List<PlayingCard> deck) {
+    final drew = hand.length < state.effectiveHandSize && deck.isNotEmpty;
     while (hand.length < state.effectiveHandSize && deck.isNotEmpty) {
       hand.add(deck.removeLast());
+    }
+    // Default phone sort is rank descending, then the suit's authored order.
+    // Ordering matters for Closer and assigning per-card luck rolls.
+    if (drew) {
+      hand.sort((left, right) {
+        final rank = right.value.compareTo(left.value);
+        return rank != 0
+            ? rank
+            : left.suit.sortOrder.compareTo(right.suit.sortOrder);
+      });
     }
   }
 
@@ -2089,8 +2215,13 @@ class _RunSimulation {
         if (config.strategy == SimulationStrategy.adaptive) {
           state.cards.removeAt(_bestScalpelIndex());
         } else {
-          state.cards.sort((left, right) => left.value.compareTo(right.value));
-          state.cards.removeAt(0);
+          var lowest = 0;
+          for (var index = 1; index < state.cards.length; index++) {
+            if (state.cards[index].value < state.cards[lowest].value) {
+              lowest = index;
+            }
+          }
+          state.cards.removeAt(lowest);
         }
         state.destroyedCount++;
       case SupplyId.copier:
@@ -2165,6 +2296,14 @@ class _RunSimulation {
           (state.handLevels[type] ?? 0) + 1,
         );
     }
+    // Live supplies reconcile all copy/destruction counters, including Dye
+    // changing duplicate identity; never leave a stale scaler input behind.
+    final integrity = normalizeDeckIntegrity(
+      state.cards,
+      shatteredCount: state.shatteredCount,
+    );
+    state.destroyedCount = integrity.destroyedCount;
+    state.copiedCount = integrity.copiedCount;
   }
 
   int _bestScalpelIndex() {

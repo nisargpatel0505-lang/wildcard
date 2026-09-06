@@ -1,0 +1,4 @@
+﻿strategy,paths,meanCost,p10Cost,p90Cost,medianFirstWildAt,p90FirstWildAt,meanFirstWildCost,meanWood,meanGold
+gold_first,1000,22000,22000.0,22000.0,19.0,58.0,7042.8,28,64
+three_wood_one_gold,1000,14481.4,14240.0,14640.0,68.0,86.0,8643.08,64.793,27.207
+wood_first,1000,10400,10400.0,10400.0,86.0,86.0,8600,85,7

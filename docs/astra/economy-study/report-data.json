@@ -1,0 +1,482 @@
+{
+  "recommendedSchedule": [
+    {
+      "heat": 1,
+      "clearReward": 4,
+      "cumulativeBeforeCompletionBonus": 4,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 4,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 2,
+      "clearReward": 4,
+      "cumulativeBeforeCompletionBonus": 8,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 8,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 3,
+      "clearReward": 4,
+      "cumulativeBeforeCompletionBonus": 12,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 12,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 4,
+      "clearReward": 7,
+      "cumulativeBeforeCompletionBonus": 19,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 19,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 5,
+      "clearReward": 7,
+      "cumulativeBeforeCompletionBonus": 26,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 26,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 6,
+      "clearReward": 7,
+      "cumulativeBeforeCompletionBonus": 33,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 33,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 7,
+      "clearReward": 10,
+      "cumulativeBeforeCompletionBonus": 43,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 43,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 8,
+      "clearReward": 10,
+      "cumulativeBeforeCompletionBonus": 53,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 53,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "same first 8 heats; +10 full-clear bonus at Heat 8",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 9,
+      "clearReward": 10,
+      "cumulativeBeforeCompletionBonus": 63,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 63,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "\u2014",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 10,
+      "clearReward": 13,
+      "cumulativeBeforeCompletionBonus": 76,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 76,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "\u2014",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 11,
+      "clearReward": 13,
+      "cumulativeBeforeCompletionBonus": 89,
+      "completionBonusAtHeat12": 0,
+      "cumulativeReward": 89,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "\u2014",
+      "endlessMode": "same schedule",
+      "dailyMode": "no repeatable direct coins"
+    },
+    {
+      "heat": 12,
+      "clearReward": 13,
+      "cumulativeBeforeCompletionBonus": 102,
+      "completionBonusAtHeat12": 20,
+      "cumulativeReward": 122,
+      "normalMode": "same schedule on Easy, Medium and Hard",
+      "gauntletMode": "\u2014",
+      "endlessMode": "same schedule; no extra repeatable end bonus after Heat 12",
+      "dailyMode": "no repeatable direct coins"
+    }
+  ],
+  "modeComparison": [
+    {
+      "modeLabel": "Normal Easy",
+      "rules": "Astra",
+      "n": 250,
+      "winRate": 0.644,
+      "meanHeats": 11.408,
+      "currentMeanCoins": 104.864,
+      "recommendedMeanCoins": 107.376,
+      "modeledMinutes": 8.579,
+      "recommendedCoinsPerMinute": 12.516,
+      "rewardRule": "recommended schedule"
+    },
+    {
+      "modeLabel": "Normal Medium",
+      "rules": "Astra",
+      "n": 250,
+      "winRate": 0.26,
+      "meanHeats": 10.084,
+      "currentMeanCoins": 89.152,
+      "recommendedMeanCoins": 83.9,
+      "modeledMinutes": 8.997,
+      "recommendedCoinsPerMinute": 9.325,
+      "rewardRule": "recommended schedule"
+    },
+    {
+      "modeLabel": "Normal Hard",
+      "rules": "Astra",
+      "n": 250,
+      "winRate": 0.132,
+      "meanHeats": 9.06,
+      "currentMeanCoins": 78.96,
+      "recommendedMeanCoins": 69.696,
+      "modeledMinutes": 8.761,
+      "recommendedCoinsPerMinute": 7.955,
+      "rewardRule": "recommended schedule"
+    },
+    {
+      "modeLabel": "Gauntlet",
+      "rules": "shared",
+      "n": 150,
+      "winRate": 0.16,
+      "meanHeats": 5.64,
+      "currentMeanCoins": 17.493,
+      "recommendedMeanCoins": 33.52,
+      "modeledMinutes": 6.019,
+      "recommendedCoinsPerMinute": 5.569,
+      "rewardRule": "recommended first 8 heats +10 full clear"
+    },
+    {
+      "modeLabel": "Daily Challenge",
+      "rules": "shared",
+      "n": 150,
+      "winRate": 0.0867,
+      "meanHeats": 7.727,
+      "currentMeanCoins": 0.0,
+      "recommendedMeanCoins": 0.0,
+      "modeledMinutes": 7.925,
+      "recommendedCoinsPerMinute": 0.0,
+      "rewardRule": "0 repeatable direct coins; one-time/missions stay separate"
+    },
+    {
+      "modeLabel": "Normal Medium baseline",
+      "rules": "Play baseline",
+      "n": 250,
+      "winRate": 0.1,
+      "meanHeats": 7.94,
+      "currentMeanCoins": 26.916,
+      "recommendedMeanCoins": 26.916,
+      "modeledMinutes": 8.147,
+      "recommendedCoinsPerMinute": 3.304,
+      "rewardRule": "current Play baseline, not a proposed change"
+    }
+  ],
+  "lifecycle": [
+    {
+      "cohort": "Normal Easy new",
+      "schedule": "recommended",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 250,
+      "inputMeanReward": 110.996,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 1.0,
+      "p10Runs": 1.0,
+      "p90Runs": 2.0,
+      "meanRunsLowerBound": 1.321,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Easy new",
+      "schedule": "recommended",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 250,
+      "inputMeanReward": 110.996,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 3.0,
+      "p10Runs": 3.0,
+      "p90Runs": 3.0,
+      "meanRunsLowerBound": 3.072,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium new",
+      "schedule": "recommended",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 250,
+      "inputMeanReward": 88.92,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 2.0,
+      "p10Runs": 1.0,
+      "p90Runs": 2.0,
+      "meanRunsLowerBound": 1.829,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium new",
+      "schedule": "recommended",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 250,
+      "inputMeanReward": 88.92,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 4.0,
+      "p10Runs": 3.0,
+      "p90Runs": 4.0,
+      "meanRunsLowerBound": 3.804,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium full",
+      "schedule": "recommended",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 250,
+      "inputMeanReward": 83.9,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 2.0,
+      "p10Runs": 1.0,
+      "p90Runs": 2.0,
+      "meanRunsLowerBound": 1.811,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium full",
+      "schedule": "recommended",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 250,
+      "inputMeanReward": 83.9,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 4.0,
+      "p10Runs": 3.0,
+      "p90Runs": 5.0,
+      "meanRunsLowerBound": 4.094,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Hard full",
+      "schedule": "recommended",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 250,
+      "inputMeanReward": 69.696,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 2.0,
+      "p10Runs": 1.0,
+      "p90Runs": 3.0,
+      "meanRunsLowerBound": 2.065,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Hard full",
+      "schedule": "recommended",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 250,
+      "inputMeanReward": 69.696,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 5.0,
+      "p10Runs": 4.0,
+      "p90Runs": 6.0,
+      "meanRunsLowerBound": 4.886,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Gauntlet full",
+      "schedule": "gauntlet",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 150,
+      "inputMeanReward": 33.52,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 4.0,
+      "p10Runs": 3.0,
+      "p90Runs": 5.0,
+      "meanRunsLowerBound": 3.56,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Gauntlet full",
+      "schedule": "gauntlet",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 150,
+      "inputMeanReward": 33.52,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 9.0,
+      "p10Runs": 8.0,
+      "p90Runs": 11.0,
+      "meanRunsLowerBound": 9.528,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium baseline",
+      "schedule": "current",
+      "target": "Wood Vault",
+      "targetCoins": 100,
+      "inputRuns": 250,
+      "inputMeanReward": 26.916,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 4.0,
+      "p10Runs": 3.0,
+      "p90Runs": 6.0,
+      "meanRunsLowerBound": 4.343,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "cohort": "Normal Medium baseline",
+      "schedule": "current",
+      "target": "Gold Vault",
+      "targetCoins": 300,
+      "inputRuns": 250,
+      "inputMeanReward": 26.916,
+      "paths": 2000,
+      "completedPaths": 2000,
+      "censoredPaths": 0,
+      "medianRuns": 12.0,
+      "p10Runs": 10.0,
+      "p90Runs": 14.0,
+      "meanRunsLowerBound": 11.8,
+      "unreachable": false,
+      "packPlanFromZero": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "packHypothesis": [
+    {
+      "product": "Small",
+      "coins": 300,
+      "priceGBP": 0.99
+    },
+    {
+      "product": "Medium",
+      "coins": 600,
+      "priceGBP": 1.79
+    },
+    {
+      "product": "Large",
+      "coins": 1500,
+      "priceGBP": 3.99
+    }
+  ],
+  "note": "No game rules, product catalogue or live service was changed by this analysis."
+}

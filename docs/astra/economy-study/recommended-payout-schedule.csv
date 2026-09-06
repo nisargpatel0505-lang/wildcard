@@ -1,0 +1,13 @@
+﻿heat,clearReward,cumulativeBeforeCompletionBonus,completionBonusAtHeat12,cumulativeReward,normalMode,gauntletMode,endlessMode,dailyMode
+1,4,4,0,4,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+2,4,8,0,8,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+3,4,12,0,12,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+4,7,19,0,19,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+5,7,26,0,26,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+6,7,33,0,33,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+7,10,43,0,43,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+8,10,53,0,53,"same schedule on Easy, Medium and Hard",same first 8 heats; +10 full-clear bonus at Heat 8,same schedule,no repeatable direct coins
+9,10,63,0,63,"same schedule on Easy, Medium and Hard",—,same schedule,no repeatable direct coins
+10,13,76,0,76,"same schedule on Easy, Medium and Hard",—,same schedule,no repeatable direct coins
+11,13,89,0,89,"same schedule on Easy, Medium and Hard",—,same schedule,no repeatable direct coins
+12,13,102,20,122,"same schedule on Easy, Medium and Hard",—,same schedule; no extra repeatable end bonus after Heat 12,no repeatable direct coins

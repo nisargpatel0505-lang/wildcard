@@ -1,0 +1,7 @@
+﻿modeLabel,rules,n,winRate,meanHeats,currentMeanCoins,recommendedMeanCoins,modeledMinutes,recommendedCoinsPerMinute,rewardRule
+Normal Easy,Astra,250,0.644,11.408,104.864,107.376,8.579,12.516,recommended schedule
+Normal Medium,Astra,250,0.26,10.084,89.152,83.9,8.997,9.325,recommended schedule
+Normal Hard,Astra,250,0.132,9.06,78.96,69.696,8.761,7.955,recommended schedule
+Gauntlet,shared,150,0.16,5.64,17.493,33.52,6.019,5.569,recommended first 8 heats +10 full clear
+Daily Challenge,shared,150,0.0867,7.727,0.0,0.0,7.925,0.0,0 repeatable direct coins; one-time/missions stay separate
+Normal Medium baseline,Play baseline,250,0.1,7.94,26.916,26.916,8.147,3.304,"current Play baseline, not a proposed change"
