@@ -44,7 +44,7 @@ void main() {
         find.byType(WildcardBackground),
       );
       expect(background.room, WildcardRoom.runSetup);
-      expect(find.text('CHOOSE RUN'), findsOneWidget);
+      expect(find.text('YOUR NEXT RUN'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('run-setup-atmosphere')),
         findsOneWidget,
@@ -67,7 +67,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -5000));
       await tester.pumpAndSettle();
-      expect(find.text('DEAL THIS RUN'), findsOneWidget);
+      expect(find.text('DEAL MY RUN · FREE STARTER'), findsOneWidget);
       expect(find.text('WILDCARD ARCADE'), findsNothing);
       expect(find.byKey(const Key('open-arcade-mode')), findsNothing);
       expect(tester.takeException(), isNull);

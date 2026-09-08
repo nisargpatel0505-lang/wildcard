@@ -66,9 +66,11 @@ void main() {
       final wood = jokerChests[JokerChestTier.wood]!;
       final gold = jokerChests[JokerChestTier.gold]!;
 
-      expect(wood.price(0), 200);
-      expect(wood.price(101), 200);
-      expect(gold.price(0), 350);
+      expect(wood.price(0), 60);
+      expect(wood.price(14), 60);
+      expect(wood.price(15), 100);
+      expect(wood.price(101), 100);
+      expect(gold.price(0), 300);
       expect(cosmeticVaultPrice, 1000);
 
       final woodOdds = wood.effectiveOdds(jokerCatalog);
@@ -226,7 +228,7 @@ void main() {
       );
       expect(reward, isNotNull);
       expect(reward!.rarity, isNot(JokerRarity.wild));
-      expect(app.account.coins, 800);
+      expect(app.account.coins, 940);
       expect(app.account.unlockedJokerIds, containsAll(before));
       expect(app.account.unlockedJokerIds, contains(reward.id));
       final afterFirst = Set<String>.from(app.account.unlockedJokerIds);
@@ -238,7 +240,7 @@ void main() {
         itemRoll: .999,
       );
       expect(replay?.id, reward.id);
-      expect(app.account.coins, 800);
+      expect(app.account.coins, 940);
       expect(app.account.unlockedJokerIds, afterFirst);
 
       final preferences = await SharedPreferences.getInstance();
@@ -286,7 +288,7 @@ void main() {
           closeTo(.04, 1e-12),
         );
         expect(reward?.rarity, JokerRarity.wild);
-        expect(app.account.coins, 150);
+        expect(app.account.coins, 200);
       },
     );
 

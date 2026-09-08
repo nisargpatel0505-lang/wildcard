@@ -170,11 +170,11 @@ void main() {
       expect(resumed.phase, RunPhase.shop);
       expect(resumed.guideStep, 3);
       expect(resumed.shopGuideShown, isTrue);
-      expect(resumed.jokerOffers, hasLength(2));
+      expect(resumed.jokerOffers, hasLength(3));
       expect(resumed.jokerOffers.where(isPremiumShopOffer), isEmpty);
       expect(
         resumed.jokerOffers.map((joker) => joker.id).toSet(),
-        hasLength(2),
+        hasLength(3),
       );
       expect(resumed.wildMissShops, wildPityAfterShops);
     },
@@ -193,7 +193,7 @@ void main() {
     expect((await game.playSelected()).ok, isTrue);
     expect(game.phase, RunPhase.shop);
     expect(game.state.stagesCleared, 1);
-    expect(game.jokerOffers, hasLength(2));
+    expect(game.jokerOffers, hasLength(3));
     expect(game.supplyOffers, hasLength(2));
     expect(
       harness.mutations.where(
@@ -496,22 +496,27 @@ void main() {
   });
 
   test(
-    'Gauntlet stake settlement applies its second loss exactly once',
+    'legacy Gauntlet stake settlement applies its second loss exactly once',
     () async {
       final harness = _Harness();
-      final game = await GameController.startNew(
-        config: _config(seed: 9191, mode: RunMode.gauntlet, stake: 100),
+      final fresh = await GameController.startNew(
+        config: _config(seed: 9191, mode: RunMode.gauntlet),
         callbacks: harness.callbacks,
         wait: noWait,
       );
-      expect((await game.abandon()).ok, isTrue);
-      final entry = harness.mutations.singleWhere(
-        (mutation) => mutation.kind == AccountMutationKind.runEntry,
+      final raw = fresh.toLegacyJson()..['stake'] = 100;
+      fresh.dispose();
+      final game = await GameController.resume(
+        encoded: jsonEncode(raw),
+        callbacks: harness.callbacks,
+        unlockedJokerIds: jokersById.keys.toSet(),
+        wait: noWait,
       );
+      addTearDown(game.dispose);
+      expect((await game.abandon()).ok, isTrue);
       final settlement = harness.mutations.singleWhere(
         (mutation) => mutation.kind == AccountMutationKind.stakeSettlement,
       );
-      expect(entry.coinDelta, -100);
       expect(settlement.coinDelta, -100);
       expect(game.stakeNet, -200);
     },

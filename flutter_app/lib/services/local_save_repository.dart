@@ -61,6 +61,9 @@ class MigrationResult {
 class LocalSaveRepository {
   LocalSaveRepository._(this._preferences);
 
+  /// Local recovery copy, never included in cloud uploads or account exports.
+  static const preAstraUpgradeBackupKey = 'flutter_pre_astra_upgrade_v1';
+
   static const _migrationChannel = MethodChannel(
     'com.nisarg.wildcard/save_migration',
   );
@@ -69,6 +72,64 @@ class LocalSaveRepository {
 
   static Future<LocalSaveRepository> open() async {
     return LocalSaveRepository._(await SharedPreferences.getInstance());
+  }
+
+  /// Preserve the original official save before the Astra update normalizes it.
+  /// One fixed key bounds storage growth, and raw values allow later recovery
+  /// even when an older payload cannot be decoded by the current account model.
+  Future<bool> backupBeforeAstraUpgrade() async {
+    if (_preferences.containsKey(preAstraUpgradeBackupKey)) return false;
+
+    const keys = <String>[
+      AppConstants.legacyAccountKey,
+      AppConstants.legacyRunKey,
+      AppConstants.cloudOwnerKey,
+      AppConstants.privacyAcceptedKey,
+    ];
+    final original = <String, Object?>{
+      for (final key in keys)
+        if (_preferences.containsKey(key)) key: _preferences.get(key),
+    };
+
+    // WebView users may not yet have a Flutter preferences file. Read their
+    // original Capacitor values before the one-time import copies anything.
+    if (_preferences.getBool(AppConstants.migrationMarkerKey) != true &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final legacy = await _migrationChannel
+            .invokeMapMethod<Object?, Object?>('readLegacyPreferences');
+        for (final key in keys) {
+          final value = legacy?[key];
+          if (!original.containsKey(key) &&
+              value is String &&
+              value.isNotEmpty) {
+            original[key] = value;
+          }
+        }
+      } on MissingPluginException {
+        // Migration reports the absent channel; existing Flutter values can
+        // still be safely preserved without depending on a native bridge.
+      } on PlatformException {
+        // The migration path retries and reports native read failures.
+      }
+    }
+    if (original.isEmpty) return false;
+    final snapshot = jsonEncode(<String, Object?>{
+      'version': 1,
+      'savedAt': DateTime.now().millisecondsSinceEpoch,
+      'values': original,
+    });
+    if (snapshot.length > 1000000) {
+      throw StateError('Your existing save is too large to back up safely.');
+    }
+    await _writeStringChecked(
+      preAstraUpgradeBackupKey,
+      snapshot,
+      'Your progress could not be backed up before the update. '
+      'Free some phone storage and reopen WILDCARD.',
+    );
+    return true;
   }
 
   Future<MigrationResult> migrateLegacySaveIfNeeded() async {
@@ -203,11 +264,11 @@ class LocalSaveRepository {
       throw const FormatException('Account save is too large');
     }
     jsonDecode(value);
-    if (!await _preferences.setString(AppConstants.legacyAccountKey, value)) {
-      throw StateError(
-        'Account save could not be stored. Check available phone storage.',
-      );
-    }
+    await _writeStringChecked(
+      AppConstants.legacyAccountKey,
+      value,
+      'Account save could not be stored. Check available phone storage.',
+    );
   }
 
   Future<void> writeRunJson(String value) async {
@@ -215,10 +276,26 @@ class LocalSaveRepository {
       throw const FormatException('Run save is too large');
     }
     jsonDecode(value);
-    if (!await _preferences.setString(AppConstants.legacyRunKey, value)) {
-      throw StateError(
-        'Run save could not be stored. Check available phone storage.',
-      );
+    await _writeStringChecked(
+      AppConstants.legacyRunKey,
+      value,
+      'Run save could not be stored. Check available phone storage.',
+    );
+  }
+
+  Future<void> _writeStringChecked(
+    String key,
+    String value,
+    String error,
+  ) async {
+    try {
+      if (!await _preferences.setString(key, value)) throw StateError(error);
+    } catch (_) {
+      // SharedPreferences changes its memory cache before its platform write.
+      // Restore actual durable values so a retry cannot mistake a failed write
+      // for a saved reward or an already-completed upgrade backup.
+      await _preferences.reload();
+      rethrow;
     }
   }
 
@@ -233,6 +310,7 @@ class LocalSaveRepository {
   Future<void> clearRun() => _preferences.remove(AppConstants.legacyRunKey);
 
   Future<void> clearPlayerData({bool retainPrivacyAcceptance = true}) async {
+    await _preferences.remove(preAstraUpgradeBackupKey);
     await _preferences.remove(AppConstants.legacyAccountKey);
     await _preferences.remove(AppConstants.legacyRunKey);
     await _preferences.remove(AppConstants.cloudOwnerKey);

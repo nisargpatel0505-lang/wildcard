@@ -19,28 +19,34 @@ void main() {
     Size(800, 1280),
   ];
 
-  testWidgets('home keeps its complete primary menu visible on a phone', (
-    tester,
-  ) async {
-    await _setPhoneSize(tester, const Size(360, 800));
-    await tester.pumpWidget(
-      const _Harness(
-        child: WildcardHomeScreen(
-          coins: 1250,
-          bestHeat: 12,
-          dailyRewardAvailable: true,
+  testWidgets(
+    'home keeps its primary action visible and secondary menu reachable',
+    (tester) async {
+      await _setPhoneSize(tester, const Size(360, 800));
+      await tester.pumpWidget(
+        const _Harness(
+          child: WildcardHomeScreen(
+            coins: 1250,
+            bestHeat: 12,
+            dailyRewardAvailable: true,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('DAILY REWARD'), findsOneWidget);
-    expect(find.bySemanticsLabel('Mute sound effects'), findsOneWidget);
-    final lastControl = find.bySemanticsLabel('Use fast scoring pace');
-    expect(lastControl, findsOneWidget);
-    expect(tester.getRect(lastControl).bottom, lessThanOrEqualTo(800));
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('DAILY REWARD'), findsOneWidget);
+      final primary = find.byKey(const Key('astra-primary-play'));
+      expect(primary.hitTestable(), findsOneWidget);
+      expect(tester.getRect(primary).bottom, lessThanOrEqualTo(800));
+      final lastControl = find.text('More');
+      expect(lastControl, findsOneWidget);
+      await tester.ensureVisible(lastControl);
+      await tester.pumpAndSettle();
+      expect(lastControl.hitTestable(), findsOneWidget);
+      expect(tester.getRect(lastControl).bottom, lessThanOrEqualTo(800));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   for (final size in phoneSizes) {
     group('${size.width.toInt()}x${size.height.toInt()}', () {

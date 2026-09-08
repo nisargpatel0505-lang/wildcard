@@ -85,7 +85,7 @@ class WildcardHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (astraEnabled) {
+    if (astraExperienceEnabled) {
       return AstraHomeContent(
         coins: coins,
         bestHeat: bestHeat ?? 0,

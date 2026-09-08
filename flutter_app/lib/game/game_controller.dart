@@ -95,7 +95,7 @@ class GameController extends ChangeNotifier {
                   astraStarterJokerIds.contains(acceptedStartBoostId))
           ? 0
           : math.max(0, config.startBoostCost),
-      stake: astraEnabled ? 0 : math.max(0, config.stake),
+      stake: astraExperienceEnabled ? 0 : math.max(0, config.stake),
       guidedFirstRun: config.guidedFirstRun,
       legacyBase: const <String, Object?>{},
       wait: wait ?? Future<void>.delayed,
@@ -820,11 +820,7 @@ class GameController extends ChangeNotifier {
     final interest = runCoinInterest(state.runCoins);
     final astra = usesAstraEconomy(state.mode);
     final runCoins = astra ? astraRunReward(heat) : runReward(heat);
-    final accountCoins = state.isDaily
-        ? 0
-        : astra
-        ? astraAccountReward(heat)
-        : accountReward(heat);
+    final accountCoins = modeAccountReward(state.mode, heat);
     state.runCoins += runCoins + interest + grade.bonus;
     scoringEngine.applyHeatClearJokerHooks();
     for (final modifier in state.modifiers) {
@@ -859,7 +855,7 @@ class GameController extends ChangeNotifier {
           suffix: state.isGauntlet
               ? 'completion:gauntlet'
               : 'completion:standard',
-          amount: standardCompletionBonus,
+          amount: modeCompletionBonus(state.mode),
           kind: AccountMutationKind.completionReward,
           bestHeat: state.stage,
           bestClearedHeat: state.stage,

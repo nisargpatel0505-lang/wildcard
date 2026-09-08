@@ -2,16 +2,31 @@
 
 WILDCARD is a mobile-first arcade roguelike poker game.
 
-## v8 source of truth
+## Official Astra update — v9.1.0
+
+The official native update is **9.1.0 (74)** on `release/v9.1.0-astra`.
+It promotes the approved Astra home, starter draft, opening shops and Journey
+into the existing `com.nisarg.wildcard` app, with its original signing identity
+and consent-gated Google services. The separate offline Astra experiment remains
+on `agent/astra-6-experiment`.
+
+See [release notes](docs/release/WILDCARD-v9.1.0-update.md), the
+[3,000-run economy confirmation](docs/release/v9.1.0-economy/ECONOMY-UPDATE.md),
+and [preserved earlier study](docs/astra/economy-study/COIN-ECONOMY-RECOMMENDATION.md).
+Use the explicit **WILDCARD official Flutter release** workflow for APK/AAB
+builds. The old `v*` tag workflow builds the legacy Capacitor app and must not be
+used to publish this Flutter update.
+
+## Native source of truth
 
 The native game in [`flutter_app/`](flutter_app/) is authoritative for v8 and
 all current development. Gameplay, scoring, progression, rendering, Android
 services and tests run natively in Dart/Flutter; the v8 app does not embed a
 WebView.
 
-Current candidate: **v8.5.0** (`versionCode 64`) on
-`agent/flutter-v8.5.0-chests-progression-arcade`, stacked on the reviewed
-Flutter branch history. The `www/` game and legacy Capacitor `android/` wrapper
+The official release is stacked on the pre-Level Play startup hotfix
+`33fa0ab`, followed by the approved Astra experiment and economy study.
+The `www/` game and legacy Capacitor `android/` wrapper
 remain in this repository only as the released v6 reference, migration input
 and presentation comparison. Do not implement v8 gameplay changes there.
 

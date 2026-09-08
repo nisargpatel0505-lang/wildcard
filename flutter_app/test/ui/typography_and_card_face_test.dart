@@ -102,7 +102,9 @@ void main() {
     );
     await tester.pump();
 
-    final bestHeat = tester.widget<Text>(find.text('BEST HEAT 21'));
+    final bestHeat = tester.widget<Text>(
+      find.textContaining('YOUR BEST: HEAT 21'),
+    );
     final coins = tester.widget<Text>(find.text('5268'));
     expect(bestHeat.style?.shadows, isNull);
     expect(coins.style?.shadows, isNull);

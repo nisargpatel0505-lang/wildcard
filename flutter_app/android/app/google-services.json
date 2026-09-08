@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "420107184674",
+    "project_id": "wildcard-31d50",
+    "storage_bucket": "wildcard-31d50.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420107184674:android:d1249c53cbde7160c2387b",
+        "android_client_info": {
+          "package_name": "com.nisarg.wildcard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "420107184674-26a79h28iopte1vv0jr8100d7h8nggkj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nisarg.wildcard",
+            "certificate_hash": "e05c179491acee689aa1e03a63d979ded95b05c0"
+          }
+        },
+        {
+          "client_id": "420107184674-abuo7egu6p7b83ho39p4ep7sbfksrmeb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nisarg.wildcard",
+            "certificate_hash": "25ec6c50c281981e59a79f2923cae1b6da04349d"
+          }
+        },
+        {
+          "client_id": "420107184674-p2v92s9s4v04ns8v8gcc3f1j8fb37ttk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2t5ndYtfRRxNJ131nRWB9lq28ND_rVfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "420107184674-p2v92s9s4v04ns8v8gcc3f1j8fb37ttk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

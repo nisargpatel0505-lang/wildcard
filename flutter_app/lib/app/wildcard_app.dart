@@ -219,7 +219,7 @@ class _WildcardAppState extends State<WildcardApp> {
           difficulty: request.difficulty,
           dailyDate: dailyDate,
           unlockedJokerIds: widget.controller.account.unlockedJokerIds,
-          initialJokerIds: guided && !astraEnabled
+          initialJokerIds: guided && !astraExperienceEnabled
               ? const ['copper', 'polish']
               : const [],
           startBoostJokerId: starter?.id,

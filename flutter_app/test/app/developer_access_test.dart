@@ -204,8 +204,12 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Debug access active'), findsOneWidget);
-    await tester.tap(find.text('GAUNTLET'));
+    final gauntlet = find.ancestor(
+      of: find.text('Gauntlet'),
+      matching: find.byType(ChoiceChip),
+    );
+    expect(tester.widget<ChoiceChip>(gauntlet).onSelected, isNotNull);
+    await tester.tap(find.text('Gauntlet'));
     await tester.pump();
     await tester.ensureVisible(find.text('DEAL THIS RUN'));
     await tester.tap(find.text('DEAL THIS RUN'));

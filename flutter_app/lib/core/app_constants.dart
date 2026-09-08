@@ -45,6 +45,15 @@ abstract final class AppConstants {
     'coins_8500': 8500,
   };
 
+  /// Keep the launch shop compact. Every historical product remains in
+  /// playProductIds/playCoinGrants so pending purchases and restores still
+  /// deliver exactly the amount originally purchased.
+  static const storefrontCoinProductIds = <String>[
+    'coins_250',
+    'coins_600',
+    'coins_1600',
+  ];
+
   static const legacyAccountKey = 'wildcard_save_v1';
   static const legacyRunKey = 'wildcard_run_v1';
   static const privacyAcceptedKey = 'wildcard_privacy_accept_v1';

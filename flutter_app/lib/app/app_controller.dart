@@ -148,6 +148,7 @@ class AppController extends ChangeNotifier {
   }) async {
     onProgress?.call(.06, 'Opening local save…');
     final local = await LocalSaveRepository.open();
+    if (!astraEnabled) await local.backupBeforeAstraUpgrade();
     onProgress?.call(.22, 'Checking old progress…');
     final migration = await local.migrateLegacySaveIfNeeded();
     onProgress?.call(.38, 'Reading your collection…');
@@ -304,7 +305,7 @@ class AppController extends ChangeNotifier {
   bool _claimingAstraGoal = false;
 
   Future<int> claimAstraMilestone(String id) async {
-    if (!astraEnabled || _claimingAstraGoal) return 0;
+    if (!astraExperienceEnabled || _claimingAstraGoal) return 0;
     final goal = astraJourney.where((step) => step.id == id).firstOrNull;
     if (goal == null || !goal.ready) return 0;
     if (account.coins > 9999999 - goal.rewardCoins) {
@@ -321,7 +322,7 @@ class AppController extends ChangeNotifier {
           : <String>{};
       account.unknownFields[astraJourneyClaimKey] = [...claims, id];
       account.coins += goal.rewardCoins;
-      await persistAccount(syncCloud: false);
+      await persistAccount();
       return goal.rewardCoins;
     } catch (_) {
       account = AccountState.decode(before);
@@ -892,82 +893,95 @@ class AppController extends ChangeNotifier {
     AccountMutation mutation, {
     required String launchDailyDate,
   }) async {
-    final weeklyChanged = _normalizeWeeklyMissions(account);
-    final claim = mutation.claimId.trim();
-    if (claim.isEmpty || claim.length > 96) return false;
-    if (account.rewardClaims.contains(claim)) {
-      if (weeklyChanged) await persistAccount(syncCloud: false);
+    final accountBefore = account.encode();
+    var persisted = false;
+    try {
+      final weeklyChanged = _normalizeWeeklyMissions(account);
+      final claim = mutation.claimId.trim();
+      if (claim.isEmpty || claim.length > 96) return false;
+      if (account.rewardClaims.contains(claim)) {
+        if (weeklyChanged) await persistAccount(syncCloud: false);
+        await _queueDailyScoreIfEligible(mutation);
+        unawaited(_retryPendingDailyScores());
+        return true;
+      }
+
+      final nextCoins = account.coins + mutation.coinDelta;
+      if (nextCoins < 0 || nextCoins > 9999999) return false;
+
+      // A Daily attempt is consumed together with its run-entry mutation. The
+      // controller immediately writes a resumable checkpoint, so an app/process
+      // restart resumes the same deterministic deal instead of burning the day.
+      if (mutation.kind == AccountMutationKind.runEntry &&
+          mutation.runMode == RunMode.daily) {
+        final date = launchDailyDate.isEmpty
+            ? dailyUtcDateKey()
+            : launchDailyDate;
+        if (!isCalendarDateKey(date)) return false;
+        if (account.dailyRunDate == date) return false;
+        account.dailyRunDate = date;
+        account.unknownFields[dailyRunDateUtcMarkerKey] = true;
+      }
+
+      account.coins = nextCoins;
+      account.rewardClaims.add(claim);
+      if (account.rewardClaims.length > 256) {
+        account.rewardClaims.removeRange(0, account.rewardClaims.length - 256);
+      }
+
+      if (mutation.kind == AccountMutationKind.runEntry &&
+          mutation.runMode == RunMode.normal) {
+        account.firstRunStarted = true;
+      }
+
+      // Daily and Gauntlet results are isolated from standard Best Heat/score.
+      if (mutation.runMode == RunMode.normal) {
+        if (mutation.bestHeat case final value?) {
+          account.bestHeat = math.max(account.bestHeat, value);
+        }
+        if (mutation.bestClearedHeat case final value?) {
+          account.bestClearedHeat = math.max(account.bestClearedHeat, value);
+        }
+        if (mutation.bestScore case final value?) {
+          account.bestScore = math.max(account.bestScore, value);
+        }
+      }
+
+      if (mutation.kind == AccountMutationKind.heatReward &&
+          mutation.runMode != RunMode.daily) {
+        _bumpMission('heats', 1);
+      }
+
+      if (mutation.kind == AccountMutationKind.runFinished) {
+        final firstNormalLoss =
+            mutation.runMode == RunMode.normal &&
+            mutation.won != true &&
+            !mutation.abandoned &&
+            mutation.stagesCleared < 12 &&
+            !account.firstLossCoached &&
+            !account.tutorialChestClaimed;
+        if (firstNormalLoss) account.firstLossCoached = true;
+        _recordFinishedRun(mutation);
+      }
+
+      _unlockReachedAchievements(mutation);
       await _queueDailyScoreIfEligible(mutation);
-      unawaited(_retryPendingDailyScores());
+      await persistAccount();
+      persisted = true;
+
+      if (mutation.kind == AccountMutationKind.runFinished) {
+        _sendFinishedRunServices(mutation);
+      }
       return true;
-    }
-
-    final nextCoins = account.coins + mutation.coinDelta;
-    if (nextCoins < 0 || nextCoins > 9999999) return false;
-
-    // A Daily attempt is consumed together with its run-entry mutation. The
-    // controller immediately writes a resumable checkpoint, so an app/process
-    // restart resumes the same deterministic deal instead of burning the day.
-    if (mutation.kind == AccountMutationKind.runEntry &&
-        mutation.runMode == RunMode.daily) {
-      final date = launchDailyDate.isEmpty
-          ? dailyUtcDateKey()
-          : launchDailyDate;
-      if (!isCalendarDateKey(date)) return false;
-      if (account.dailyRunDate == date) return false;
-      account.dailyRunDate = date;
-      account.unknownFields[dailyRunDateUtcMarkerKey] = true;
-    }
-
-    account.coins = nextCoins;
-    account.rewardClaims.add(claim);
-    if (account.rewardClaims.length > 256) {
-      account.rewardClaims.removeRange(0, account.rewardClaims.length - 256);
-    }
-
-    if (mutation.kind == AccountMutationKind.runEntry &&
-        mutation.runMode == RunMode.normal) {
-      account.firstRunStarted = true;
-    }
-
-    // Daily and Gauntlet results are isolated from standard Best Heat/score.
-    if (mutation.runMode == RunMode.normal) {
-      if (mutation.bestHeat case final value?) {
-        account.bestHeat = math.max(account.bestHeat, value);
+    } catch (_) {
+      // A failed disk write must not leave an in-memory claim that makes a
+      // retry look already-paid. Keep committed rewards if later services fail.
+      if (!persisted) {
+        account = AccountState.decode(accountBefore);
+        notifyListeners();
       }
-      if (mutation.bestClearedHeat case final value?) {
-        account.bestClearedHeat = math.max(account.bestClearedHeat, value);
-      }
-      if (mutation.bestScore case final value?) {
-        account.bestScore = math.max(account.bestScore, value);
-      }
+      rethrow;
     }
-
-    if (mutation.kind == AccountMutationKind.heatReward &&
-        mutation.runMode != RunMode.daily) {
-      _bumpMission('heats', 1);
-    }
-
-    if (mutation.kind == AccountMutationKind.runFinished) {
-      final firstNormalLoss =
-          mutation.runMode == RunMode.normal &&
-          mutation.won != true &&
-          !mutation.abandoned &&
-          mutation.stagesCleared < 12 &&
-          !account.firstLossCoached &&
-          !account.tutorialChestClaimed;
-      if (firstNormalLoss) account.firstLossCoached = true;
-      _recordFinishedRun(mutation);
-    }
-
-    _unlockReachedAchievements(mutation);
-    await _queueDailyScoreIfEligible(mutation);
-    await persistAccount();
-
-    if (mutation.kind == AccountMutationKind.runFinished) {
-      _sendFinishedRunServices(mutation);
-    }
-    return true;
   }
 
   void _recordFinishedRun(AccountMutation mutation) {
@@ -1607,7 +1621,9 @@ class AppController extends ChangeNotifier {
       AccountMutation(
         claimId: claimId,
         kind: AccountMutationKind.rewardedDouble,
-        coinDelta: baseCoins,
+        coinDelta: astraExperienceEnabled
+            ? astraRunAdBonus(baseCoins)
+            : baseCoins,
         runMode: mode,
       ),
       launchDailyDate: '',

@@ -11,8 +11,8 @@ void main() {
       ),
     );
 
-    expect(find.text('NEW RUN'), findsOneWidget);
+    expect(find.byKey(const Key('astra-primary-play')), findsOneWidget);
     expect(find.text('250'), findsOneWidget);
-    expect(find.text('BEST HEAT 6'), findsOneWidget);
+    expect(find.textContaining('YOUR BEST: HEAT 6'), findsOneWidget);
   });
 }

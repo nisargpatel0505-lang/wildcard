@@ -53,7 +53,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   void initState() {
     super.initState();
     _astraChoices = astraStarterChoices(DateTime.now().millisecondsSinceEpoch);
-    if (astraEnabled) startJokerId = _astraChoices.first.id;
+    if (astraExperienceEnabled) startJokerId = _astraChoices.first.id;
   }
 
   ProgressionGates get gates => ProgressionGates(
@@ -77,7 +77,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (astraEnabled) return _buildAstra(context);
+    if (astraExperienceEnabled) return _buildAstra(context);
     return WildcardPageFrame(
       title: 'Choose Run',
       subtitle: 'Pick a table, then set your risk.',
@@ -832,9 +832,11 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
 
   void _launch() {
     final joker = startJokerId == null ? null : jokersById[startJokerId];
-    final freeDraft = astraEnabled && mode == RunMode.normal;
+    final freeDraft = astraExperienceEnabled && mode == RunMode.normal;
     final cost = joker == null || freeDraft ? 0 : starterJokerPrice(joker);
-    final launchStake = astraEnabled || mode == RunMode.daily ? 0 : stake;
+    final launchStake = astraExperienceEnabled || mode == RunMode.daily
+        ? 0
+        : stake;
     if (launchStake + cost > widget.account.coins) {
       showWildcardToast(context, 'Not enough account coins.');
       return;

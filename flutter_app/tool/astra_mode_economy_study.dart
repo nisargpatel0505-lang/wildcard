@@ -188,7 +188,9 @@ void main(List<String> args) {
     );
   }
   final report = <String, Object?>{
-    'sourceHead': '700372f + analysis-only harness instrumentation',
+    'sourceHead':
+        (Process.runSync('git', ['rev-parse', 'HEAD']).stdout as String).trim(),
+    'economyVersion': 'astra-promotion-v1-heat4-7-10-13-endless-cap13',
     'sourceGitBlobHashes': sourceHashes,
     'sourceHashesUnchangedAtCompletion': true,
     'generatedAtUtc': DateTime.now().toUtc().toIso8601String(),
@@ -213,6 +215,9 @@ void main(List<String> args) {
       'Default draft: Pair Polisher for adaptive/basic/pair policies; Flush Fund for flush policy. '
           'The --starter option supports rotation or an explicit route for sensitivity checks.',
       'Daily/Gauntlet are shared rules, always Medium internally; no synthetic Easy/Hard variants.',
+      'Shared Gauntlet account rewards use the promoted first eight Heat bands plus 10; '
+          'Daily account rewards remain zero. Play-labeled Normal rows retain legacy rewards.',
+      'Astra Normal/Endless completion pays 20 once; clear rewards are capped at 13 after Heat 12.',
       'Current live Daily shop discovery restriction is retained, not presumed full-catalogue.',
       'Gauntlet entry gate requires a prior Normal win; collection sizes are conditional scenarios.',
       'Endless starts at Heat 1, passes Heat 12 victory without an extra shop, then continues.',
@@ -334,14 +339,19 @@ class _Cell {
 
 int _coins(_Cell cell, int cleared) {
   if (cell.mode == 'daily') return 0;
+  final promoted = cell.rule == 'astra' || cell.mode == 'gauntlet';
   var amount = 0;
   for (var heat = 1; heat <= cleared; heat++) {
-    amount += cell.rule == 'astra'
-        ? astraAccountReward(heat)
+    amount += promoted
+        ? modeAccountReward(cell.runMode, heat)
         : accountReward(heat);
   }
   final completion = cell.mode == 'gauntlet' ? gauntletHeats : 12;
-  if (cleared >= completion) amount += standardCompletionBonus;
+  if (cleared >= completion) {
+    amount += promoted
+        ? modeCompletionBonus(cell.runMode)
+        : standardCompletionBonus;
+  }
   return amount;
 }
 

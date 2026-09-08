@@ -97,6 +97,16 @@ class _ShopHubScreenState extends State<ShopHubScreen>
         _accountWalletCard(),
         const SizedBox(height: 10),
         _rewardCoinsButton(),
+        const SizedBox(height: 10),
+        const WildcardCard(
+          accent: WildcardCardAccent.mint,
+          child: Text(
+            'Play to discover: every Normal run includes a free starter Joker. '
+            'Clear Heats and claim Journey milestones to open Vaults. '
+            'Wood costs 60 coins until you own 15 Jokers, then 100. Gold costs 300.',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+        ),
         if (kDebugMode) ...[
           const SizedBox(height: 10),
           const WildcardCard(
@@ -123,14 +133,18 @@ class _ShopHubScreenState extends State<ShopHubScreen>
               child: CircularProgressIndicator(),
             ),
           ),
-        for (final id in AppConstants.playCoinGrants.keys)
+        for (final id in AppConstants.storefrontCoinProductIds)
           _productRow(id, billing.products[id]),
         _productRow('remove_ads', billing.products['remove_ads']),
-        if (billing.notFoundProductIds.isNotEmpty)
+        if (billing.notFoundProductIds.any(
+          (id) =>
+              AppConstants.storefrontCoinProductIds.contains(id) ||
+              id == 'remove_ads',
+        ))
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(
-              'Unavailable in this Play track: ${billing.notFoundProductIds.join(', ')}',
+              'Some purchases are unavailable right now. Try reopening the shop after connecting to Google Play.',
               style: TextStyle(color: context.wildcard.coral, fontSize: 12),
             ),
           ),
@@ -170,7 +184,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Permanent coins for Vaults, cosmetics and run boosts.',
+                  'Permanent coins for Vaults and cosmetics.',
                   style: TextStyle(
                     color: context.wildcard.creamDim,
                     fontSize: 11.5,

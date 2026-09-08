@@ -873,6 +873,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
     final defeated = result?.reason == RunEndReason.defeated;
     final abandoned = result?.reason == RunEndReason.abandoned;
     final doubleBase = result?.accountCoinsEarned ?? 0;
+    final adBonus = astraExperienceEnabled
+        ? astraRunAdBonus(doubleBase)
+        : doubleBase;
     final doubleClaimId = '${game.runId}:double';
     final doubleClaimed = widget.appController.account.rewardClaims.contains(
       doubleClaimId,
@@ -912,8 +915,8 @@ class _GameHostScreenState extends State<GameHostScreen> {
         if (doubleEligible) ...[
           WildcardButton(
             label: doubleClaimed
-                ? 'Run Coins Doubled · +$doubleBase'
-                : 'Watch Ad · Double +$doubleBase',
+                ? 'Ad Bonus Claimed · +$adBonus'
+                : 'Watch Ad · +$adBonus Bonus',
             icon: Icon(
               doubleClaimed
                   ? Icons.check_circle_outline_rounded

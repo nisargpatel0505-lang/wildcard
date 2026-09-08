@@ -1,0 +1,9 @@
+﻿cellId,oldRuns,newRuns,oldMeanCoins,newMeanCoins,oldWinRate,newWinRate,comparison
+endless/medium/adaptive/full/astra,250,250,95.408,89.116,0.236,0.204,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+gauntlet/medium/adaptive/full/shared,150,250,17.493333333333332,31.756,0.16,0.104,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/easy/adaptive/full/astra,250,250,104.864,103.5,0.644,0.592,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/hard/adaptive/full/astra,250,250,78.96,62.892,0.132,0.084,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/medium/adaptive/full/astra,250,500,89.152,81.15,0.26,0.228,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/medium/adaptive/new/astra,250,500,93.376,90.16,0.172,0.206,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/medium/handRanking/full/astra,250,500,69.8,58.798,0.076,0.048,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"
+normal/medium/handRanking/new/astra,250,500,64.712,50.684,0.0,0.0,"Different seed ranges; prior actual rewards versus implemented promotion, not paired causal estimate"

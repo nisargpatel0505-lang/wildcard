@@ -278,9 +278,9 @@ class JokerChestDefinition {
   final Map<JokerRarity, double> rarityWeights;
   final Map<JokerRarity, List<JokerRarity>> fallbackOrder;
 
-  /// Astra gives the first five discoveries a short, earned introduction.
-  /// Production pricing remains constant.
-  int price([int unlockedCount = 0]) => astraEnabled
+  /// The first five discoveries have a shorter introduction, then the
+  /// standard earned-progression price applies to every later Wood Vault.
+  int price([int unlockedCount = 0]) => astraExperienceEnabled
       ? (tier == JokerChestTier.wood
             ? astraWoodVaultPrice(unlockedCount)
             : astraGoldVaultPrice)
@@ -438,9 +438,9 @@ int gauntletStakePayout(int stake, int cleared) =>
     (gauntletStakePayoutPerHundred[cleared.clamp(0, 8)] * stake / 100).round();
 
 int maximumStake(int accountCoins, {bool gauntlet = false}) {
-  // Measure the core earned-progression loop without the old wager dominating
-  // account income. Only the isolated experiment removes this optional system.
-  if (astraEnabled) return 0;
+  // Progression is earned through play. Existing saved stakes still settle
+  // through their original payout functions; only new wagers are disabled.
+  if (astraExperienceEnabled) return 0;
   var maximum = math.min(
     stakeHardMaximum,
     (accountCoins * 0.25 ~/ stakeStep) * stakeStep,

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../domain/astra_progression.dart';
+
 import '../widgets/wildcard_background.dart';
 import '../widgets/wildcard_button.dart';
 import '../wildcard_theme.dart';
@@ -92,7 +94,9 @@ class AstraHomeContent extends StatelessWidget {
                                 alignment: Alignment.centerLeft,
                                 child: _label(
                                   context,
-                                  'ASTRA 6  /  FIELD TEST',
+                                  astraEnabled
+                                      ? 'ASTRA 6  /  FIELD TEST'
+                                      : 'WILDCARD  /  ASTRA',
                                 ),
                               ),
                             ),
@@ -134,7 +138,7 @@ class AstraHomeContent extends StatelessWidget {
                         SizedBox(height: heroHeight),
                         Semantics(
                           image: true,
-                          label: 'WILDCARD Astra',
+                          label: 'WILDCARD',
                           child: const AspectRatio(
                             aspectRatio: 2191 / 718,
                             child: Image(
@@ -253,11 +257,12 @@ class AstraHomeContent extends StatelessWidget {
                             ),
                           ],
                         ),
-                        Text(
-                          'Local field test · separate progress · no real purchases',
-                          textAlign: TextAlign.center,
-                          style: _text(tokens.creamDim, 10),
-                        ),
+                        if (astraEnabled)
+                          Text(
+                            'Local field test · separate progress · no real purchases',
+                            textAlign: TextAlign.center,
+                            style: _text(tokens.creamDim, 10),
+                          ),
                       ],
                     ),
                   ),
