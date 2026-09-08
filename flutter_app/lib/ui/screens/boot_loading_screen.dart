@@ -95,7 +95,7 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
       _tipTimer?.cancel();
       _tipTimer = null;
     } else {
-      _tipTimer ??= Timer.periodic(const Duration(milliseconds: 1050), (_) {
+      _tipTimer ??= Timer.periodic(const Duration(milliseconds: 4500), (_) {
         if (!mounted || widget.failed) return;
         setState(() => _tipIndex = (_tipIndex + 1) % _bootTips.length);
       });
@@ -116,12 +116,11 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
     final gold = tokens.gold;
     final mint = tokens.mint;
     final width = MediaQuery.sizeOf(context).width;
-    final logoWidth = (width * .60).clamp(205.0, 240.0).toDouble();
-    final panelWidth = (width - 48).clamp(230.0, 300.0).toDouble();
-    return ColoredBox(
+    final logoWidth = (width - 56).clamp(180.0, 340.0).toDouble();
+    return Scaffold(
       key: const ValueKey('wildcard-surface-loading'),
-      color: tokens.pageBackground,
-      child: Stack(
+      backgroundColor: tokens.pageBackground,
+      body: Stack(
         fit: StackFit.expand,
         children: [
           FadeTransition(
@@ -143,8 +142,8 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  tokens.ink.withValues(alpha: .46),
-                  tokens.ink.withValues(alpha: .93),
+                  tokens.ink.withValues(alpha: .34),
+                  tokens.ink.withValues(alpha: .88),
                 ],
               ),
             ),
@@ -152,64 +151,93 @@ class _BootLoadingScreenState extends State<BootLoadingScreen>
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // The native splash centres only the logo. Keep that anchor
-                // independent from the progress copy so Flutter inherits the
-                // exact same position instead of jumping upward.
-                final panelTop =
-                    (constraints.maxHeight / 2 + logoWidth * .165 + 22)
-                        .clamp(0.0, constraints.maxHeight - 96)
-                        .toDouble();
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Center(
-                        child: _BootLogo(
-                          pulse: _logoPulse,
-                          motionDisabled: _motionDisabled,
-                          width: logoWidth,
-                          gold: gold,
-                          mint: mint,
-                        ),
-                      ),
+                // Keep one coherent, scroll-safe composition. Positioned text
+                // previously overlapped at larger text sizes. Scaffold also
+                // supplies a real Material text style instead of Flutter's
+                // yellow-double-underlined emergency fallback.
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    Positioned(
-                      top: panelTop,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: SizedBox(
-                          width: panelWidth,
-                          child: widget.failed
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _RetryPrompt(onRetry: widget.onRetry),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      'Could not start',
-                                      style: TextStyle(
-                                        color: tokens.coral,
-                                        fontFamily: 'Bungee',
-                                        fontSize: 11,
-                                        letterSpacing: 1.2,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 28,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'THE HOUSE IS OPEN',
+                            style: TextStyle(
+                              color: tokens.cream.withValues(alpha: .80),
+                              fontFamily: 'SpaceGrotesk',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              letterSpacing: 2.2,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          _BootLogo(
+                            pulse: _logoPulse,
+                            motionDisabled: _motionDisabled,
+                            width: logoWidth,
+                            gold: gold,
+                            mint: mint,
+                          ),
+                          const SizedBox(height: 28),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 360),
+                            child: widget.failed
+                                ? Card(
+                                    color: tokens.surfaceStrong,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Your table could not open.',
+                                            style: TextStyle(
+                                              color: tokens.cream,
+                                              fontFamily: 'SpaceGrotesk',
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Your saved progress has not been reset.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: tokens.cream.withValues(
+                                                alpha: .72,
+                                              ),
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 18),
+                                          _RetryPrompt(onRetry: widget.onRetry),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                )
-                              : _BootProgressPanel(
-                                  progress: widget.progress,
-                                  visualProgress: widget.visualProgress,
-                                  tip: _bootTips[_tipIndex],
-                                  motionDisabled: _motionDisabled,
-                                  fill: gold,
-                                  track: mint,
-                                  textColor: tokens.cream,
-                                  emptySegmentColor: tokens.disabledFill,
-                                ),
-                        ),
+                                  )
+                                : _BootProgressPanel(
+                                    progress: widget.progress,
+                                    visualProgress: widget.visualProgress,
+                                    tip: _bootTips[_tipIndex],
+                                    fill: gold,
+                                    track: mint,
+                                    textColor: tokens.cream,
+                                    background: tokens.surfaceStrong,
+                                    emptySegmentColor: tokens.disabledFill,
+                                  ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 );
               },
             ),
@@ -292,20 +320,20 @@ class _BootProgressPanel extends StatelessWidget {
     required this.progress,
     required this.visualProgress,
     required this.tip,
-    required this.motionDisabled,
     required this.fill,
     required this.track,
     required this.textColor,
+    required this.background,
     required this.emptySegmentColor,
   });
 
   final ValueListenable<BootProgress>? progress;
   final Animation<double>? visualProgress;
   final String tip;
-  final bool motionDisabled;
   final Color fill;
   final Color track;
   final Color textColor;
+  final Color background;
   final Color emptySegmentColor;
 
   @override
@@ -327,65 +355,106 @@ class _BootProgressPanel extends StatelessWidget {
     );
   }
 
-  Widget _content(BootProgress value, double visibleProgress) => Column(
-    children: [
-      Text(
-        value.label,
-        key: const Key('boot-status-label'),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: track,
-          fontFamily: 'SpaceGrotesk',
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-          letterSpacing: .85,
+  Widget _content(BootProgress value, double visibleProgress) => Container(
+    key: const Key('boot-progress-panel'),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: background.withValues(alpha: .96),
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: fill.withValues(alpha: .46)),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x66000000),
+          blurRadius: 24,
+          offset: Offset(0, 8),
         ),
-      ),
-      const SizedBox(height: 9),
-      _SegmentedLoadBar(
-        progress: visibleProgress,
-        fill: fill,
-        track: track,
-        emptyColor: emptySegmentColor,
-      ),
-      const SizedBox(height: 14),
-      AnimatedSwitcher(
-        duration: motionDisabled
-            ? Duration.zero
-            : const Duration(milliseconds: 240),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: Text.rich(
-          key: ValueKey('boot-tip-$tip'),
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'SLY’S TIP  ',
-                style: TextStyle(
-                  color: fill,
-                  fontFamily: 'SpaceGrotesk',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  letterSpacing: .45,
-                ),
-              ),
-              TextSpan(
-                text: tip,
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'PREPARING YOUR TABLE',
                 style: TextStyle(
                   color: textColor,
                   fontFamily: 'SpaceGrotesk',
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  decoration: TextDecoration.none,
                 ),
               ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${(visibleProgress * 100).round()}%',
+              key: const Key('boot-progress-percent'),
+              style: TextStyle(
+                color: fill,
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
         ),
-      ),
-    ],
+        const SizedBox(height: 14),
+        _SegmentedLoadBar(
+          progress: visibleProgress,
+          fill: fill,
+          track: track,
+          emptyColor: emptySegmentColor,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          value.label,
+          key: const Key('boot-status-label'),
+          style: TextStyle(
+            color: track,
+            fontFamily: 'SpaceGrotesk',
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            height: 1.35,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 17),
+          child: Divider(height: 1, color: fill.withValues(alpha: .20)),
+        ),
+        Text(
+          'SLY’S TIP',
+          style: TextStyle(
+            color: fill,
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+            letterSpacing: 1.3,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        const SizedBox(height: 7),
+        // One readable tip per ordinary launch. No simultaneous old/new text
+        // layers; slow boots can move to another tip after 4.5 seconds.
+        Text(
+          tip,
+          key: ValueKey('boot-tip-$tip'),
+          style: TextStyle(
+            color: textColor,
+            fontFamily: 'SpaceGrotesk',
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -412,31 +481,42 @@ class _SegmentedLoadBar extends StatelessWidget {
       value: '${(value * 100).round()} percent',
       child: SizedBox(
         key: const Key('boot-segmented-progress'),
-        height: 12,
+        height: 16,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var index = 0; index < segmentCount; index++) ...[
               Expanded(
-                child: DecoratedBox(
+                child: ClipRRect(
                   key: ValueKey('boot-progress-segment-$index'),
-                  decoration: BoxDecoration(
-                    color: value >= (index + 1) / segmentCount
-                        ? fill
-                        : emptyColor,
-                    borderRadius: BorderRadius.circular(2),
-                    border: Border.all(
-                      color: value >= (index + 1) / segmentCount
-                          ? fill.withValues(alpha: .95)
-                          : track.withValues(alpha: .34),
+                  borderRadius: BorderRadius.circular(2),
+                  child: ColoredBox(
+                    color: Color.alphaBlend(
+                      track.withValues(alpha: .14),
+                      emptyColor,
                     ),
-                    boxShadow: value >= (index + 1) / segmentCount
-                        ? [
-                            BoxShadow(
-                              color: fill.withValues(alpha: .28),
-                              blurRadius: 4,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: (value * segmentCount - index).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                        heightFactor: 1,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color.lerp(fill, Colors.white, .25)!,
+                                fill,
+                              ],
                             ),
-                          ]
-                        : const [],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

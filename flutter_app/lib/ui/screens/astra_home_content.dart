@@ -6,6 +6,7 @@ import '../../domain/astra_progression.dart';
 
 import '../widgets/wildcard_background.dart';
 import '../widgets/wildcard_button.dart';
+import '../widgets/wildcard_coin.dart';
 import '../wildcard_theme.dart';
 
 /// The field-test home keeps one next step visible without burying the art.
@@ -116,11 +117,7 @@ class AstraHomeContent extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.toll_rounded,
-                                    color: tokens.gold,
-                                    size: 17,
-                                  ),
+                                  const WildcardCoinIcon(size: 20),
                                   const SizedBox(width: 6),
                                   Text(
                                     '${math.max(0, coins)}',

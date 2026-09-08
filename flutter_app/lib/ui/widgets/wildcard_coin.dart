@@ -122,59 +122,102 @@ class _WildcardCoinPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final centre = rect.center;
-    final radius = size.shortestSide / 2;
+    // A single stationary medallion shared by the wallet, prices and rewards.
+    // Normalized geometry keeps the angular mark clear even at 15 logical px.
+    final scale = size.shortestSide / 100;
+    canvas.save();
+    canvas.translate(
+      (size.width - 100 * scale) / 2,
+      (size.height - 100 * scale) / 2,
+    );
+    canvas.scale(scale);
+    const centre = Offset(50, 49);
+    const rimRect = Rect.fromLTWH(3, 2, 94, 94);
+
+    // The low bronze edge gives thickness without a glow or blurred shadow.
+    canvas.drawCircle(
+      const Offset(50, 52),
+      46,
+      Paint()..color = const Color(0xFF885111),
+    );
     canvas.drawCircle(
       centre,
-      radius,
+      47,
       Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-.32, -.36),
-          radius: .9,
-          colors: [Color(0xFFFFF0A4), Color(0xFFF7C548), Color(0xFF9B5512)],
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF0B3), Color(0xFFE9B53D), Color(0xFFAE6D17)],
           stops: [0, .48, 1],
-        ).createShader(rect),
+        ).createShader(rimRect),
     );
     canvas.drawCircle(
       centre,
-      radius * .78,
+      46,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .065
-        ..color = const Color(0xFF8E4A0B),
-    );
-    // The currency mark is a real W, not the generic star used by the first
-    // Flutter pass. A painted path stays crisp at the tiny shop-price sizes.
-    final mark = Path()
-      ..moveTo(size.width * .20, size.height * .30)
-      ..lineTo(size.width * .33, size.height * .72)
-      ..lineTo(size.width * .50, size.height * .49)
-      ..lineTo(size.width * .67, size.height * .72)
-      ..lineTo(size.width * .80, size.height * .30);
-    canvas.drawPath(
-      mark.shift(Offset(0, size.height * .045)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .16
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = const Color(0x659B5512),
-    );
-    canvas.drawPath(
-      mark,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .13
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = const Color(0xFF6C3308),
+        ..strokeWidth = 1.5
+        ..color = const Color(0xFFCD9635),
     );
     canvas.drawCircle(
-      Offset(size.width * .30, size.height * .26),
-      size.width * .09,
-      Paint()..color = Colors.white.withValues(alpha: .58),
+      centre,
+      39,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBE49A), Color(0xFFEBC04F), Color(0xFFD79927)],
+          stops: [0, .55, 1],
+        ).createShader(const Rect.fromLTWH(11, 10, 78, 78)),
     );
+    canvas.drawCircle(
+      centre,
+      39,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..color = const Color(0xFFB47A21),
+    );
+
+    // A short rim reflection replaces the old white glint dot. It never
+    // crosses the letter or animates over the player's balance.
+    canvas.drawArc(
+      const Rect.fromLTWH(6, 5, 88, 88),
+      -2.65,
+      1.22,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0xBFFFF5C9),
+    );
+
+    // Filled straight edges stay legible without a font's tiny-size hinting
+    // or rounded stroke joins swelling the two valleys into a heavy blob.
+    final mark = Path()
+      ..moveTo(26, 31)
+      ..lineTo(34, 31)
+      ..lineTo(41, 58)
+      ..lineTo(47, 41)
+      ..lineTo(53, 41)
+      ..lineTo(59, 58)
+      ..lineTo(66, 31)
+      ..lineTo(74, 31)
+      ..lineTo(63, 70)
+      ..lineTo(56, 70)
+      ..lineTo(50, 53)
+      ..lineTo(44, 70)
+      ..lineTo(37, 70)
+      ..close();
+    if (size.shortestSide >= 28) {
+      canvas.drawPath(
+        mark.shift(const Offset(0, 1.3)),
+        Paint()..color = const Color(0xBFFFF1AE),
+      );
+    }
+    canvas.drawPath(mark, Paint()..color = const Color(0xFF754710));
+    canvas.restore();
   }
 
   @override

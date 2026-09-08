@@ -6,6 +6,7 @@ import '../../domain/astra_progression.dart';
 import 'astra_home_content.dart';
 import '../widgets/wildcard_background.dart';
 import '../widgets/wildcard_button.dart';
+import '../widgets/wildcard_coin.dart';
 import '../wildcard_theme.dart';
 
 void _noOp() {}
@@ -471,7 +472,7 @@ class _CoinBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _CoinDisc(),
+            const WildcardCoinIcon(size: 22),
             const SizedBox(width: 7),
             Text(
               coins.toString(),
@@ -486,30 +487,6 @@ class _CoinBadge extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _CoinDisc extends StatelessWidget {
-  const _CoinDisc();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(-0.35, -0.35),
-          colors: [Color(0xFFFFF6D0), Color(0xFFFFD75E), Color(0xFFA87718)],
-          stops: [0, 0.46, 1],
-        ),
-        border: Border.all(color: const Color(0xFFB8860B), width: 1.4),
-        boxShadow: const [BoxShadow(color: Color(0x99FFD75E), blurRadius: 6)],
-      ),
-      child: const Icon(Icons.star_rounded, size: 11, color: Color(0xFF8A6412)),
     );
   }
 }

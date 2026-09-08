@@ -24,14 +24,19 @@ void main() {
     expect(find.byKey(const Key('boot-logo-image')), findsOneWidget);
     expect(find.byKey(const Key('boot-logo-fallback')), findsNothing);
     expect(
-      tester.getRect(find.byKey(const Key('boot-logo-image'))).center.dy,
-      closeTo(
-        tester.view.physicalSize.height / tester.view.devicePixelRatio / 2,
-        1,
+      tester.getRect(find.byKey(const Key('boot-logo-image'))).bottom,
+      lessThan(
+        tester.getRect(find.byKey(const Key('boot-progress-panel'))).top,
       ),
-      reason:
-          'Flutter must inherit the native splash logo centre without a jump.',
     );
+    expect(
+      DefaultTextStyle.of(
+        tester.element(find.byKey(const Key('boot-status-label'))),
+      ).style.decoration,
+      isNot(TextDecoration.underline),
+      reason: 'Loading text must not inherit Flutter emergency underlines.',
+    );
+    expect(find.text('50%'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -42,12 +47,28 @@ void main() {
       ),
       findsNWidgets(12),
     );
+    for (var index = 0; index < 12; index++) {
+      expect(
+        tester
+            .getSize(find.byKey(ValueKey('boot-progress-segment-$index')))
+            .height,
+        16,
+        reason:
+            'A segment must have painted height, not an invisible zero-height child.',
+      );
+    }
     expect(
       find.byKey(const ValueKey('boot-tip-Commit to one hand type early.')),
       findsOneWidget,
     );
 
     await tester.pump(const Duration(milliseconds: 1000));
+    expect(
+      find.byKey(const ValueKey('boot-tip-Commit to one hand type early.')),
+      findsOneWidget,
+      reason: 'Do not change tips before the player can read them.',
+    );
+    await tester.pump(const Duration(milliseconds: 3500));
     expect(
       find.byKey(const ValueKey('boot-tip-Wild Jokers bend the rules.')),
       findsOneWidget,

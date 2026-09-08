@@ -2,6 +2,10 @@
 
 Build 74, package `com.nisarg.wildcard`, branch `release/v9.1.0-astra`.
 
+**Phone-test candidate, not published to Google Play.** On 8 September the
+owner requested phone testing before any Play update. The live closed-test
+version stays at 8.5.3 (72); unpublished Console edits were discarded.
+
 This update brings the owner's approved Astra experiment into the official
 native app. It is based on the existing Play 8.5.3 release, including its
 release-startup fix. The separate Level/House Rules prototype is not included.
@@ -18,6 +22,14 @@ release-startup fix. The separate Level/House Rules prototype is not included.
   Tutorial completion, Daily eligibility and Gauntlet gates remain effective.
 - Existing themes, illustrated backgrounds, table styles, card artwork, Sly
   reactions and scoring presentation are retained from the approved build.
+- The loading screen now has a properly sized, smoothly filled segmented bar,
+  larger logo, framed status panel and readable tips. A missing Material text
+  ancestor caused yellow fallback underlines; zero-height children hid the bar.
+  Both defects are fixed. Tips remain visible for 4.5 seconds on slower boots,
+  without overlapping crossfades. The existing two-second boot timeline is kept.
+- The home wallet's hollow-circle symbol is replaced by the same crisp gold W
+  medallion used in prices, rewards and the shop. It uses native vector drawing,
+  with no new textures, animations or changes to coin balances.
 
 ## Earned economy
 
@@ -79,17 +91,20 @@ service calls, normally from the Google Play-installed release.
 - 3,000 fresh-seed native engine runs across eight cohorts; zero invariant,
   scorer-fidelity or reward-formula failures. The 40-run pilot is separate.
 - The previous 7,550-run study and the complete new raw data are preserved.
-- Final full regression run: **476 passed, two experiment-only skips, zero
+- Full regression before the final cosmetic follow-up: **476 passed, two experiment-only skips, zero
   failures**. This includes the 2,000-run engine invariant regression, Vault
   odds/idempotency tests, save upgrades and new cloud-startup recovery tests.
   Three earlier outdated Vault price assertions were corrected to the new
   prices before this clean rerun; odds protections were not weakened.
+- After the loading/coin follow-up: **24 targeted presentation tests passed**,
+  including visible bar height, no fallback underlines, four phone-size/text-scale
+  reference images and coin rendering at 15/20/46/96 pixels. Analysis remained clean.
 - Presentation coverage: 320×568, 375×812 and 393×873 at normal and 1.3× text,
   including all home actions, free starter choices and tutorial/Daily gates.
 - Static Flutter analysis: no issues found.
 
-Device installation, packaged signatures and the closed-testing publication
-result are recorded separately in the delivery evidence after verification.
+Device installation and packaged signatures are recorded separately in the
+delivery evidence. Play submission is deliberately deferred for owner testing.
 
 ## Reproduction
 
