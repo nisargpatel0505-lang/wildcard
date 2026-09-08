@@ -6,6 +6,12 @@ Build 74, package `com.nisarg.wildcard`, branch `release/v9.1.0-astra`.
 owner requested phone testing before any Play update. The live closed-test
 version stays at 8.5.3 (72); unpublished Console edits were discarded.
 
+Final signed APK, phone checks and SHA-256 are recorded in
+[delivery evidence](https://github.com/nisargpatel0505-lang/wildcard/blob/release/v9.1.0-astra/docs/release/WILDCARD-v9.1.0-delivery.md).
+One remaining visual caveat: on a cold launch the central logo can appear later
+than the loading bar. The bar/status layout is fixed; first-image readiness
+still needs a follow-up polish pass.
+
 This update brings the owner's approved Astra experiment into the official
 native app. It is based on the existing Play 8.5.3 release, including its
 release-startup fix. The separate Level/House Rules prototype is not included.
