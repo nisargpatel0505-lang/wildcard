@@ -50,12 +50,18 @@ class _ShopHubScreenState extends State<ShopHubScreen>
         ],
         child: Column(
           children: [
-            TabBar(
-              controller: tabs,
-              tabs: const [
-                Tab(text: astraEnabled ? 'EARN COINS' : 'COIN STORE'),
-                Tab(text: 'WARDROBE'),
-              ],
+            ColoredBox(
+              key: const ValueKey('shop-tabs-backing'),
+              color: context.wildcard.liveBackdrop != WildcardLiveBackdrop.none
+                  ? context.wildcard.panelStrong.withValues(alpha: .94)
+                  : Colors.transparent,
+              child: TabBar(
+                controller: tabs,
+                tabs: const [
+                  Tab(text: astraEnabled ? 'EARN COINS' : 'COIN STORE'),
+                  Tab(text: 'WARDROBE'),
+                ],
+              ),
             ),
             Expanded(
               child: TabBarView(

@@ -31,7 +31,12 @@ class WildcardPageFrame extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              Padding(
+              Container(
+                key: const ValueKey('page-navigation-backing'),
+                // Bright room artwork must not wash out page navigation.
+                color: tokens.liveBackdrop != WildcardLiveBackdrop.none
+                    ? tokens.panelStrong.withValues(alpha: .94)
+                    : Colors.transparent,
                 padding: const EdgeInsets.fromLTRB(10, 8, 12, 4),
                 child: Row(
                   children: [

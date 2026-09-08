@@ -30,6 +30,11 @@ No owner APK is uploaded to a public GitHub release.
   Sly category controls. Free previews do not increment earned-cosmetic
   achievements or deliver any coin reward. Final theme pricing/selection is
   deferred until the owner chooses the release candidates.
+- Physical-phone inspection found Jade's bright upper artwork reducing header
+  contrast. New live themes now give page navigation and Shop tabs a dark,
+  theme-matched backing without dimming the whole room. A regression check
+  requires the small header text to retain at least 4.5:1 contrast even over a
+  white artwork highlight.
 - Owner ad suppression skips ad SDK initialization/loading/showing, hides
   reward-ad offers, grants no fake ad rewards and preserves existing Remove
   Forced Ads ownership. Billing and cloud services retain their existing gates.

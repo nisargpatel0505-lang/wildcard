@@ -121,9 +121,24 @@ void main() {
         await tester.runAsync(
           () async => Future<void>.delayed(const Duration(milliseconds: 100)),
         );
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         expect(app.account.equipped.theme, id);
         expect(app.account.coins, 120);
+        final tokens = WildcardThemeTokens.forId(resolveWildcardThemeId(id));
+        final header = tester.widget<Container>(
+          find.byKey(const ValueKey('page-navigation-backing')),
+        );
+        final tabs = tester.widget<ColoredBox>(
+          find.byKey(const ValueKey('shop-tabs-backing')),
+        );
+        expect(header.color, tabs.color);
+        // Even a white highlight in the artwork cannot wash out small labels.
+        final backing = Color.alphaBlend(header.color!, Colors.white);
+        final contrast =
+            (tokens.creamDim.computeLuminance() + .05) /
+            (backing.computeLuminance() + .05);
+        expect(contrast, greaterThanOrEqualTo(4.5));
         expect(tester.takeException(), isNull);
       }
       await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
