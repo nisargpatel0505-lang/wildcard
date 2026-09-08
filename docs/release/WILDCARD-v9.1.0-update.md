@@ -27,6 +27,9 @@ release-startup fix. The separate Level/House Rules prototype is not included.
   ancestor caused yellow fallback underlines; zero-height children hid the bar.
   Both defects are fixed. Tips remain visible for 4.5 seconds on slower boots,
   without overlapping crossfades. The existing two-second boot timeline is kept.
+- Android 12+ removes its native splash overlay when the first Flutter frame is
+  ready, preventing a second logo/dark scrim from fading across the new loader.
+  This follows [Flutter's native splash guidance](https://docs.flutter.dev/platform-integration/android/splash-screen).
 - The home wallet's hollow-circle symbol is replaced by the same crisp gold W
   medallion used in prices, rewards and the shop. It uses native vector drawing,
   with no new textures, animations or changes to coin balances.

@@ -1,6 +1,7 @@
 package com.nisarg.wildcard
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -25,6 +26,13 @@ class MainActivity : FlutterActivity() {
     private var playGamesInitialized = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Flutter draws the real loader on its first frame. Android's
+            // default exit fade otherwise leaves a second, smaller logo and
+            // a dark scrim over that screen while its progress is moving.
+            splashScreen.setOnExitAnimationListener { view -> view.remove() }
+        }
         super.onCreate(savedInstanceState)
         window.decorView.post(::enterImmersiveMode)
     }
