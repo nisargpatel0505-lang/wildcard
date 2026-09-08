@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build:
     # Explicit dispatch only; the existing v* tag workflow builds Capacitor.
-    if: github.ref == 'refs/heads/release/v9.1.0-astra'
+    if: github.ref == 'refs/heads/release/v9.1.1-phone-polish'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     defaults:
@@ -65,8 +65,8 @@ jobs:
           apkanalyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$apkanalyzer"
           test "$("$apkanalyzer" manifest application-id "$apk")" = 'com.nisarg.wildcard'
-          test "$("$apkanalyzer" manifest version-code "$apk")" = '74'
-          test "$("$apkanalyzer" manifest version-name "$apk")" = '9.1.0'
+          test "$("$apkanalyzer" manifest version-code "$apk")" = '75'
+          test "$("$apkanalyzer" manifest version-name "$apk")" = '9.1.1'
           "$apkanalyzer" manifest permissions "$apk" > "$output/permissions.txt"
           grep -Fxq 'android.permission.INTERNET' "$output/permissions.txt"
           grep -Fxq 'com.android.vending.BILLING' "$output/permissions.txt"
@@ -78,14 +78,14 @@ jobs:
           jarsigner -verify "$aab" > "$output/aab-signature-verification.txt"
           keytool -printcert -jarfile "$aab" > "$output/aab-certificate.txt"
           tr -d ':' < "$output/aab-certificate.txt" | tr '[:upper:]' '[:lower:]' | grep -Fq 'c3c281d1470aebf2d99656221ada7815c6b873f4e8a748d7284f5fae5d764717'
-          cp "$apk" "$output/WILDCARD-v9.1.0-code74.apk"
-          cp "$aab" "$output/WILDCARD-v9.1.0-code74.aab"
+          cp "$apk" "$output/WILDCARD-v9.1.1-code75.apk"
+          cp "$aab" "$output/WILDCARD-v9.1.1-code75.aab"
           git rev-parse HEAD > "$output/source-commit.txt"
           flutter --version > "$output/flutter-version.txt"
           sha256sum "$output"/*.apk "$output"/*.aab > "$output/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: WILDCARD-v9.1.0-code74-official
+          name: WILDCARD-v9.1.1-code75-official
           path: flutter_app/build/official-delivery/
           if-no-files-found: error
           retention-days: 30

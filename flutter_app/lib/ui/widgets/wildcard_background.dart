@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../effects_profile.dart';
 import '../wildcard_theme.dart';
+import 'live_theme_atmosphere.dart';
 import 'sly_sprite.dart';
 
 /// Widget tests pump-and-settle whole screens, so the perpetual drift ticker
@@ -56,6 +57,9 @@ class WildcardBackground extends StatelessWidget {
     if (surface case final themedSurface?) {
       return tokens.backgroundAssetFor(themedSurface);
     }
+    if (tokens.liveBackdrop != WildcardLiveBackdrop.none) {
+      return tokens.homeBackgroundAsset;
+    }
     return switch (room) {
       WildcardRoom.themedHome => tokens.homeBackgroundAsset,
       WildcardRoom.runSetup => null,
@@ -76,10 +80,13 @@ class WildcardBackground extends StatelessWidget {
     final strength = tintStrength.clamp(0.0, 1.5).toDouble();
     final atmosphereEnergy = energy.clamp(0.0, 1.25).toDouble();
     final backgroundAsset = _assetFor(tokens);
-    final quietRunSetup = surface != null
-        ? WildcardThemeCoverage.forSurface(surface!).backdrop ==
-              WildcardBackdropRole.runSetup
-        : room == WildcardRoom.runSetup;
+    final liveTheme = tokens.liveBackdrop != WildcardLiveBackdrop.none;
+    final quietRunSetup =
+        !liveTheme &&
+        (surface != null
+            ? WildcardThemeCoverage.forSurface(surface!).backdrop ==
+                  WildcardBackdropRole.runSetup
+            : room == WildcardRoom.runSetup);
     Color tint(Color color) => color.withValues(
       alpha: (color.a * strength).clamp(0.0, 1.0).toDouble(),
     );
@@ -196,14 +203,24 @@ class WildcardBackground extends StatelessWidget {
           // The WebView rooms breathed: three light blobs drifted slowly over
           // the art (`drift1..3`). The blobs are constant subtrees moved by a
           // compositor transform, so the drift costs no repaint of the room.
-          Positioned.fill(
-            child: IgnorePointer(
-              child: _AmbientDrift(
-                enabled: effects.backgroundMotion && !quietRunSetup,
-                intensity: effects.glowScale,
+          if (liveTheme)
+            Positioned.fill(
+              child: LiveThemeAtmosphere(
+                style: tokens.liveBackdrop,
+                primary: tokens.mint,
+                secondary: tokens.gold,
+                motionEnabled: effects.backgroundMotion,
               ),
             ),
-          ),
+          if (!liveTheme)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: _AmbientDrift(
+                  enabled: effects.backgroundMotion && !quietRunSetup,
+                  intensity: effects.glowScale,
+                ),
+              ),
+            ),
           child,
         ],
       ),

@@ -230,6 +230,42 @@ const List<CosmeticDefinition> cosmeticCatalog = <CosmeticDefinition>[
     description: 'The original mint & gold look.',
   ),
   CosmeticDefinition(
+    id: 'theme_midnight_observatory',
+    kind: CosmeticKind.theme,
+    name: 'Midnight Observatory',
+    rarity: JokerRarity.rare,
+    price: 0,
+    description:
+        'Free preview: an ink-blue observatory, champagne trim and drifting starlight.',
+  ),
+  CosmeticDefinition(
+    id: 'theme_jade_conservatory',
+    kind: CosmeticKind.theme,
+    name: 'Jade Conservatory',
+    rarity: JokerRarity.rare,
+    price: 0,
+    description:
+        'Free preview: a jade glasshouse, honey-lit details and a gentle living glow.',
+  ),
+  CosmeticDefinition(
+    id: 'theme_neon_afterhours',
+    kind: CosmeticKind.theme,
+    name: 'Neon Afterhours',
+    rarity: JokerRarity.rare,
+    price: 0,
+    description:
+        'Free preview: an after-hours lounge with cool silver, cyan and soft neon light.',
+  ),
+  CosmeticDefinition(
+    id: 'theme_crimson_theatre',
+    kind: CosmeticKind.theme,
+    name: 'Crimson Theatre',
+    rarity: JokerRarity.rare,
+    price: 0,
+    description:
+        'Free preview: an oxblood theatre, champagne fittings and a slow stage shimmer.',
+  ),
+  CosmeticDefinition(
     id: 'theme_sunset',
     kind: CosmeticKind.theme,
     name: 'Sunset Strip',
@@ -542,11 +578,25 @@ const List<CosmeticDefinition> cosmeticCatalog = <CosmeticDefinition>[
   ),
 ];
 
+/// Temporary room previews are free to equip, not earned collection rewards.
+const Set<String> previewThemeIds = <String>{
+  'theme_midnight_observatory',
+  'theme_jade_conservatory',
+  'theme_neon_afterhours',
+  'theme_crimson_theatre',
+};
+
 const Set<String> defaultCosmeticIds = <String>{
   'felt_classic',
   'theme_default',
   'sly_classic',
+  ...previewThemeIds,
 };
+
+/// Preserve the original three starter cosmetics in achievement totals while
+/// excluding free preview themes, even if an older save explicitly lists them.
+int cosmeticAchievementCount(Iterable<String> ownedIds) =>
+    ({...ownedIds, ...defaultCosmeticIds}..removeAll(previewThemeIds)).length;
 
 CosmeticDefinition? cosmeticById(String id) {
   for (final cosmetic in cosmeticCatalog) {

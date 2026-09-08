@@ -3,6 +3,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wildcard/ui/screens/boot_loading_screen.dart';
 
 void main() {
+  testWidgets(
+    'cold logo has stable space and readable first-frame placeholder',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: BootLoadingScreen()));
+      final slot = tester.widget<SizedBox>(
+        find.byKey(const Key('boot-logo-slot')),
+      );
+      expect(slot.width! / slot.height!, closeTo(2191 / 718, .00001));
+      final image = tester.widget<Image>(
+        find.byKey(const Key('boot-logo-image')),
+      );
+      expect(image.fit, BoxFit.contain);
+      expect(image.frameBuilder, isNotNull);
+
+      // Exercise a genuinely pending decode independently of warm asset caches.
+      // A zero-frame image must show the wordmark, not an empty native handoff.
+      final builder = image.frameBuilder!;
+      for (final state in <(int?, bool, bool)>[
+        (null, false, true),
+        (0, false, false),
+        (null, true, false),
+      ]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => SizedBox(
+                  width: slot.width,
+                  height: slot.height,
+                  child: builder(
+                    context,
+                    const ColoredBox(
+                      key: Key('decoded-logo-frame'),
+                      color: Colors.amber,
+                    ),
+                    state.$1,
+                    state.$2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(
+          find.byKey(const Key('boot-logo-placeholder')),
+          state.$3 ? findsOneWidget : findsNothing,
+        );
+        expect(find.text('WILDCARD'), state.$3 ? findsOneWidget : findsNothing);
+        expect(
+          find.byKey(const Key('decoded-logo-frame')),
+          state.$3 ? findsNothing : findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
   testWidgets('boot screen renders real milestone labels and failure recovery', (
     tester,
   ) async {

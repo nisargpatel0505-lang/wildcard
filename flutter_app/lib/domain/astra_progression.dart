@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'game_rules.dart';
 import 'joker_catalog.dart';
 
@@ -11,22 +13,107 @@ const bool astraExperienceEnabled = true;
 
 const List<String> astraStarterJokerIds = <String>[
   'polish',
-  'flushfund',
-  'wire',
+  'uniform',
+  'fulltable',
 ];
 
-/// Three readable build routes, without consuming any deck/shop/luck RNG.
-List<JokerDefinition> astraStarterChoices(int seed) {
-  final offset = (seed & 0x7fffffff) % astraStarterJokerIds.length;
-  return List<JokerDefinition>.unmodifiable(
-    List<JokerDefinition>.generate(
-      astraStarterJokerIds.length,
-      (index) =>
-          jokersById[astraStarterJokerIds[(index + offset) %
-              astraStarterJokerIds.length]]!,
-    ),
-  );
+/// The three hand-building routes used by the approved opening draft.
+/// These are starter roles, not a replacement for collection rarity/effects.
+enum StarterEngine { pairs, suits, straights }
+
+const Map<StarterEngine, List<String>> _engineStarterIds = {
+  StarterEngine.pairs: [
+    'polish',
+    'trainer',
+    'frequency_meter',
+    'tailor',
+    'two_faced',
+    'understudy',
+    'twin_study',
+    'alchemist',
+  ],
+  StarterEngine.suits: [
+    'uniform',
+    'presser',
+    'flushfund',
+    'inktrade',
+    'pocketflush',
+    'color_wash',
+    'prism_lens',
+    'ice_pick',
+    'union_boss',
+    'gravedigger',
+    'rose_tint',
+    'monochrome',
+    'suit_swap',
+  ],
+  StarterEngine.straights: [
+    'fulltable',
+    'wire',
+    'shortcut',
+    'gap_filler',
+    'cheat',
+  ],
+};
+
+/// Ordered, public and available candidates for a single engine. The public
+/// starter set is always available, including during new-save onboarding.
+/// Generic support Jokers stay in run shops; they do not pretend to define a
+/// Pair/Suit/Straight route. No locked or developer Joker can enter a draft.
+List<JokerDefinition> starterEnginePool(
+  StarterEngine engine, {
+  Iterable<String> unlockedJokerIds = const <String>[],
+}) {
+  final owned = unlockedJokerIds.toSet();
+  final publicById = {for (final joker in jokerCatalog) joker.id: joker};
+  return List<JokerDefinition>.unmodifiable([
+    for (final id in _engineStarterIds[engine]!)
+      if (publicById[id] case final joker?)
+        if (joker.starter || owned.contains(id)) joker,
+  ]);
 }
+
+bool canUseAstraStarter(String id, Iterable<String> unlockedJokerIds) =>
+    StarterEngine.values.any(
+      (engine) => starterEnginePool(
+        engine,
+        unlockedJokerIds: unlockedJokerIds,
+      ).any((joker) => joker.id == id),
+    );
+
+/// A random first candidate per engine. Every list can then be cycled without
+/// further RNG. This local RNG is deliberately separate from all gameplay
+/// streams: browsing the draft never rerolls the deal, shops or Joker luck.
+List<List<JokerDefinition>> astraStarterDraft(
+  int seed, {
+  Iterable<String> unlockedJokerIds = const <String>[],
+}) => List<List<JokerDefinition>>.unmodifiable([
+  for (final engine in StarterEngine.values)
+    (() {
+      final pool = starterEnginePool(
+        engine,
+        unlockedJokerIds: unlockedJokerIds,
+      );
+      final offset = math.Random(
+        (seed & 0x7fffffff) ^ ((engine.index + 1) * 0x45d9f3b),
+      ).nextInt(pool.length);
+      return List<JokerDefinition>.unmodifiable([
+        ...pool.skip(offset),
+        ...pool.take(offset),
+      ]);
+    })(),
+]);
+
+List<JokerDefinition> astraStarterChoices(
+  int seed, {
+  Iterable<String> unlockedJokerIds = const <String>[],
+}) => List<JokerDefinition>.unmodifiable([
+  for (final pool in astraStarterDraft(
+    seed,
+    unlockedJokerIds: unlockedJokerIds,
+  ))
+    pool.first,
+]);
 
 bool usesAstraEconomy(RunMode mode, {bool enabled = astraExperienceEnabled}) =>
     enabled && mode == RunMode.normal;

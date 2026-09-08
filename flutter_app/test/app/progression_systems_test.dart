@@ -27,6 +27,38 @@ void main() {
     );
   });
 
+  test(
+    'free room previews equip without earning a collection reward',
+    () async {
+      final app = await AppController.bootstrap();
+      addTearDown(app.dispose);
+      final ownedBefore = app.account.cosmeticsOwned.toSet();
+      final coinsBefore = app.account.coins;
+      for (final id in previewThemeIds) {
+        expect(await app.equipCosmetic(id), isTrue);
+        expect(app.account.equipped.theme, id);
+        expect(app.account.cosmeticsOwned, ownedBefore);
+        expect(app.account.coins, coinsBefore);
+        expect(app.progressionSnapshot.cosmeticsOwned, 3);
+        expect(
+          achievementIsDone('couture_5', app.progressionSnapshot),
+          isFalse,
+        );
+        expect(badgeIsEarned('b_cos', app.progressionSnapshot), isFalse);
+        expect(
+          await app.claimAchievement('couture_5', app.progressionSnapshot),
+          0,
+        );
+      }
+      final restarted = await AppController.bootstrap();
+      addTearDown(restarted.dispose);
+      expect(restarted.account.equipped.theme, 'theme_crimson_theatre');
+      expect(restarted.account.cosmeticsOwned, ownedBefore);
+      expect(restarted.account.coins, coinsBefore);
+      expect(restarted.progressionSnapshot.cosmeticsOwned, 3);
+    },
+  );
+
   test('daily reward grants Day 1 once and persists tomorrow state', () async {
     final app = await AppController.bootstrap();
     addTearDown(app.dispose);

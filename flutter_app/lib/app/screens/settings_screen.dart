@@ -150,11 +150,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   widget.controller.billing.lastError,
                 ),
                 const SizedBox(height: 8),
-                _serviceStatus(
-                  'Advertising consent',
-                  widget.controller.ads.state == AdServiceState.ready,
-                  widget.controller.ads.lastError,
-                ),
+                if (widget.controller.ads.adsEnabled)
+                  _serviceStatus(
+                    'Advertising consent',
+                    widget.controller.ads.state == AdServiceState.ready,
+                    widget.controller.ads.lastError,
+                  )
+                else
+                  _statusCard(
+                    icon: Icons.block_rounded,
+                    title: 'Ads off for phone testing',
+                    subtitle:
+                        'Public builds keep ads. Your purchased entitlements are unchanged.',
+                  ),
                 if (widget.controller.ads.privacyOptionsRequired) ...[
                   const SizedBox(height: 8),
                   WildcardButton(

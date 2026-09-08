@@ -41,7 +41,13 @@ void main(List<String> arguments) {
           final results = <SimulatedRunResult>[];
           for (var index = 0; index < runs; index++) {
             final seed = 0xA5700600 + index;
-            final starter = astra ? astraStarterChoices(seed).first.id : null;
+            final choices = astraStarterChoices(
+              seed,
+              unlockedJokerIds: full
+                  ? jokerCatalog.map((joker) => joker.id)
+                  : starterJokerIds,
+            );
+            final starter = astra ? choices[seed % choices.length].id : null;
             final batch = harness.runBatch(
               SimulationConfig(
                 runs: 1,

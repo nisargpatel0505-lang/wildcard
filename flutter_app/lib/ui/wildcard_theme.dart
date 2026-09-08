@@ -25,6 +25,19 @@ enum WildcardThemeId {
   spadesKingdom,
   diamondsKingdom,
   clubsKingdom,
+  midnightObservatory,
+  jadeConservatory,
+  neonAfterhours,
+  crimsonTheatre,
+}
+
+/// Lightweight native ambience attached only to the new live-room themes.
+enum WildcardLiveBackdrop {
+  none,
+  observatory,
+  conservatory,
+  afterhours,
+  theatre,
 }
 
 /// Every player-facing surface that must inherit the equipped UI theme.
@@ -216,6 +229,22 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
       'assets/art/chests/wildcard-sly-vault-room.webp';
   static const String houseBackground =
       'assets/art/backgrounds/wildcard-the-house-boss-room.webp';
+  static const String midnightObservatoryBackground =
+      'assets/art/backgrounds/wildcard-theme-midnight-observatory.webp';
+  static const String jadeConservatoryBackground =
+      'assets/art/backgrounds/wildcard-theme-jade-conservatory.webp';
+  static const String neonAfterhoursBackground =
+      'assets/art/backgrounds/wildcard-theme-neon-afterhours.webp';
+  static const String crimsonTheatreBackground =
+      'assets/art/backgrounds/wildcard-theme-crimson-theatre.webp';
+
+  WildcardLiveBackdrop get liveBackdrop => switch (homeBackgroundAsset) {
+    midnightObservatoryBackground => WildcardLiveBackdrop.observatory,
+    jadeConservatoryBackground => WildcardLiveBackdrop.conservatory,
+    neonAfterhoursBackground => WildcardLiveBackdrop.afterhours,
+    crimsonTheatreBackground => WildcardLiveBackdrop.theatre,
+    _ => WildcardLiveBackdrop.none,
+  };
 
   static const classic = WildcardThemeTokens(
     ink: Color(0xFF0D1A15),
@@ -509,6 +538,90 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
           gameplayBackgroundAsset:
               'assets/art/backgrounds/wildcard-kingdom-clubs-gameplay.webp',
         );
+      case WildcardThemeId.midnightObservatory:
+        return const WildcardThemeTokens(
+          ink: Color(0xFF080F1F),
+          felt: Color(0xFF10243A),
+          feltHighlight: Color(0xFF203F58),
+          line: Color(0xA38DADB8),
+          cream: Color(0xFFF3F4EF),
+          creamDim: Color(0xFFC2CAD5),
+          gold: Color(0xFFE9CCA0),
+          mint: Color(0xFF8CDFF0),
+          coral: Color(0xFFF7908B),
+          violet: Color(0xFFB8ABEF),
+          rare: Color(0xFFF2BC79),
+          wild: Color(0xFFE8A6E2),
+          panel: Color(0xE6101C31),
+          panelStrong: Color(0xF50B1425),
+          artTintTop: Color(0x05071020),
+          artTintMiddle: Color(0x29081020),
+          artTintBottom: Color(0x99050C1A),
+          homeBackgroundAsset: midnightObservatoryBackground,
+        );
+      case WildcardThemeId.jadeConservatory:
+        return const WildcardThemeTokens(
+          ink: Color(0xFF07221D),
+          felt: Color(0xFF10372D),
+          feltHighlight: Color(0xFF1B5344),
+          line: Color(0xA3B4C997),
+          cream: Color(0xFFFAF4DC),
+          creamDim: Color(0xFFC6D8BF),
+          gold: Color(0xFFEDD18B),
+          mint: Color(0xFF9AE5BF),
+          coral: Color(0xFFEEA392),
+          violet: Color(0xFFC3C4F1),
+          rare: Color(0xFFF1C177),
+          wild: Color(0xFFEBAAD7),
+          panel: Color(0xE6103028),
+          panelStrong: Color(0xF508211A),
+          artTintTop: Color(0x05163222),
+          artTintMiddle: Color(0x29112E22),
+          artTintBottom: Color(0x99071A13),
+          homeBackgroundAsset: jadeConservatoryBackground,
+        );
+      case WildcardThemeId.neonAfterhours:
+        return const WildcardThemeTokens(
+          ink: Color(0xFF100D21),
+          felt: Color(0xFF21153B),
+          feltHighlight: Color(0xFF302A52),
+          line: Color(0xA39C9DCF),
+          cream: Color(0xFFEDF4FC),
+          creamDim: Color(0xFFC9C3DD),
+          gold: Color(0xFFD4DFFF),
+          mint: Color(0xFF73E7FA),
+          coral: Color(0xFFFF9EB0),
+          violet: Color(0xFFD4ABFE),
+          rare: Color(0xFFFFD293),
+          wild: Color(0xFFF3A4ED),
+          panel: Color(0xE619132D),
+          panelStrong: Color(0xF5110C22),
+          artTintTop: Color(0x05180F2B),
+          artTintMiddle: Color(0x29140C27),
+          artTintBottom: Color(0x990C071D),
+          homeBackgroundAsset: neonAfterhoursBackground,
+        );
+      case WildcardThemeId.crimsonTheatre:
+        return const WildcardThemeTokens(
+          ink: Color(0xFF160B12),
+          felt: Color(0xFF371824),
+          feltHighlight: Color(0xFF532538),
+          line: Color(0xA3D3A48D),
+          cream: Color(0xFFFDF0DE),
+          creamDim: Color(0xFFDCC7BC),
+          gold: Color(0xFFEDD0A2),
+          mint: Color(0xFFF1A6B8),
+          coral: Color(0xFFFFA096),
+          violet: Color(0xFFD2B1DE),
+          rare: Color(0xFFF4B586),
+          wild: Color(0xFFEBADD5),
+          panel: Color(0xE632121E),
+          panelStrong: Color(0xF51F0D15),
+          artTintTop: Color(0x05281119),
+          artTintMiddle: Color(0x29240C17),
+          artTintBottom: Color(0x99150811),
+          homeBackgroundAsset: crimsonTheatreBackground,
+        );
     }
   }
 
@@ -625,6 +738,11 @@ class WildcardThemeTokens extends ThemeExtension<WildcardThemeTokens> {
   }
 
   String? backgroundAssetFor(WildcardUiSurface surface) {
+    final role = WildcardThemeCoverage.forSurface(surface).backdrop;
+    if (role == WildcardBackdropRole.none) return null;
+    // These four room candidates form a complete visual world, including the
+    // run picker, shop and Vault. Legacy themes retain their authored rooms.
+    if (liveBackdrop != WildcardLiveBackdrop.none) return homeBackgroundAsset;
     return switch (WildcardThemeCoverage.forSurface(surface).backdrop) {
       WildcardBackdropRole.equippedTheme => homeBackgroundAsset,
       WildcardBackdropRole.equippedGameplayTheme =>

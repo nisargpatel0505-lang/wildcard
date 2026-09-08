@@ -72,6 +72,19 @@ void main() {
     }
   });
 
+  test('free live room candidates have dedicated mappings', () {
+    const candidates = <String, WildcardThemeId>{
+      'theme_midnight_observatory': WildcardThemeId.midnightObservatory,
+      'theme_jade_conservatory': WildcardThemeId.jadeConservatory,
+      'theme_neon_afterhours': WildcardThemeId.neonAfterhours,
+      'theme_crimson_theatre': WildcardThemeId.crimsonTheatre,
+    };
+    expect(candidates.keys.toSet(), previewThemeIds);
+    for (final entry in candidates.entries) {
+      expect(requireWildcardThemeId(entry.key), entry.value);
+    }
+  });
+
   test('fallback and strict resolver semantics remain explicit', () {
     expect(resolveWildcardThemeId('missing'), WildcardThemeId.classic);
     expect(resolveSlySkin('missing'), SlySkin.classic);

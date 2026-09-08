@@ -24,15 +24,18 @@ void main() {
     skip: !astraEnabled,
   );
   test(
-    'draft has three distinct hand engines and zero account progression',
+    'draft has three available hand engines and unchanged account rewards',
     () {
       for (var seed = 0; seed < 30; seed++) {
         final choices = astraStarterChoices(seed);
-        expect(choices.map((joker) => joker.id).toSet(), <String>{
-          'polish',
-          'flushfund',
-          'wire',
-        });
+        expect(choices, hasLength(3));
+        expect(choices.map((joker) => joker.id).toSet(), hasLength(3));
+        for (final engine in StarterEngine.values) {
+          expect(
+            starterEnginePool(engine).map((joker) => joker.id),
+            contains(choices[engine.index].id),
+          );
+        }
         expect(
           choices.any((joker) => joker.effect == JokerEffect.devTwentyX),
           false,

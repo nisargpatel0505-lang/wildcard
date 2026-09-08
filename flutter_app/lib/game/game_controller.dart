@@ -54,12 +54,13 @@ class GameController extends ChangeNotifier {
         .toList();
     String? acceptedStartBoostId;
     if (config.startBoostJokerId case final id?) {
+      final available = usesAstraEconomy(config.mode)
+          ? canUseAstraStarter(id, config.unlockedJokerIds)
+          : config.unlockedJokerIds.contains(id) ||
+                (devJokerAvailable &&
+                    jokersById[id]?.effect == JokerEffect.devTwentyX);
       if (jokersById.containsKey(id) &&
-          (config.unlockedJokerIds.contains(id) ||
-              (usesAstraEconomy(config.mode) &&
-                  astraStarterJokerIds.contains(id)) ||
-              (devJokerAvailable &&
-                  jokersById[id]?.effect == JokerEffect.devTwentyX)) &&
+          available &&
           !initialJokers.contains(id) &&
           initialJokers.length < maxJokers) {
         initialJokers.add(id);
@@ -90,9 +91,7 @@ class GameController extends ChangeNotifier {
       dailyDate: config.dailyDate,
       startBoostJoker: acceptedStartBoostId,
       startBoostCost:
-          acceptedStartBoostId == null ||
-              (usesAstraEconomy(config.mode) &&
-                  astraStarterJokerIds.contains(acceptedStartBoostId))
+          acceptedStartBoostId == null || usesAstraEconomy(config.mode)
           ? 0
           : math.max(0, config.startBoostCost),
       stake: astraExperienceEnabled ? 0 : math.max(0, config.stake),

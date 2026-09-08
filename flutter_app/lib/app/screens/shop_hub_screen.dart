@@ -24,6 +24,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
     with SingleTickerProviderStateMixin {
   late final TabController tabs;
   bool busy = false;
+  CosmeticKind wardrobeKind = CosmeticKind.theme;
 
   @override
   void initState() {
@@ -107,12 +108,12 @@ class _ShopHubScreenState extends State<ShopHubScreen>
             style: TextStyle(fontSize: 13, height: 1.4),
           ),
         ),
-        if (kDebugMode) ...[
+        if (kDebugMode && widget.controller.ads.adsEnabled) ...[
           const SizedBox(height: 10),
           const WildcardCard(
             accent: WildcardCardAccent.gold,
             child: Text(
-              'TEST BUILD\nDemo ads are expected in this sideloaded APK. Google Play products become available when the app is installed from the Internal Testing track.',
+              'TEST BUILD\nDemo ads are enabled. Test purchases require configured Google Play products and a license-testing account.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11.5, height: 1.3),
             ),
@@ -202,7 +203,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
   }
 
   Widget _rewardCoinsButton() {
-    if (astraEnabled) return const SizedBox.shrink();
+    if (!widget.controller.ads.adsEnabled) return const SizedBox.shrink();
     final left = widget.controller.rewardedViewsLeftToday;
     return WildcardButton(
       key: const Key('shop-reward-coins'),
@@ -340,7 +341,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Buy once, then switch your felts, themes and Sly looks whenever you like.',
+                      'Try four free live rooms, or browse your tables and Sly looks.',
                       style: TextStyle(
                         color: context.wildcard.creamDim,
                         fontSize: 11,
@@ -353,18 +354,120 @@ class _ShopHubScreenState extends State<ShopHubScreen>
             ],
           ),
         ),
-        for (final kind in CosmeticKind.values) ...[
-          ScreenSectionTitle(switch (kind) {
-            CosmeticKind.table => 'Table felts',
-            CosmeticKind.theme => 'UI themes',
-            CosmeticKind.sly => 'Sly looks',
-          }),
-          for (final cosmetic in cosmeticCatalog.where(
-            (item) => item.kind == kind,
-          ))
-            _cosmeticRow(cosmetic),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final kind in [
+              CosmeticKind.theme,
+              CosmeticKind.table,
+              CosmeticKind.sly,
+            ])
+              ChoiceChip(
+                label: Text(switch (kind) {
+                  CosmeticKind.theme => 'Themes',
+                  CosmeticKind.table => 'Tables',
+                  CosmeticKind.sly => 'Sly',
+                }),
+                selected: wardrobeKind == kind,
+                labelStyle: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: context.wildcard.cream,
+                ),
+                onSelected: (_) => setState(() => wardrobeKind = kind),
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+              ),
+          ],
+        ),
+        if (wardrobeKind == CosmeticKind.theme) ...[
+          const ScreenSectionTitle('Live theme studio · free previews'),
+          LayoutBuilder(
+            builder: (context, constraints) => Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final cosmetic in cosmeticCatalog.where(
+                  (c) => previewThemeIds.contains(c.id),
+                ))
+                  SizedBox(
+                    width: (constraints.maxWidth - 10) / 2,
+                    child: _liveThemeCard(cosmetic),
+                  ),
+              ],
+            ),
+          ),
+          const ScreenSectionTitle('Your other themes'),
         ],
+        for (final cosmetic in cosmeticCatalog.where(
+          (item) =>
+              item.kind == wardrobeKind && !previewThemeIds.contains(item.id),
+        ))
+          _cosmeticRow(cosmetic),
       ],
+    );
+  }
+
+  Widget _liveThemeCard(CosmeticDefinition cosmetic) {
+    final palette = WildcardThemeTokens.forId(
+      resolveWildcardThemeId(cosmetic.id),
+    );
+    final equipped = widget.controller.account.equipped.theme == cosmetic.id;
+    return Container(
+      key: ValueKey('studio-${cosmetic.id}'),
+      decoration: BoxDecoration(
+        color: palette.surfaceStrong,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: equipped ? palette.mint : palette.gold.withValues(alpha: .5),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Image.asset(
+            palette.homeBackgroundAsset,
+            height: 88,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            cacheWidth: 400,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 9, 10, 0),
+            child: Text(
+              cosmetic.name,
+              style: TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: palette.cream,
+                height: 1.15,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 5, 8, 6),
+            child: TextButton(
+              key: ValueKey('equip-${cosmetic.id}'),
+              onPressed: busy || equipped ? null : () => _equip(cosmetic.id),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                foregroundColor: palette.mint,
+                disabledForegroundColor: palette.cream,
+              ),
+              child: Text(
+                equipped ? 'EQUIPPED' : 'TRY THEME',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

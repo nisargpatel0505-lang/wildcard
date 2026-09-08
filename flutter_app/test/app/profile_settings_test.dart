@@ -59,7 +59,7 @@ void main() {
     expect(summary.recentAverageHeat, '7.5');
     expect(summary.standardWins, 2);
     expect(summary.lossesAndFolds, 7);
-    expect(summary.themesOwned, 2);
+    expect(summary.themesOwned, 2 + previewThemeIds.length);
     expect(summary.tablesOwned, 2);
     expect(summary.slyLooksOwned, 2);
     expect(summary.badgesEarned, 9);

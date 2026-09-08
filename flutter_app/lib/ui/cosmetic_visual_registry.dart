@@ -29,6 +29,10 @@ const Map<String, WildcardThemeId> wildcardThemeByCosmeticId =
       'theme_spades_kingdom': WildcardThemeId.spadesKingdom,
       'theme_diamonds_kingdom': WildcardThemeId.diamondsKingdom,
       'theme_clubs_kingdom': WildcardThemeId.clubsKingdom,
+      'theme_midnight_observatory': WildcardThemeId.midnightObservatory,
+      'theme_jade_conservatory': WildcardThemeId.jadeConservatory,
+      'theme_neon_afterhours': WildcardThemeId.neonAfterhours,
+      'theme_crimson_theatre': WildcardThemeId.crimsonTheatre,
     };
 
 /// The single visual mapping for every Sly cosmetic.

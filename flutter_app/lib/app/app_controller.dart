@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/app_constants.dart';
+import '../core/build_options.dart';
 import '../core/daily_utc_date.dart';
 import '../domain/account_state.dart';
 import '../domain/astra_progression.dart';
@@ -43,16 +44,18 @@ class CloudAccountConflict implements Exception {
       'phone progress before linking this account.';
 }
 
-/// Profile APKs are local owner builds and suppress forced interstitials.
+/// Profile APKs suppress forced interstitials; the explicit owner test switch
+/// also disables every ad placement in [AdService].
 ///
 /// The override is deliberately derived from build mode and is never written
 /// into [AccountState], so installing a later Play release cannot manufacture
-/// or overwrite the paid `noAds` entitlement. Optional rewarded placements
-/// remain opt-in and still require a completed ad.
+/// or overwrite the paid `noAds` entitlement. In public builds, optional
+/// rewarded placements remain opt-in and still require a completed ad.
 bool effectiveNoAdsFor(
   AccountState account, {
   bool profileBuild = kProfileMode,
-}) => account.noAds || profileBuild || astraEnabled;
+  bool ownerNoAds = ownerPhoneNoAdsBuild,
+}) => account.noAds || profileBuild || astraEnabled || ownerNoAds;
 
 /// Coordinates durable progress and every consent-gated platform service.
 ///
@@ -377,7 +380,7 @@ class AppController extends ChangeNotifier {
     bestScore: account.bestScore,
     coins: account.coins,
     unlockedJokers: publicUnlockedJokerCount(account.unlockedJokerIds),
-    cosmeticsOwned: account.cosmeticsOwned.length + defaultCosmeticIds.length,
+    cosmeticsOwned: cosmeticAchievementCount(account.cosmeticsOwned),
     titleEquipped: account.title.isNotEmpty,
     gauntletWins: account.stats.gauntletWins,
     runsPlayed: account.stats.runs,
@@ -1194,7 +1197,7 @@ class AppController extends ChangeNotifier {
           .where((value) => value)
           .length,
       titleEquipped: account.title.isNotEmpty,
-      cosmeticsOwned: account.cosmeticsOwned.length + defaultCosmeticIds.length,
+      cosmeticsOwned: cosmeticAchievementCount(account.cosmeticsOwned),
       stakePaid: mutation.kind == AccountMutationKind.stakeSettlement,
       stakeNet: mutation.kind == AccountMutationKind.stakeSettlement
           ? mutation.coinDelta
@@ -1626,7 +1629,7 @@ class AppController extends ChangeNotifier {
   }
 
   int get rewardedViewsLeftToday {
-    if (astraEnabled) return 0;
+    if (!ads.adsEnabled) return 0;
     final today = _todayString();
     if (account.adDate != today) return 5;
     return (5 - account.adViews).clamp(0, 5);

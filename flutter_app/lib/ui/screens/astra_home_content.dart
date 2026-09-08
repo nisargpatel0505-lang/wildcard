@@ -90,17 +90,20 @@ class AstraHomeContent extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: _label(
-                                  context,
-                                  astraEnabled
-                                      ? 'ASTRA 6  /  FIELD TEST'
-                                      : 'WILDCARD  /  ASTRA',
+                            if (astraEnabled)
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _label(
+                                    context,
+                                    'ASTRA 6  /  FIELD TEST',
+                                  ),
                                 ),
-                              ),
-                            ),
+                              )
+                            // The official home leaves the room art clear;
+                            // only the isolated offline experiment is branded.
+                            else
+                              const Spacer(),
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -238,6 +241,12 @@ class AstraHomeContent extends StatelessWidget {
                                 ),
                                 label: const Text('Settings'),
                                 style: TextButton.styleFrom(
+                                  foregroundColor: tokens.mint,
+                                  textStyle: _text(
+                                    tokens.mint,
+                                    14,
+                                    weight: FontWeight.w700,
+                                  ),
                                   minimumSize: const Size(48, 48),
                                 ),
                               ),
@@ -248,6 +257,12 @@ class AstraHomeContent extends StatelessWidget {
                                 icon: const Icon(Icons.more_horiz_rounded),
                                 label: const Text('More'),
                                 style: TextButton.styleFrom(
+                                  foregroundColor: tokens.mint,
+                                  textStyle: _text(
+                                    tokens.mint,
+                                    14,
+                                    weight: FontWeight.w700,
+                                  ),
                                   minimumSize: const Size(48, 48),
                                 ),
                               ),

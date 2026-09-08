@@ -5,15 +5,15 @@ import 'package:wildcard/domain/progression_catalog.dart';
 void main() {
   group('cosmetic catalogue', () {
     test('contains every available table, UI theme and Sly look', () {
-      expect(cosmeticCatalog, hasLength(60));
-      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(60));
+      expect(cosmeticCatalog, hasLength(64));
+      expect(cosmeticCatalog.map((item) => item.id).toSet(), hasLength(64));
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.table),
         hasLength(24),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.theme),
-        hasLength(21),
+        hasLength(25),
       );
       expect(
         cosmeticCatalog.where((item) => item.kind == CosmeticKind.sly),
@@ -43,7 +43,7 @@ void main() {
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.rare),
-        hasLength(28),
+        hasLength(32),
       );
       expect(
         cosmeticCatalog.where((item) => item.rarity == JokerRarity.wild),
@@ -81,6 +81,33 @@ void main() {
       expect(
         cosmeticById('sly_clubs')!.price,
         greaterThan(cosmeticById('theme_emerald_throne')!.price),
+      );
+    });
+
+    test('free room previews do not unlock collection achievements', () {
+      expect(previewThemeIds, hasLength(4));
+      expect(defaultCosmeticIds, containsAll(previewThemeIds));
+      for (final id in previewThemeIds) {
+        expect(cosmeticById(id)!.price, 0);
+        expect(cosmeticById(id)!.kind, CosmeticKind.theme);
+      }
+      expect(cosmeticAchievementCount(const <String>[]), 3);
+      expect(cosmeticAchievementCount(previewThemeIds), 3);
+      expect(
+        cosmeticAchievementCount([
+          ...previewThemeIds,
+          'theme_sunset',
+          'theme_ice',
+        ]),
+        5,
+      );
+      expect(
+        cosmeticCatalog
+            .where((item) => item.kind == CosmeticKind.theme)
+            .take(5)
+            .map((item) => item.id),
+        ['theme_default', ...previewThemeIds],
+        reason: 'Keep free candidates together at the top of the theme list.',
       );
     });
 

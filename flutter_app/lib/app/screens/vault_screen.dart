@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/account_state.dart';
-import '../../domain/astra_progression.dart';
 import '../../domain/economy.dart';
 import '../../domain/joker_catalog.dart';
 import '../../domain/progression_catalog.dart';
@@ -95,7 +94,7 @@ class _VaultScreenState extends State<VaultScreen> {
                           const SizedBox(height: 10),
                           _cosmeticVaultCard(),
                           const SizedBox(height: 10),
-                          if (!astraEnabled)
+                          if (widget.controller.ads.adsEnabled)
                             WildcardButton(
                               label:
                                   'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',

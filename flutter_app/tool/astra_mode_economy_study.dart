@@ -132,15 +132,31 @@ void main(List<String> args) {
         final seed = cell.mode == 'daily'
             ? dailySeed(date)
             : 0xA5709000 + index + seedOffset;
-        final starter = cell.rule != 'astra'
-            ? null
-            : starterPolicy == 'rotate'
-            ? astraStarterChoices(seed).first.id
-            : astraStarterJokerIds.contains(starterPolicy)
-            ? starterPolicy
-            : cell.policy == SimulationStrategy.flushBuilder
-            ? 'flushfund'
-            : 'polish';
+        final available =
+            cell.discoveryIds ?? jokerCatalog.map((joker) => joker.id).toList();
+        final choices = astraStarterChoices(seed, unlockedJokerIds: available);
+        String? starter;
+        if (cell.rule == 'astra') {
+          if (starterPolicy == 'rotate') {
+            starter = choices[seed % choices.length].id;
+          } else if (starterPolicy == 'policy') {
+            final preferred = cell.policy == SimulationStrategy.flushBuilder
+                ? 'flushfund'
+                : 'polish';
+            starter = canUseAstraStarter(preferred, available)
+                ? preferred
+                : choices[cell.policy == SimulationStrategy.flushBuilder
+                          ? StarterEngine.suits.index
+                          : StarterEngine.pairs.index]
+                      .id;
+          } else if (canUseAstraStarter(starterPolicy, available)) {
+            starter = starterPolicy;
+          } else {
+            throw ArgumentError(
+              '$starterPolicy is not an available engine starter for ${cell.collection}',
+            );
+          }
+        }
         final config = SimulationConfig(
           runs: 1,
           firstSeed: seed,

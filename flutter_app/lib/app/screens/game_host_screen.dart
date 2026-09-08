@@ -796,9 +796,12 @@ class _GameHostScreenState extends State<GameHostScreen> {
 
   Widget _buildRevive() {
     final needed = (game.target - game.state.stageScore).clamp(0, game.target);
+    final adsEnabled = widget.appController.ads.adsEnabled;
     return _PhaseScaffold(
-      title: 'ONE MORE PLAY?',
-      subtitle: 'Sly has one last deal for this Heat.',
+      title: adsEnabled ? 'ONE MORE PLAY?' : 'RUN OVER',
+      subtitle: adsEnabled
+          ? 'Sly has one last deal for this Heat.'
+          : 'Ad revives are turned off in this phone test build.',
       icon: Icons.favorite_outline_rounded,
       surface: WildcardUiSurface.adBreak,
       children: [
@@ -807,15 +810,18 @@ class _GameHostScreenState extends State<GameHostScreen> {
           '${game.state.stageScore} / ${game.target}',
         ),
         _StatRow('Still needed', '$needed points'),
-        const _StatRow('Revive', '+1 play · once per run'),
-        const _StatRow('Leaderboard', 'Revived runs stay local'),
+        if (adsEnabled) ...[
+          const _StatRow('Revive', '+1 play · once per run'),
+          const _StatRow('Leaderboard', 'Revived runs stay local'),
+        ],
         const SizedBox(height: 18),
-        WildcardButton(
-          label: 'Watch Ad · +1 Play',
-          icon: const Icon(Icons.ondemand_video_rounded),
-          onPressed: _revive,
-          variant: WildcardButtonVariant.primary,
-        ),
+        if (adsEnabled)
+          WildcardButton(
+            label: 'Watch Ad · +1 Play',
+            icon: const Icon(Icons.ondemand_video_rounded),
+            onPressed: _revive,
+            variant: WildcardButtonVariant.primary,
+          ),
         const SizedBox(height: 10),
         WildcardButton(
           label: 'End Run',
@@ -881,7 +887,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
       doubleClaimId,
     );
     final doubleEligible =
-        !astraEnabled &&
+        widget.appController.ads.adsEnabled &&
         !abandoned &&
         result?.reason != RunEndReason.dailyComplete &&
         doubleBase > 0;

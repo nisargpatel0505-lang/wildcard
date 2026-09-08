@@ -267,15 +267,28 @@ class _BootLogo extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: pulse,
     child: RepaintBoundary(
-      child: Image.asset(
-        'assets/art/wildcard-logo-v692.webp',
-        key: const Key('boot-logo-image'),
+      child: SizedBox(
+        key: const Key('boot-logo-slot'),
         width: width,
-        gaplessPlayback: true,
-        errorBuilder: (_, _, _) => Text(
-          'WILDCARD',
-          key: const Key('boot-logo-fallback'),
-          style: TextStyle(fontFamily: 'Bungee', fontSize: 34, color: gold),
+        // Reserve the real artwork's aspect ratio before its first decoded
+        // frame, so a cold launch never starts with an empty, shifting logo.
+        height: width * 718 / 2191,
+        child: Image.asset(
+          'assets/art/wildcard-logo-v692.webp',
+          key: const Key('boot-logo-image'),
+          fit: BoxFit.contain,
+          gaplessPlayback: true,
+          frameBuilder: (_, child, frame, wasSynchronouslyLoaded) =>
+              wasSynchronouslyLoaded || frame != null
+              ? child
+              : _BootLogoPlaceholder(
+                  key: const Key('boot-logo-placeholder'),
+                  color: gold,
+                ),
+          errorBuilder: (_, _, _) => _BootLogoPlaceholder(
+            key: const Key('boot-logo-fallback'),
+            color: gold,
+          ),
         ),
       ),
     ),
@@ -312,6 +325,28 @@ class _BootLogo extends StatelessWidget {
         ],
       );
     },
+  );
+}
+
+class _BootLogoPlaceholder extends StatelessWidget {
+  const _BootLogoPlaceholder({required this.color, super.key});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        'WILDCARD',
+        style: TextStyle(
+          fontFamily: 'Bungee',
+          fontSize: 34,
+          color: color,
+          decoration: TextDecoration.none,
+        ),
+      ),
+    ),
   );
 }
 

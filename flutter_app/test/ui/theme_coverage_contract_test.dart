@@ -33,7 +33,8 @@ void main() {
             final role = WildcardThemeCoverage.forSurface(surface).backdrop;
             final asset = tokens.backgroundAssetFor(surface);
             if (role == WildcardBackdropRole.none ||
-                role == WildcardBackdropRole.runSetup) {
+                (role == WildcardBackdropRole.runSetup &&
+                    tokens.liveBackdrop == WildcardLiveBackdrop.none)) {
               expect(asset, isNull, reason: '${theme.name}/${surface.name}');
             } else {
               expect(
@@ -90,6 +91,44 @@ void main() {
         );
       }
     });
+
+    test(
+      'live candidates retain 4.5 contrast across readable semantic roles',
+      () {
+        for (final id in WildcardThemeId.values) {
+          final tokens = WildcardThemeTokens.forId(id);
+          if (tokens.liveBackdrop == WildcardLiveBackdrop.none) continue;
+          final roles = <String, Color>{
+            'body': tokens.cream,
+            'secondary text': tokens.creamDim,
+            'reward': tokens.gold,
+            'primary': tokens.mint,
+            'danger': tokens.coral,
+            'violet': tokens.violet,
+            'rare': tokens.rare,
+            'wild': tokens.wild,
+          };
+          for (final role in roles.entries) {
+            for (final background in [
+              tokens.surfaceStrong,
+              tokens.surface,
+              tokens.fieldFill,
+            ]) {
+              expect(
+                _contrast(role.value, background),
+                greaterThanOrEqualTo(4.5),
+                reason: '${id.name}/${role.key}',
+              );
+            }
+          }
+          expect(
+            _contrast(tokens.onDangerAccent, tokens.coral),
+            greaterThanOrEqualTo(4.5),
+            reason: '${id.name}/danger control',
+          );
+        }
+      },
+    );
 
     for (final surface in WildcardUiSurface.values.where(
       (surface) =>

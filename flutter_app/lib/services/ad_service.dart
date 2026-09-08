@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/app_constants.dart';
+import '../core/build_options.dart';
 import '../domain/astra_progression.dart';
 import 'forced_ad_policy.dart';
 
@@ -18,6 +19,7 @@ enum AdServiceState {
 class AdService extends ChangeNotifier {
   AdService({
     ForcedInterstitialPolicy? forcedInterstitialPolicy,
+    @visibleForTesting this.ownerNoAds = ownerPhoneNoAdsBuild,
     @visibleForTesting this.rewardedPresenter,
     @visibleForTesting this.interstitialPresenter,
   }) : forcedInterstitialPolicy =
@@ -40,6 +42,10 @@ class AdService extends ChangeNotifier {
   @visibleForTesting
   final Future<bool> Function()? interstitialPresenter;
   final ForcedInterstitialPolicy forcedInterstitialPolicy;
+  final bool ownerNoAds;
+
+  /// This build switch is independent from the purchased forced-ad removal.
+  bool get adsEnabled => !astraEnabled && !ownerNoAds;
 
   AdServiceState get state => _state;
   Object? get lastError => _lastError;
@@ -78,7 +84,7 @@ class AdService extends ChangeNotifier {
 
   /// Must only be called after WILDCARD's first-launch privacy gate is accepted.
   Future<bool> initializeAfterPrivacyAcceptance() async {
-    if (astraEnabled) return false;
+    if (!adsEnabled) return false;
     if (ready) return true;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       _state = AdServiceState.unavailable;
@@ -162,6 +168,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<void> showPrivacyOptions() async {
+    if (!adsEnabled) return;
     final completer = Completer<void>();
     ConsentForm.showPrivacyOptionsForm((error) {
       if (error == null) {
@@ -174,7 +181,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<void> _loadRewarded() async {
-    if (!ready || _rewarded != null) return;
+    if (!adsEnabled || !ready || _rewarded != null) return;
     final completer = Completer<void>();
     RewardedAd.load(
       adUnitId: rewardedAdUnitId,
@@ -196,6 +203,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<RewardItem?> showRewarded() async {
+    if (!adsEnabled) return null;
     final testPresenter = rewardedPresenter;
     if (testPresenter != null) return testPresenter();
     if (!ready) return null;
@@ -225,7 +233,9 @@ class AdService extends ChangeNotifier {
   }
 
   Future<void> _loadInterstitial() async {
-    if (!ready || _forcedAdsRemoved || _interstitial != null) return;
+    if (!adsEnabled || !ready || _forcedAdsRemoved || _interstitial != null) {
+      return;
+    }
     final completer = Completer<void>();
     InterstitialAd.load(
       adUnitId: interstitialAdUnitId,
@@ -247,7 +257,7 @@ class AdService extends ChangeNotifier {
   }
 
   Future<bool> showInterstitial() async {
-    if (_forcedAdsRemoved) return false;
+    if (!adsEnabled || _forcedAdsRemoved) return false;
     final testPresenter = interstitialPresenter;
     if (testPresenter != null) return testPresenter();
     if (!ready) return false;
@@ -283,6 +293,7 @@ class AdService extends ChangeNotifier {
   Future<bool> showTerminalInterstitial(
     TerminalInterstitialContext context,
   ) async {
+    if (!adsEnabled) return false;
     final decision = forcedInterstitialPolicy.beginAttempt(
       context,
       forcedAdsRemoved: _forcedAdsRemoved,

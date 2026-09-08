@@ -31,12 +31,16 @@ class ModePickerScreen extends StatefulWidget {
     required this.account,
     required this.onLaunch,
     required this.onOpenTutorial,
+    this.starterDraftSeed,
     super.key,
   });
 
   final AccountState account;
   final ValueChanged<RunLaunchRequest> onLaunch;
   final Future<void> Function() onOpenTutorial;
+
+  /// Optional presentation-only seed for repeatable previews and tests.
+  final int? starterDraftSeed;
 
   @override
   State<ModePickerScreen> createState() => _ModePickerScreenState();
@@ -47,13 +51,22 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   RunDifficulty difficulty = RunDifficulty.medium;
   int stake = 0;
   String? startJokerId;
-  late final List<JokerDefinition> _astraChoices;
+  late final List<List<JokerDefinition>> _astraDraft;
+  final List<int> _draftIndices = [0, 0, 0];
+
+  JokerDefinition _draftChoice(StarterEngine engine) =>
+      _astraDraft[engine.index][_draftIndices[engine.index]];
 
   @override
   void initState() {
     super.initState();
-    _astraChoices = astraStarterChoices(DateTime.now().millisecondsSinceEpoch);
-    if (astraExperienceEnabled) startJokerId = _astraChoices.first.id;
+    _astraDraft = astraStarterDraft(
+      widget.starterDraftSeed ?? DateTime.now().microsecondsSinceEpoch,
+      unlockedJokerIds: widget.account.unlockedJokerIds,
+    );
+    if (astraExperienceEnabled) {
+      startJokerId = _draftChoice(StarterEngine.pairs).id;
+    }
   }
 
   ProgressionGates get gates => ProgressionGates(
@@ -282,7 +295,7 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'A loan for this run. Choose the style you want to build around.',
+                    'One random pick per engine. Use the arrows to browse your available Jokers. Your choice is free for this run.',
                     style: TextStyle(
                       color: tokens.creamDim,
                       fontSize: 12.5,
@@ -290,8 +303,8 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  for (final joker in _astraChoices) ...[
-                    _astraDraftCard(joker),
+                  for (final engine in StarterEngine.values) ...[
+                    _astraDraftCard(engine),
                     const SizedBox(height: 9),
                   ],
                   const SizedBox(height: 4),
@@ -382,36 +395,50 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   void _selectAstraMode(RunMode value) => setState(() {
     mode = value;
     stake = 0;
-    startJokerId = value == RunMode.normal ? _astraChoices.first.id : null;
+    startJokerId = value == RunMode.normal
+        ? _draftChoice(StarterEngine.pairs).id
+        : null;
     if (value != RunMode.normal) difficulty = RunDifficulty.medium;
   });
 
-  Widget _astraDraftCard(JokerDefinition joker) {
+  void _cycleDraft(StarterEngine engine, int direction) => setState(() {
+    final index = engine.index;
+    _draftIndices[index] =
+        (_draftIndices[index] + direction) % _astraDraft[index].length;
+    startJokerId = _draftChoice(engine).id;
+  });
+
+  Widget _astraDraftCard(StarterEngine engine) {
+    final joker = _draftChoice(engine);
+    final pool = _astraDraft[engine.index];
     final tokens = context.wildcard;
     final selected = startJokerId == joker.id;
-    final (strategy, tip, icon) = switch (joker.id) {
-      'polish' => (
+    final (strategy, tip, icon) = switch (engine) {
+      StarterEngine.pairs => (
         'THE PAIR BUILDER',
         'Keep matching ranks. Pairs can grow into Full Houses.',
         Icons.filter_2_outlined,
       ),
-      'flushfund' => (
+      StarterEngine.suits => (
         'THE SUIT SPECIALIST',
-        'Keep one suit together. Discard toward five matching suits.',
+        'Build around the suit or colour this Joker rewards.',
         Icons.favorite_outline_rounded,
       ),
-      _ => (
+      StarterEngine.straights => (
         'THE STRAIGHT CHASER',
-        'Keep connected ranks. Discard to fill the missing number.',
+        joker.id == 'fulltable'
+            ? 'Play all five cards for safe Mult while building connected ranks.'
+            : 'Keep connected ranks. Discard to fill the missing number.',
         Icons.stacked_line_chart_rounded,
       ),
     };
-    final accent = switch (joker.id) {
-      'polish' => tokens.gold,
-      'flushfund' => tokens.mint,
-      _ => tokens.violet,
+    final accent = switch (engine) {
+      StarterEngine.pairs => tokens.gold,
+      StarterEngine.suits => tokens.mint,
+      StarterEngine.straights => tokens.violet,
     };
     return Semantics(
+      key: ValueKey('starter-engine-${engine.name}'),
       selected: selected,
       button: true,
       label: '${joker.name}, free starter. ${joker.description}',
@@ -491,6 +518,50 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
                     style: TextStyle(color: accent, fontSize: 12, height: 1.35),
                   ),
                 ],
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    IconButton(
+                      key: ValueKey('starter-previous-${engine.name}'),
+                      tooltip: 'Previous ${engine.name} starter',
+                      constraints: const BoxConstraints.tightFor(
+                        width: 48,
+                        height: 48,
+                      ),
+                      icon: const Icon(Icons.chevron_left_rounded),
+                      color: accent,
+                      onPressed: pool.length > 1
+                          ? () => _cycleDraft(engine, -1)
+                          : null,
+                    ),
+                    Expanded(
+                      child: Text(
+                        pool.length == 1
+                            ? '1 available · unlock more in Vaults'
+                            : '${_draftIndices[engine.index] + 1} / ${pool.length} available',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: tokens.creamDim,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      key: ValueKey('starter-next-${engine.name}'),
+                      tooltip: 'Next ${engine.name} starter',
+                      constraints: const BoxConstraints.tightFor(
+                        width: 48,
+                        height: 48,
+                      ),
+                      icon: const Icon(Icons.chevron_right_rounded),
+                      color: accent,
+                      onPressed: pool.length > 1
+                          ? () => _cycleDraft(engine, 1)
+                          : null,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -833,6 +904,12 @@ class _ModePickerScreenState extends State<ModePickerScreen> {
   void _launch() {
     final joker = startJokerId == null ? null : jokersById[startJokerId];
     final freeDraft = astraExperienceEnabled && mode == RunMode.normal;
+    if (freeDraft &&
+        (joker == null ||
+            !canUseAstraStarter(joker.id, widget.account.unlockedJokerIds))) {
+      showWildcardToast(context, 'Choose an available starter Joker.');
+      return;
+    }
     final cost = joker == null || freeDraft ? 0 : starterJokerPrice(joker);
     final launchStake = astraExperienceEnabled || mode == RunMode.daily
         ? 0

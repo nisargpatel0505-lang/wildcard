@@ -55,12 +55,11 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(
-          find.text(
-            astraEnabled ? 'ASTRA 6  /  FIELD TEST' : 'WILDCARD  /  ASTRA',
-          ),
-          findsOneWidget,
-        );
+        if (astraEnabled) {
+          expect(find.text('ASTRA 6  /  FIELD TEST'), findsOneWidget);
+        } else {
+          expect(find.textContaining('ASTRA'), findsNothing);
+        }
         if (!astraEnabled) {
           expect(find.textContaining('Local field test'), findsNothing);
           expect(find.textContaining('no real purchases'), findsNothing);
@@ -98,6 +97,7 @@ void main() {
           _harness(
             ModePickerScreen(
               account: AccountState(tutorialDone: true, coins: 0),
+              starterDraftSeed: 107,
               onLaunch: (value) => launch = value,
               onOpenTutorial: () async {},
             ),
@@ -105,7 +105,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        for (final id in astraStarterJokerIds) {
+        for (final id in astraStarterChoices(107).map((joker) => joker.id)) {
           final choice = find.byKey(ValueKey('astra-starter-$id'));
           // ListView builds the draft rows lazily on the smallest phones.
           // Scroll as a player does instead of assuming every row is mounted.
@@ -194,7 +194,7 @@ void main() {
     expect(_modeChip(tester, 'Daily').onSelected, isNotNull);
     await tester.tap(deal);
     expect(launch?.mode, RunMode.normal);
-    expect(launch?.startJokerId, isIn(astraStarterJokerIds));
+    expect(canUseAstraStarter(launch!.startJokerId!, const []), isTrue);
     expect(tester.takeException(), isNull);
   });
 
@@ -268,13 +268,14 @@ void main() {
         _harness(
           ModePickerScreen(
             account: AccountState(tutorialDone: true, coins: 0),
+            starterDraftSeed: 107,
             onLaunch: (value) => launch = value,
             onOpenTutorial: () async {},
           ),
         ),
       );
       await tester.pumpAndSettle();
-      for (final id in astraStarterJokerIds) {
+      for (final id in astraStarterChoices(107).map((joker) => joker.id)) {
         final choice = find.byKey(ValueKey('astra-starter-$id'));
         await tester.ensureVisible(choice);
         await tester.tap(choice);

@@ -11,13 +11,28 @@ plugins {
 
 // This branch packages the official app. The separate offline Astra experiment
 // remains buildable from its experiment branch, with its own signing identity.
-val offlineAstraRequested = providers.gradleProperty("dart-defines").orElse("").get()
-    .split(",").any { encoded ->
-        runCatching { String(Base64.getDecoder().decode(encoded)) }
-            .getOrNull() == "WILDCARD_ASTRA_BUILD=true"
-    }
+val dartDefines = providers.gradleProperty("dart-defines").orElse("").get()
+    .split(",").mapNotNull { encoded ->
+        runCatching { String(Base64.getDecoder().decode(encoded)) }.getOrNull()
+    }.toSet()
+val offlineAstraRequested = "WILDCARD_ASTRA_BUILD=true" in dartDefines
 require(!offlineAstraRequested) {
     "The official package cannot use WILDCARD_ASTRA_BUILD=true. Use the separate experiment branch."
+}
+val ownerNoAdsRequested = "WILDCARD_OWNER_NO_ADS=true" in dartDefines
+// The private phone candidate is an APK only. Check the resolved task graph as
+// well as direct requests, so invoking bundle via another task cannot bypass it.
+gradle.taskGraph.whenReady {
+    val createsPlayBundle = allTasks.any { task ->
+        task.project.path == project.path && (
+            task.name in setOf("bundleRelease", "bundleDebug", "bundleProfile") ||
+                task.name.endsWith("Bundle") ||
+                task.name.startsWith("publish", ignoreCase = true)
+            )
+    }
+    require(!ownerNoAdsRequested || !createsPlayBundle) {
+        "WILDCARD_OWNER_NO_ADS is for owner phone APKs only. Remove it before building or publishing a Play bundle."
+    }
 }
 
 val productionAdMobAppId = providers.gradleProperty("WILDCARD_ADMOB_APP_ID")

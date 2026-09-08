@@ -5,6 +5,62 @@ import 'package:wildcard/ui/wildcard_theme.dart';
 
 void main() {
   group('expanded WILDCARD themes', () {
+    test('live rooms own every full-screen backdrop, including run setup', () {
+      const rooms = <WildcardThemeId, (String, WildcardLiveBackdrop)>{
+        WildcardThemeId.midnightObservatory: (
+          WildcardThemeTokens.midnightObservatoryBackground,
+          WildcardLiveBackdrop.observatory,
+        ),
+        WildcardThemeId.jadeConservatory: (
+          WildcardThemeTokens.jadeConservatoryBackground,
+          WildcardLiveBackdrop.conservatory,
+        ),
+        WildcardThemeId.neonAfterhours: (
+          WildcardThemeTokens.neonAfterhoursBackground,
+          WildcardLiveBackdrop.afterhours,
+        ),
+        WildcardThemeId.crimsonTheatre: (
+          WildcardThemeTokens.crimsonTheatreBackground,
+          WildcardLiveBackdrop.theatre,
+        ),
+      };
+      for (final entry in rooms.entries) {
+        final tokens = WildcardThemeTokens.forId(entry.key);
+        expect(tokens.liveBackdrop, entry.value.$2);
+        for (final surface in WildcardUiSurface.values) {
+          final isOverlay =
+              WildcardThemeCoverage.forSurface(surface).backdrop ==
+              WildcardBackdropRole.none;
+          expect(
+            tokens.backgroundAssetFor(surface),
+            isOverlay ? null : entry.value.$1,
+            reason: '${entry.key.name}/${surface.name}',
+          );
+        }
+      }
+      final palettes = rooms.keys.map(WildcardThemeTokens.forId).toList();
+      expect(palettes.map((tokens) => tokens.ink).toSet(), hasLength(4));
+      expect(palettes.map((tokens) => tokens.mint).toSet(), hasLength(4));
+      expect(palettes.map((tokens) => tokens.gold).toSet(), hasLength(4));
+      expect(palettes.map((tokens) => tokens.panel).toSet(), hasLength(4));
+    });
+
+    test('existing room and setup choices remain unchanged for old themes', () {
+      for (final id in WildcardThemeId.values.take(21)) {
+        final tokens = WildcardThemeTokens.forId(id);
+        expect(tokens.liveBackdrop, WildcardLiveBackdrop.none);
+        expect(tokens.backgroundAssetFor(WildcardUiSurface.modePicker), isNull);
+        expect(
+          tokens.backgroundAssetFor(WildcardUiSurface.betweenHeatShop),
+          WildcardThemeTokens.shopBackground,
+        );
+        expect(
+          tokens.backgroundAssetFor(WildcardUiSurface.chestVault),
+          WildcardThemeTokens.vaultBackground,
+        );
+      }
+    });
+
     test('four kingdom themes resolve distinct home and gameplay artwork', () {
       const packs = <WildcardThemeId, (String gameplay, String home)>{
         WildcardThemeId.heartsKingdom: (
@@ -50,7 +106,7 @@ void main() {
     });
 
     test('all three new themes point at their dedicated room artwork', () {
-      expect(WildcardThemeId.values, hasLength(21));
+      expect(WildcardThemeId.values, hasLength(25));
 
       expect(
         WildcardThemeTokens.forId(

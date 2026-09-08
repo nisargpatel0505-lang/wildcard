@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/progression_catalog.dart';
-import '../../domain/astra_progression.dart';
 import '../../ui/wildcard_ui.dart';
 import 'page_frame.dart';
 import '../../ui/widgets/wildcard_toast.dart';
@@ -43,7 +42,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
               for (final id in account.missionSet)
                 if (_mission(id) case final mission?) _missionCard(mission),
               const SizedBox(height: 6),
-              if (!astraEnabled)
+              if (widget.controller.ads.adsEnabled)
                 WildcardButton(
                   label: widget.controller.weeklyMissionRefreshUsed
                       ? 'Refresh Used This Week'
@@ -59,8 +58,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 ),
               const SizedBox(height: 8),
               Text(
-                astraEnabled
-                    ? 'Mission rewards are earned by playing. Ad refreshes are disabled in this offline experiment.'
+                !widget.controller.ads.adsEnabled
+                    ? 'Mission rewards are earned by playing. Ad refreshes are disabled in this phone test build.'
                     : 'One optional rewarded refresh per week. It gives no coins; completed rewards, claimed rewards and all progress remain safe.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
