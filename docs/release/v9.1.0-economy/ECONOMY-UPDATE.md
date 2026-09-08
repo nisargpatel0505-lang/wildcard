@@ -7,7 +7,7 @@ The official promotion implements the recommended Astra earned-progression sched
 - Normal: 4 coins per cleared Heat 1–3, 7 for 4–6, 10 for 7–9, 13 for 10–12; +20 once at Heat 12. Full clear **122 coins** on every difficulty.
 - Gauntlet: the first eight Heat rewards plus +10 once at completion. Full clear **63 coins**. The free Normal starter/early shop rules do not affect Gauntlet.
 - Endless: +13 per clear after Heat 12; no additional repeated completion bonus. The earlier study's indefinite +3-per-three-Heat extrapolation is intentionally capped, preventing quadratic total currency growth. A clear through Heat 24 pays 278; a clear through Heat 100 pays 1,266. This is a reward cap per Heat, not a gameplay Heat limit.
-- Daily: zero direct repeatable run coins; existing Daily achievements and weekly missions remain. Board-prize proposals are not activated.
+- Daily: zero direct account-coin payout; temporary shop currency, existing Daily achievements and weekly missions remain. Board-prize proposals are not activated.
 - Normal keeps the free three-route starter choice, +3 run coins on each of the first three clears, three early Joker offers, and one free reroll in each of those shops. Run coins cannot be exported into the account wallet.
 - Wood Vault: 60 while owning fewer than 15 public Jokers, then 100; Gold 300. Duplicate protection and disclosed dynamic rarity odds are unchanged.
 - New stake wagers are disabled. A legacy saved run retains its already-paid stake and original settlement terms.
@@ -27,7 +27,7 @@ The official promotion implements the recommended Astra earned-progression sched
 | normal/medium/handRanking/full | 500 | 4.8% (3.2%–7.0%) | 58.8 (56.5–61.2) | 53 |
 | normal/medium/handRanking/new | 500 | 0.0% (0.0%–0.8%) | 50.7 (49.3–52.1) | 53 |
 
-Normal wins mean reaching Heat 12; Gauntlet wins mean eight clears. Endless “win” still means reaching Heat 12, not beating Endless. Its measurement stops at Heat 24 and records survivors as censored. New/full means ten starter discoveries versus the full public catalogue. `handRanking` and `adaptive` are bot policies, not measured novice/expert people.
+Normal wins mean clearing Heat 12; Gauntlet wins mean eight clears. Endless “win” still means clearing Heat 12, not beating Endless. Its measurement stops at Heat 24 and records survivors as censored. New/full means ten starter discoveries versus the full public catalogue. `handRanking` and `adaptive` are bot policies, not measured novice/expert people.
 
 Win-rate intervals use Wilson 95% intervals. Mean-coin intervals use 2,000 deterministic bootstrap resamples of whole runs per cohort. These describe seed uncertainty for a fixed bot/pool, not uncertainty about real player behavior. The candidate was selected in the earlier study; these fresh seeds did not retune it.
 

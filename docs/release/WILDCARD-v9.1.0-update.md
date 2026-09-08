@@ -51,11 +51,14 @@ products is not a live catalogue change.
 The official app keeps its original package, certificate and save keys. On its
 first upgraded launch it stores one local recovery snapshot of existing raw
 account/run/owner/privacy data before migration or normalization. Older WebView
-players retain the original Capacitor migration path. A failed save now rolls
-back the in-memory reward claim so a retry cannot silently skip payment.
+players retain the original Capacitor migration path. A failed run-reward or
+Journey claim save now rolls back the in-memory claim so a retry cannot silently
+skip payment.
 
-Coins, purchased entitlements, collections, theme selections, tutorial progress,
-scores and active runs are preserved. Journey coins and claims use the normal
+Ordinary official coins, purchased entitlements, collections, theme selections,
+tutorial progress, scores and active runs are preserved. Existing release
+cleanup restores the pre-developer baseline and removes matching developer runs;
+the recovery snapshot retains the pre-update raw data. Journey coins and claims use the normal
 cloud save path. Firebase, billing, ads, Play Games and Daily Board services use
 their existing consent gates. Official builds reject the offline Astra define,
 and release developer-state cleanup remains enabled.
@@ -63,15 +66,24 @@ and release developer-state cleanup remains enabled.
 The separately installed `com.nisarg.wildcard.astra` app retains its own save.
 There is no automatic cross-app merge or replacement of the official wallet.
 
+Physical-device checking also caught an unhandled startup cloud rejection when
+Play Integrity refused the sideloaded release. Automatic online startup now
+handles that failure, keeps the local account/run and reports cloud unavailable.
+Settings' Back Up Now retries reconciliation instead of silently doing nothing.
+App Check enforcement remains enabled; this is not an authentication bypass.
+Real cloud backup and purchase fulfillment still require successful protected
+service calls, normally from the Google Play-installed release.
+
 ## Verification
 
 - 3,000 fresh-seed native engine runs across eight cohorts; zero invariant,
   scorer-fidelity or reward-formula failures. The 40-run pilot is separate.
 - The previous 7,550-run study and the complete new raw data are preserved.
-- Full regression run: 469 passed, two experiment-only skips, three outdated
-  Vault price assertions. Those assertions were corrected to the new prices;
-  all 17 Vault acquisition tests then passed, retaining odds and idempotency
-  coverage. Targeted save and presentation suites also passed.
+- Final full regression run: **476 passed, two experiment-only skips, zero
+  failures**. This includes the 2,000-run engine invariant regression, Vault
+  odds/idempotency tests, save upgrades and new cloud-startup recovery tests.
+  Three earlier outdated Vault price assertions were corrected to the new
+  prices before this clean rerun; odds protections were not weakened.
 - Presentation coverage: 320×568, 375×812 and 393×873 at normal and 1.3× text,
   including all home actions, free starter choices and tutorial/Daily gates.
 - Static Flutter analysis: no issues found.

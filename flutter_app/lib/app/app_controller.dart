@@ -66,7 +66,8 @@ class AppController extends ChangeNotifier {
     required this.account,
     required this.activeRunJson,
     required this.migrationResult,
-  }) : firebase = FirebaseService(),
+    FirebaseService? firebaseService,
+  }) : firebase = firebaseService ?? FirebaseService(),
        ads = AdService(),
        audio = AudioService(),
        sfx = SfxService(),
@@ -112,6 +113,7 @@ class AppController extends ChangeNotifier {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Future<bool>? _cloudWriteInFlight;
   Future<void>? _dailyRetryInFlight;
+  Future<void>? _onlineServicesStartup;
   bool _cloudWritePending = false;
   bool _cloudWritesDeferredForScoring = false;
   bool _disposed = false;
@@ -145,6 +147,7 @@ class AppController extends ChangeNotifier {
   static Future<AppController> bootstrap({
     void Function(double fraction, String label)? onProgress,
     bool releaseBuild = kReleaseMode,
+    FirebaseService? firebaseService,
   }) async {
     onProgress?.call(.06, 'Opening local save…');
     final local = await LocalSaveRepository.open();
@@ -203,6 +206,7 @@ class AppController extends ChangeNotifier {
       account: account,
       activeRunJson: runJson,
       migrationResult: migration,
+      firebaseService: firebaseService,
     );
     controller.bootError = loadError ?? migration.error;
     onProgress?.call(.84, 'Setting Sly’s table…');
@@ -228,63 +232,97 @@ class AppController extends ChangeNotifier {
     await startConsentGatedServices();
   }
 
-  Future<void> startConsentGatedServices() async {
-    if (astraEnabled) {
-      cloudState = CloudLinkState.offline;
-      cloudStatus = 'Astra experiment — saved on this phone only';
-      return;
-    }
-    if (onlineServicesStarted || !privacyAccepted) return;
-    onlineServicesStarted = true;
-    notifyListeners();
-
-    // Analytics is deliberately consent-gated too. The first-launch screen
-    // promises that nothing is sent before acceptance, including the anonymous
-    // app-open counter.
-    unawaited(() async {
-      try {
-        await pi.initialize();
-        pi.queueAppOpen();
-        await _refreshTrustedDailyDate();
-      } catch (_) {
-        // Product counters are optional and must never affect local play.
+  Future<void> startConsentGatedServices() {
+    final active = _onlineServicesStartup;
+    if (active != null) return active;
+    final operation = _startConsentGatedServicesSafely();
+    _onlineServicesStartup = operation;
+    return operation.whenComplete(() {
+      if (identical(_onlineServicesStartup, operation)) {
+        _onlineServicesStartup = null;
       }
-    }());
+    });
+  }
 
-    final firebaseReady = await firebase.initializeAfterPrivacyAcceptance();
-    await Future.wait<void>([
-      ads.initializeAfterPrivacyAcceptance().then((_) {}),
-      playGames.initializeAfterPrivacyAcceptance().then((_) {}),
-      billing.initializeAfterPrivacyAcceptance().then((_) {}),
-    ]);
-    ads.setNoAds(effectiveNoAds);
-    unawaited(audio.sync(enabled: account.musicOn));
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      _connectivitySubscription ??= Connectivity().onConnectivityChanged.listen(
-        (results) {
-          if (results.any((result) => result != ConnectivityResult.none)) {
-            unawaited(_retryPendingDailyScores());
-          }
-        },
-        onError: (_) {
-          // Launch and sign-in also retry, so a platform stream failure
-          // cannot lose a score or affect local play.
-        },
-      );
-    }
-    if (firebaseReady && firebase.signedIn) {
-      if (developerToolsUnlocked(account)) {
+  Future<void> _startConsentGatedServicesSafely() async {
+    try {
+      if (astraEnabled) {
         cloudState = CloudLinkState.offline;
-        cloudStatus = 'Developer tools active — cloud backup paused';
-      } else {
-        unawaited(_retryPendingDailyScores());
-        await reconcileCloudAccount(announce: false);
-        await restorePlayEntitlements();
-        await billing.recoverUnfinishedPurchases();
-        await _retryPendingDailyScores();
+        cloudStatus = 'Astra experiment — saved on this phone only';
+        return;
       }
+      if (onlineServicesStarted || !privacyAccepted) return;
+      onlineServicesStarted = true;
+      notifyListeners();
+
+      // Analytics is deliberately consent-gated too. The first-launch screen
+      // promises that nothing is sent before acceptance, including the anonymous
+      // app-open counter.
+      unawaited(() async {
+        try {
+          await pi.initialize();
+          pi.queueAppOpen();
+          await _refreshTrustedDailyDate();
+        } catch (_) {
+          // Product counters are optional and must never affect local play.
+        }
+      }());
+
+      final firebaseReady = await firebase.initializeAfterPrivacyAcceptance();
+      if (!firebaseReady) {
+        cloudError = firebase.initializationError;
+        cloudState = CloudLinkState.offline;
+        cloudStatus = 'Phone save safe — cloud connection unavailable';
+      }
+      await Future.wait<void>([
+        ads.initializeAfterPrivacyAcceptance().then((_) {}),
+        playGames.initializeAfterPrivacyAcceptance().then((_) {}),
+        billing.initializeAfterPrivacyAcceptance().then((_) {}),
+      ]);
+      ads.setNoAds(effectiveNoAds);
+      unawaited(audio.sync(enabled: account.musicOn));
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        _connectivitySubscription ??= Connectivity().onConnectivityChanged
+            .listen(
+              (results) {
+                if (results.any(
+                  (result) => result != ConnectivityResult.none,
+                )) {
+                  unawaited(_retryPendingDailyScores());
+                }
+              },
+              onError: (_) {
+                // Launch and sign-in also retry, so a platform stream failure
+                // cannot lose a score or affect local play.
+              },
+            );
+      }
+      if (firebaseReady && firebase.signedIn) {
+        if (developerToolsUnlocked(account)) {
+          cloudState = CloudLinkState.offline;
+          cloudStatus = 'Developer tools active — cloud backup paused';
+        } else {
+          await reconcileCloudAccount(announce: false);
+          await restorePlayEntitlements();
+          await billing.recoverUnfinishedPurchases();
+          await _retryPendingDailyScores();
+        }
+      }
+      if (!_disposed) notifyListeners();
+    } catch (error) {
+      // Launch deliberately does not await online services. A rejected App
+      // Check token, unavailable network or expired session must therefore be
+      // handled here rather than escape as an unhandled asynchronous error.
+      // Explicit sign-in/reconcile actions retain their normal error flow.
+      cloudError = error;
+      cloudState = error is CloudAccountConflict
+          ? CloudLinkState.accountConflict
+          : CloudLinkState.offline;
+      cloudStatus = error is CloudAccountConflict
+          ? 'Different Google account — progress was not combined'
+          : 'Phone save safe — cloud connection unavailable';
+      if (!_disposed) notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> mutateAccount(

@@ -220,11 +220,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? subtitle,
   }) => WildcardCard(
     padding: EdgeInsets.zero,
-    child: SwitchListTile(
-      title: Text(title),
-      subtitle: subtitle == null ? null : Text(subtitle),
-      value: value,
-      onChanged: busy ? null : onChanged,
+    child: Material(
+      type: MaterialType.transparency,
+      child: SwitchListTile(
+        title: Text(title),
+        subtitle: subtitle == null ? null : Text(subtitle),
+        value: value,
+        onChanged: busy ? null : onChanged,
+      ),
     ),
   );
 
@@ -609,6 +612,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   });
 
   Future<void> _cloudSave() => _run(() async {
+    if (widget.controller.signedIn && !widget.controller.cloudReady) {
+      await widget.controller.reconcileCloudAccount(announce: true);
+    }
     final saved = await widget.controller.cloudSaveNow();
     _snack(
       saved
