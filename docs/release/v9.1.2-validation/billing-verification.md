@@ -17,9 +17,9 @@ No prices, reward amounts, gameplay mathematics, signing identity, privacy rules
 | `coins_1600` | 1,600 coins | Visible |
 | `coins_3600` | 3,600 coins | Legacy recovery only |
 | `coins_8500` | 8,500 coins | Legacy recovery only |
-| `remove_ads` | Remove forced ads | Visible |
+| `remove_ads` | Remove forced ads and instant capped optional bonuses | Visible |
 
-The client uses Google Play product metadata for displayed prices. This review did not independently read fresh regional prices from a Play-installed device. Remove Ads leaves voluntary rewarded ads available; it is not a free-coin entitlement.
+The client uses Google Play product metadata for displayed prices. This review did not independently read fresh regional prices from a Play-installed device. A final Console check found that the existing Remove Ads product explicitly promises instant ad-free optional bonuses. Build 77 honours that paid promise while retaining the shared daily limit and reward amounts; owner/profile ad suppression does not create this paid benefit. All six products have one active purchase option. No product price or description was changed.
 
 ## Protocol and recovery
 
@@ -54,6 +54,7 @@ Read-only production counts at review time: `billingPurchases` total **0**, veri
 - Final focused Flutter billing suite: **11 passed**, including lost responses, concurrent local earnings, duplicate receipts, local account/cursor failures, Remove Ads recovery and sign-out/new-receipt serialization.
 - Earlier billing + cloud-startup + upgrade suite: **25 passed**.
 - Coordinator-reported full public Flutter suite before the final narrow account-transition guard: **520 passed, 2 skipped**. The guard was subsequently covered by the focused 11-test rerun.
+- Final code-77 paid-bonus/revive repair: **54 passing focused tests**, including the existing 2,000-run deterministic engine invariant check and strategy checks. Full-project analysis after these changes: **no issues**, 38.6 seconds.
 - Targeted Dart analysis on the four changed client source files and billing tests: **No issues found**.
 - Read-only deployed-function inventory: existing billing/cloud/RTDN functions ACTIVE in `europe-west2`, Node.js 22. RTDN topic: `projects/wildcard-31d50/topics/wildcard-play-billing`, retry enabled. The new endpoint was not deployed at the initial inventory check.
 - Read-only Firestore `uid == ...` plus `productId == remove_ads` query succeeded against `wildcard-31d50`; no missing-index error. No documents, tokens or user identities were printed.
@@ -70,11 +71,13 @@ Deploy before publishing the new AAB. No Firestore rules/index deployment or dat
 
 ## Remaining live checks
 
-- Verify the Play Developer API service identity has the necessary Play permissions using a real license-tester receipt. Function existence alone does not prove that permission.
+- Verify a real license-tester receipt against the Play Developer API. The coordinator confirmed the deployed service identity is ACTIVE in Play Console with View financial data / Purchases API access; no additional permissions were granted. This UI permission check does not substitute for receipt validation.
 - On a Play-installed build: purchase each visible coin product once; confirm exact grant and successful consumption; restart and restore without another grant.
-- Purchase Remove Ads with a license tester; confirm forced ads stop immediately and stay removed after restart/sign-in on another device. Confirm voluntary rewarded ads remain optional.
+- Purchase Remove Ads with a license tester; confirm forced ads stop immediately and stay removed after restart/sign-in on another device. Confirm optional bonuses are instant and ad-free, capped and not granted twice.
 - Exercise pending-payment completion and a test refund/revocation; verify the server ledger and wallet adjustment, then the client restore result.
-- Confirm RTDN delivery from Play, not merely the existence of its Pub/Sub trigger.
-- Verify App Check on the Play-signed build. No charge, test purchase, actual ad impression, refund or notification delivery was executed by this billing subtask.
+- Confirm a real purchase/refund RTDN payload is reconciled correctly. The coordinator sent a Console test notification and confirmed its arrival in `billingRtdnEvents` at 2026-09-09 12:32:49 UTC; it was correctly ignored as a non-purchase test. This verifies notification transport, not purchase verification.
+- Verify App Check on the Play-signed build. No charge, test purchase, actual ad impression or refund was executed by this billing subtask.
+
+Coordinator deployment confirmation: all seven final billing/cloud functions are deployed and ACTIVE. The final read/refund/RTDN correction was redeployed after the first deployment. The test notification above subsequently reached that backend.
 
 Google's relevant primary guidance: [backend purchase processing](https://developer.android.com/google/play/billing/backend), [billing integration](https://developer.android.com/google/play/billing/integrate), [Products v2 API](https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.productsv2).
