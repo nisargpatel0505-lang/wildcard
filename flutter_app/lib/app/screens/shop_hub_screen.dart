@@ -213,8 +213,14 @@ class _ShopHubScreenState extends State<ShopHubScreen>
     final left = widget.controller.rewardedViewsLeftToday;
     return WildcardButton(
       key: const Key('shop-reward-coins'),
-      label: 'Watch Ad · +25 Coins ($left left today)',
-      icon: const Icon(Icons.smart_display_outlined),
+      label: widget.controller.instantRewardBonuses
+          ? 'Claim +25 Coins · Ad-free ($left left today)'
+          : 'Watch Ad · +25 Coins ($left left today)',
+      icon: Icon(
+        widget.controller.instantRewardBonuses
+            ? Icons.card_giftcard_rounded
+            : Icons.smart_display_outlined,
+      ),
       onPressed: !busy && left > 0 ? _rewardedCoins : null,
       variant: WildcardButtonVariant.ghost,
     );
@@ -273,7 +279,7 @@ class _ShopHubScreenState extends State<ShopHubScreen>
                   const SizedBox(height: 3),
                   Text(
                     isNoAds
-                        ? 'Stops forced interstitials. Optional rewarded ads remain available.'
+                        ? 'No between-run ads. Optional bonuses are instant and ad-free; the shared 5-per-day limit still applies.'
                         : 'Delivered to your permanent account wallet.',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

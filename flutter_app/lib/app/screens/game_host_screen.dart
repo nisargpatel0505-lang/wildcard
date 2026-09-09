@@ -62,6 +62,7 @@ class _GameHostScreenState extends State<GameHostScreen> {
   bool _terminalAdAttempted = false;
   bool _deathScreenShown = false;
   bool _claimingRunDouble = false;
+  bool _claimingRevive = false;
   bool _claimingTutorialChest = false;
   bool _firstShopLessonOpen = false;
 
@@ -817,15 +818,27 @@ class _GameHostScreenState extends State<GameHostScreen> {
         const SizedBox(height: 18),
         if (adsEnabled)
           WildcardButton(
-            label: 'Watch Ad · +1 Play',
-            icon: const Icon(Icons.ondemand_video_rounded),
-            onPressed: _revive,
+            label: widget.appController.instantRewardBonuses
+                ? 'Claim +1 Play · Ad-free'
+                : 'Watch Ad · +1 Play',
+            icon: Icon(
+              widget.appController.instantRewardBonuses
+                  ? Icons.favorite_outline_rounded
+                  : Icons.ondemand_video_rounded,
+            ),
+            onPressed:
+                _claimingRevive ||
+                    !widget.appController.canClaimRewardedRevive(game.runId)
+                ? null
+                : _revive,
             variant: WildcardButtonVariant.primary,
           ),
         const SizedBox(height: 10),
         WildcardButton(
           label: 'End Run',
-          onPressed: () => unawaited(_act(game.declineRevive())),
+          onPressed: _claimingRevive
+              ? null
+              : () => unawaited(_act(game.declineRevive())),
           variant: WildcardButtonVariant.ghost,
         ),
       ],
@@ -921,7 +934,9 @@ class _GameHostScreenState extends State<GameHostScreen> {
         if (doubleEligible) ...[
           WildcardButton(
             label: doubleClaimed
-                ? 'Ad Bonus Claimed · +$adBonus'
+                ? 'Bonus Claimed · +$adBonus'
+                : widget.appController.instantRewardBonuses
+                ? 'Claim +$adBonus Bonus · Ad-free'
                 : 'Watch Ad · +$adBonus Bonus',
             icon: Icon(
               doubleClaimed
@@ -968,14 +983,24 @@ class _GameHostScreenState extends State<GameHostScreen> {
   }
 
   Future<void> _revive() async {
-    final reward = await widget.appController.ads.showRewarded();
-    if (reward == null) {
-      if (mounted) {
-        _message('Rewarded ad is not ready. Your revive is still safe.');
+    if (_claimingRevive || game.phase != RunPhase.revive) return;
+    setState(() => _claimingRevive = true);
+    try {
+      final claimed = await widget.appController.claimRewardedRevive(
+        runId: game.runId,
+        mode: game.state.mode,
+      );
+      if (!mounted) return;
+      if (!claimed) {
+        _message('Bonus unavailable. Your revive choice is still safe.');
+        return;
       }
-      return;
+      await _act(game.acceptRevive());
+    } catch (error) {
+      if (mounted) _message('Revive could not be saved: $error');
+    } finally {
+      if (mounted) setState(() => _claimingRevive = false);
     }
-    await _act(game.acceptRevive());
   }
 
   Future<void> _claimRunDouble(int baseCoins) async {

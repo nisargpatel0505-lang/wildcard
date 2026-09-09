@@ -229,7 +229,7 @@ void main() {
   });
 
   test(
-    'paid forced-ad entitlement cannot claim a phantom run double',
+    'paid entitlement cannot claim a run bonus before privacy acceptance',
     () async {
       final app = await AppController.bootstrap();
       addTearDown(app.dispose);

@@ -230,6 +230,7 @@ void main() {
       addTearDown(app.dispose);
       await app.restorePlayEntitlements();
       expect(app.account.noAds, false);
+      expect(app.instantRewardBonuses, false);
       expect(app.ads.forcedAdsRemoved, false);
       expect(app.cloudProgressVersion, 7);
       expect(app.billingAdjustmentApplied, 0);

@@ -96,9 +96,14 @@ class _VaultScreenState extends State<VaultScreen> {
                           const SizedBox(height: 10),
                           if (widget.controller.ads.adsEnabled)
                             WildcardButton(
-                              label:
-                                  'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',
-                              icon: const Icon(Icons.smart_display_outlined),
+                              label: widget.controller.instantRewardBonuses
+                                  ? 'Claim +25 Coins · Ad-free (${widget.controller.rewardedViewsLeftToday} left today)'
+                                  : 'Watch Ad · +25 Coins (${widget.controller.rewardedViewsLeftToday} left today)',
+                              icon: Icon(
+                                widget.controller.instantRewardBonuses
+                                    ? Icons.card_giftcard_rounded
+                                    : Icons.smart_display_outlined,
+                              ),
                               onPressed:
                                   !_actionInFlight &&
                                       widget.controller.rewardedViewsLeftToday >

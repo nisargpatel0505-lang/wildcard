@@ -49,8 +49,8 @@ class CloudAccountConflict implements Exception {
 ///
 /// The override is deliberately derived from build mode and is never written
 /// into [AccountState], so installing a later Play release cannot manufacture
-/// or overwrite the paid `noAds` entitlement. In public builds, optional
-/// rewarded placements remain opt-in and still require a completed ad.
+/// or overwrite the paid `noAds` entitlement. Only the paid account entitlement
+/// also enables the advertised instant, capped optional bonuses.
 bool effectiveNoAdsFor(
   AccountState account, {
   bool profileBuild = kProfileMode,
@@ -70,8 +70,9 @@ class AppController extends ChangeNotifier {
     required this.activeRunJson,
     required this.migrationResult,
     FirebaseService? firebaseService,
+    AdService? adService,
   }) : firebase = firebaseService ?? FirebaseService(),
-       ads = AdService(),
+       ads = adService ?? AdService(),
        audio = AudioService(),
        sfx = SfxService(),
        playGames = PlayGamesService(),
@@ -135,6 +136,8 @@ class AppController extends ChangeNotifier {
   bool _vaultOpenInFlight = false;
   int _vaultClaimSequence = 0;
   bool _weeklyRefreshInFlight = false;
+  bool _rewardedPlacementInFlight = false;
+  final Set<String> _rewardedClaimsInFlight = <String>{};
   String? _trustedDailyDateKey;
 
   bool get privacyAccepted => _local.privacyAccepted;
@@ -143,6 +146,10 @@ class AppController extends ChangeNotifier {
   bool get cloudReady => cloudState == CloudLinkState.ready;
   bool get effectiveNoAds => effectiveNoAdsFor(account);
   bool get forcedAdsRemoved => effectiveNoAds;
+
+  /// The purchased product promises instant optional bonuses. A profile/owner
+  /// ad-suppression flag is not a purchase and must never grant this benefit.
+  bool get instantRewardBonuses => ads.adsEnabled && account.noAds;
   bool get tutorialComebackChestAvailable =>
       account.firstLossCoached && !account.tutorialChestClaimed;
 
@@ -163,6 +170,7 @@ class AppController extends ChangeNotifier {
     void Function(double fraction, String label)? onProgress,
     bool releaseBuild = kReleaseMode,
     FirebaseService? firebaseService,
+    @visibleForTesting AdService? adService,
   }) async {
     onProgress?.call(.06, 'Opening local save…');
     final local = await LocalSaveRepository.open();
@@ -222,6 +230,7 @@ class AppController extends ChangeNotifier {
       activeRunJson: runJson,
       migrationResult: migration,
       firebaseService: firebaseService,
+      adService: adService,
     );
     controller.bootError = loadError ?? migration.error;
     onProgress?.call(.84, 'Setting Sly’s table…');
@@ -745,9 +754,13 @@ class AppController extends ChangeNotifier {
         })
         .toList(growable: false);
     if (protectedBeforeAd.length >= visibleWeeklyContractCount) return false;
+    final placementAccount = account;
+    final placementOwner = firebase.user?.uid;
     _weeklyRefreshInFlight = true;
     try {
-      if (!await _completeRewardedPlacement() || weeklyMissionRefreshUsed) {
+      if (!await _completeRewardedPlacement() ||
+          !_rewardedOwnerUnchanged(placementAccount, placementOwner) ||
+          weeklyMissionRefreshUsed) {
         return false;
       }
       final previousMissionIds = List<String>.from(account.missionSet);
@@ -1702,7 +1715,12 @@ class AppController extends ChangeNotifier {
 
   Future<bool> claimRewardedCoins() async {
     if (rewardedViewsLeftToday <= 0) return false;
-    if (!await _completeRewardedPlacement()) return false;
+    final placementAccount = account;
+    final placementOwner = firebase.user?.uid;
+    if (!await _completeRewardedPlacement() ||
+        !_rewardedOwnerUnchanged(placementAccount, placementOwner)) {
+      return false;
+    }
     account.coins += 25;
     await persistAccount();
     return true;
@@ -1722,30 +1740,108 @@ class AppController extends ChangeNotifier {
         rewardedViewsLeftToday <= 0) {
       return false;
     }
-    if (!await _completeRewardedPlacement()) return false;
-    return _applyGameMutation(
-      AccountMutation(
-        claimId: claimId,
-        kind: AccountMutationKind.rewardedDouble,
-        coinDelta: astraExperienceEnabled
-            ? astraRunAdBonus(baseCoins)
-            : baseCoins,
-        runMode: mode,
-      ),
-      launchDailyDate: '',
-    );
+    if (!_rewardedClaimsInFlight.add(claimId)) return false;
+    final placementAccount = account;
+    final placementOwner = firebase.user?.uid;
+    try {
+      if (!await _completeRewardedPlacement() ||
+          !_rewardedOwnerUnchanged(placementAccount, placementOwner)) {
+        return false;
+      }
+      return await _applyGameMutation(
+        AccountMutation(
+          claimId: claimId,
+          kind: AccountMutationKind.rewardedDouble,
+          coinDelta: astraExperienceEnabled
+              ? astraRunAdBonus(baseCoins)
+              : baseCoins,
+          runMode: mode,
+        ),
+        launchDailyDate: '',
+      );
+    } finally {
+      _rewardedClaimsInFlight.remove(claimId);
+    }
   }
 
-  Future<bool> _completeRewardedPlacement() async {
-    if (rewardedViewsLeftToday <= 0) return false;
-    if (await ads.showRewarded() == null) return false;
-    final today = _todayString();
-    if (account.adDate != today) {
-      account.adDate = today;
-      account.adViews = 0;
+  /// Persist the optional revive claim before granting the extra play. A
+  /// restart can retry it without consuming another shared daily bonus slot.
+  bool canClaimRewardedRevive(String runId) =>
+      ads.adsEnabled &&
+      (account.rewardClaims.contains('$runId:revive') ||
+          rewardedViewsLeftToday > 0);
+
+  Future<bool> claimRewardedRevive({
+    required String runId,
+    required RunMode mode,
+  }) async {
+    final claimId = '$runId:revive';
+    if (runId.trim().isEmpty || claimId.length > 96 || mode == RunMode.daily) {
+      return false;
     }
-    account.adViews += 1;
-    return true;
+    if (account.rewardClaims.contains(claimId)) return true;
+    if (!_rewardedClaimsInFlight.add(claimId)) return false;
+    final placementAccount = account;
+    final placementOwner = firebase.user?.uid;
+    try {
+      if (!await _completeRewardedPlacement() ||
+          !_rewardedOwnerUnchanged(placementAccount, placementOwner)) {
+        return false;
+      }
+      account.rewardClaims.add(claimId);
+      if (account.rewardClaims.length > 256) {
+        account.rewardClaims.removeRange(0, account.rewardClaims.length - 256);
+      }
+      try {
+        await persistAccount();
+      } catch (_) {
+        account.rewardClaims.remove(claimId);
+        rethrow;
+      }
+      return true;
+    } finally {
+      _rewardedClaimsInFlight.remove(claimId);
+    }
+  }
+
+  bool _rewardedOwnerUnchanged(AccountState owner, String? uid) =>
+      !_disposed &&
+      !_billingAccountTransitioning &&
+      identical(account, owner) &&
+      firebase.user?.uid == uid;
+
+  Future<bool> _completeRewardedPlacement() async {
+    if (!privacyAccepted ||
+        _disposed ||
+        _billingAccountTransitioning ||
+        _rewardedPlacementInFlight ||
+        rewardedViewsLeftToday <= 0) {
+      return false;
+    }
+    final placementAccount = account;
+    final placementOwner = firebase.user?.uid;
+    _rewardedPlacementInFlight = true;
+    try {
+      // Use the verified/persisted paid entitlement, never effectiveNoAds:
+      // owner/profile builds must not manufacture paid rewards. No AdMob
+      // consent, fill or SDK initialization is needed for an ad-free bonus.
+      if (!instantRewardBonuses && await ads.showRewarded() == null) {
+        return false;
+      }
+      if (!_rewardedOwnerUnchanged(placementAccount, placementOwner) ||
+          rewardedViewsLeftToday <= 0) {
+        return false;
+      }
+      final today = _todayString();
+      if (account.adDate != today) {
+        account.adDate = today;
+        account.adViews = 0;
+      }
+      account.adViews += 1;
+      return true;
+    } finally {
+      _rewardedPlacementInFlight = false;
+    }
   }
 
   Future<void> deleteFirebaseAccountAndData() async {

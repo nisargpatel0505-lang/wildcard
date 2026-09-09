@@ -46,6 +46,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 WildcardButton(
                   label: widget.controller.weeklyMissionRefreshUsed
                       ? 'Refresh Used This Week'
+                      : widget.controller.instantRewardBonuses
+                      ? 'Refresh Missions · Ad-free'
                       : 'Watch Ad & Refresh Missions',
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed:
@@ -60,6 +62,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
               Text(
                 !widget.controller.ads.adsEnabled
                     ? 'Mission rewards are earned by playing. Ad refreshes are disabled in this phone test build.'
+                    : widget.controller.instantRewardBonuses
+                    ? 'One instant refresh per week, using one of your 5 shared daily bonuses. It gives no coins; completed rewards, claimed rewards and all progress remain safe.'
                     : 'One optional rewarded refresh per week. It gives no coins; completed rewards, claimed rewards and all progress remain safe.',
                 textAlign: TextAlign.center,
                 style: TextStyle(

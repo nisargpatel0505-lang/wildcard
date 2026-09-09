@@ -7,7 +7,7 @@ import 'package:wildcard/core/build_options.dart';
 import 'package:wildcard/ui/wildcard_ui.dart';
 
 void main() {
-  testWidgets('shop explains forced-ad entitlement and optional rewards', (
+  testWidgets('shop explains paid instant bonuses and owner separation', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -46,7 +46,7 @@ void main() {
       isNotEmpty,
     );
     expect(
-      find.textContaining('WATCH AD'),
+      find.textContaining('CLAIM +25 COINS'),
       ownerPhoneNoAdsBuild ? findsNothing : findsOneWidget,
     );
     await tester.drag(find.byType(ListView).first, const Offset(0, -1600));
@@ -59,7 +59,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('MAKE THE TABLE YOURS'), findsOneWidget);
-    expect(find.byKey(const ValueKey('studio-theme_midnight_observatory')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('studio-theme_midnight_observatory')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Tables'));
     await tester.pump();
     expect(find.byType(CoinPrice), findsWidgets);

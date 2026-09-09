@@ -65,7 +65,7 @@ jobs:
           apkanalyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$apkanalyzer"
           test "$("$apkanalyzer" manifest application-id "$apk")" = 'com.nisarg.wildcard'
-          test "$("$apkanalyzer" manifest version-code "$apk")" = '76'
+          test "$("$apkanalyzer" manifest version-code "$apk")" = '77'
           test "$("$apkanalyzer" manifest version-name "$apk")" = '9.1.2'
           "$apkanalyzer" manifest permissions "$apk" > "$output/permissions.txt"
           grep -Fxq 'android.permission.INTERNET' "$output/permissions.txt"
@@ -78,14 +78,14 @@ jobs:
           jarsigner -verify "$aab" > "$output/aab-signature-verification.txt"
           keytool -printcert -jarfile "$aab" > "$output/aab-certificate.txt"
           tr -d ':' < "$output/aab-certificate.txt" | tr '[:upper:]' '[:lower:]' | grep -Fq 'c3c281d1470aebf2d99656221ada7815c6b873f4e8a748d7284f5fae5d764717'
-          cp "$apk" "$output/WILDCARD-v9.1.2-code76.apk"
-          cp "$aab" "$output/WILDCARD-v9.1.2-code76.aab"
+          cp "$apk" "$output/WILDCARD-v9.1.2-code77.apk"
+          cp "$aab" "$output/WILDCARD-v9.1.2-code77.aab"
           git rev-parse HEAD > "$output/source-commit.txt"
           flutter --version > "$output/flutter-version.txt"
           sha256sum "$output"/*.apk "$output"/*.aab > "$output/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: WILDCARD-v9.1.2-code76-official
+          name: WILDCARD-v9.1.2-code77-official
           path: flutter_app/build/official-delivery/
           if-no-files-found: error
           retention-days: 30

@@ -310,9 +310,9 @@ class AdService extends ChangeNotifier {
 
   /// The only public gameplay path for a forced interstitial.
   ///
-  /// Rewarded placements intentionally do not consult this entitlement or
-  /// policy: they remain optional and only return a reward after Google's
-  /// completion callback.
+  /// This SDK layer only returns actual Google rewarded completions. The app
+  /// controller separately honours paid instant bonuses; build/profile forced
+  /// ad suppression is not a paid entitlement and cannot grant those bonuses.
   Future<bool> showTerminalInterstitial(
     TerminalInterstitialContext context,
   ) async {
