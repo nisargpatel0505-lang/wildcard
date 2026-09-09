@@ -199,14 +199,26 @@ class FirebaseService extends ChangeNotifier {
     required String purchaseToken,
   }) => _purchaseCall('markPlayPurchaseDelivered', productId, purchaseToken);
 
+  Future<Map<String, dynamic>> fulfillPlayPurchase({
+    required String productId,
+    required String purchaseToken,
+    required int expectedProgressVersion,
+  }) => _purchaseCall(
+    'fulfillPlayPurchase',
+    productId,
+    purchaseToken,
+    expectedProgressVersion: expectedProgressVersion,
+  );
+
   Future<Map<String, dynamic>> getPlayEntitlements() =>
       _call('getPlayEntitlements');
 
   Future<Map<String, dynamic>> _purchaseCall(
     String callable,
     String productId,
-    String purchaseToken,
-  ) {
+    String purchaseToken, {
+    int? expectedProgressVersion,
+  }) {
     if (!AppConstants.playProductIds.contains(productId) ||
         purchaseToken.length < 16 ||
         purchaseToken.length > 4096) {
@@ -218,6 +230,8 @@ class FirebaseService extends ChangeNotifier {
         'packageName': AppConstants.androidPackageName,
         'productId': productId,
         'purchaseToken': purchaseToken,
+        'deliveryProtocol': 2,
+        'expectedProgressVersion': ?expectedProgressVersion,
       },
     );
   }

@@ -150,7 +150,8 @@ function readPurchaseInput(data) {
   if (purchaseToken.length < 16 || purchaseToken.length > 4096) {
     throw new HttpsError("invalid-argument", "Invalid Play purchase token.");
   }
-  return {packageName, productId, purchaseToken};
+  return {packageName, productId, purchaseToken,
+    deliveryProtocol: data?.deliveryProtocol === 2 ? 2 : 1};
 }
 
 function readCloudWriteInput(data) {
@@ -192,6 +193,11 @@ function sanitizeClientAppVersion(value) {
     version : "6.9.14";
 }
 
+function nextCloudRevision(current) {
+  return {saveVersion: clampInteger(current.saveVersion) + 1,
+    progressVersion: clampInteger(current.progressVersion) + 1};
+}
+
 function cloudSaveResponse(snapshot, data, extra = {}) {
   if (!snapshot && !data) {
     return {
@@ -224,6 +230,10 @@ function cloudSaveResponse(snapshot, data, extra = {}) {
     progressVersion: clampInteger(record.progressVersion),
     billingAdjustmentApplied:
       clampInteger(record.billingAdjustmentApplied),
+    lastBillingTokenHash: record.lastBillingTokenHash || null,
+    lastBillingCoinDelta: Number(record.lastBillingCoinDelta) || 0,
+    lastBillingBaseProgressVersion:
+      clampInteger(record.lastBillingBaseProgressVersion),
     ...extra,
   };
 }
@@ -262,13 +272,14 @@ const readSecureCloudSave = onCall({
     );
     const sanitizedChanged =
       reconciled.accountJson !== String(current.accountJson || "");
-    let saveVersion = clampInteger(current.saveVersion);
+    let revision = {saveVersion: clampInteger(current.saveVersion),
+      progressVersion: clampInteger(current.progressVersion)};
     if (sanitizedChanged || reconciled.deducted > 0) {
-      saveVersion += 1;
+      revision = nextCloudRevision(current);
       transaction.set(saveRef, {
         accountJson: reconciled.accountJson,
         billingAdjustmentApplied: reconciled.applied,
-        saveVersion,
+        ...revision,
         updatedAt: FieldValue.serverTimestamp(),
         billingAdjustedAt: reconciled.deducted > 0 ?
           FieldValue.serverTimestamp() :
@@ -284,7 +295,7 @@ const readSecureCloudSave = onCall({
       ...current,
       accountJson: reconciled.accountJson,
       billingAdjustmentApplied: reconciled.applied,
-      saveVersion,
+      ...revision,
     }, {
       serverUpdatedAt:
         (sanitizedChanged || reconciled.deducted > 0) ?
@@ -444,7 +455,24 @@ function verifiedResponse(productId, tokenHash, record, playPurchase) {
     consumed: playPurchase ? isConsumed(playPurchase, productId) :
       Boolean(record?.consumed),
     testPurchase: Boolean(playPurchase?.testPurchaseContext),
+    deliveryProtocol: record?.deliveryProtocol || 1,
   };
+}
+
+function assertDeliveryProtocol(record, input) {
+  if (record?.deliveryProtocol === 2 && input.deliveryProtocol !== 2) {
+    throw new HttpsError("failed-precondition", "Update WILDCARD to finish this purchase.");
+  }
+}
+
+function assertPlayOwner(playPurchase, uid, productId) {
+  if (playPurchaseState(playPurchase) !== "PURCHASED" ||
+      !purchasedProductIds(playPurchase).includes(productId)) {
+    throw new HttpsError("failed-precondition", "The purchase is pending or was cancelled.");
+  }
+  if (playPurchase.obfuscatedExternalAccountId !== obfuscatedAccountId(uid)) {
+    throw new HttpsError("permission-denied", "Purchase account mismatch.");
+  }
 }
 
 /**
@@ -467,6 +495,7 @@ const verifyPlayPurchase = onCall({
 
   if (existing.exists) {
     const record = existing.data();
+    assertDeliveryProtocol(record, input);
     if (record.uid !== uid || record.productId !== input.productId) {
       throw new HttpsError(
           "already-exists",
@@ -501,6 +530,7 @@ const verifyPlayPurchase = onCall({
   const record = await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const current = snapshot.exists ? snapshot.data() : null;
+    assertDeliveryProtocol(current, input);
     if (current &&
         (current.uid !== uid || current.productId !== input.productId)) {
       throw new HttpsError(
@@ -529,7 +559,10 @@ const verifyPlayPurchase = onCall({
       consumed: isConsumed(playPurchase, input.productId),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    if (!current) update.createdAt = FieldValue.serverTimestamp();
+    if (!current) {
+      update.createdAt = FieldValue.serverTimestamp();
+      update.deliveryProtocol = input.deliveryProtocol;
+    }
     transaction.set(ref, update, {merge: true});
     return {...current, ...update, status};
   });
@@ -558,11 +591,15 @@ const markPlayPurchaseDelivered = onCall({
       throw new HttpsError("failed-precondition", "Verify the purchase first.");
     }
     const record = snapshot.data();
+    assertDeliveryProtocol(record, input);
     if (record.uid !== uid || record.productId !== input.productId) {
       throw new HttpsError("permission-denied", "Purchase owner mismatch.");
     }
     if (record.status === "revoked") {
       throw new HttpsError("failed-precondition", "This purchase was revoked.");
+    }
+    if (record.deliveryProtocol === 2 && record.status !== "delivered") {
+      throw new HttpsError("failed-precondition", "Fulfill this purchase on the server first.");
     }
     if (record.status !== "delivered") {
       transaction.update(ref, {
@@ -582,23 +619,142 @@ const markPlayPurchaseDelivered = onCall({
   };
 });
 
-/**
- * Return every verified, non-revoked grant. The app compares these token hashes
- * with its bounded purchaseClaims set and reapplies only a missing grant. This
- * makes process-death and cross-device recovery safe without trusting
- * client-written accountJson as proof of payment. Raw purchase tokens are never
- * returned.
+/** Atomic protocol2 fulfillment: a paid grant and its ledger transition are
+ * committed with the same versioned cloud balance. Client claim lists never
+ * authorize currency. Kept separate from the legacy delivery-confirmation API.
+ */
+async function applyFulfillment(transaction, {
+  uid, input, playPurchase, expectedProgressVersion,
+  purchaseRef, saveRef, accountRef,
+}) {
+  assertPlayOwner(playPurchase, uid, input.productId);
+  const [purchaseSnapshot, saveSnapshot, accountSnapshot] = await Promise.all([
+    transaction.get(purchaseRef), transaction.get(saveRef), transaction.get(accountRef),
+  ]);
+  const receipt = purchaseSnapshot.data();
+  if (!receipt || receipt.uid !== uid || receipt.productId !== input.productId) {
+    throw new HttpsError("permission-denied", "Verify this purchase for the current account first.");
+  }
+  if (receipt.status === "revoked") {
+    throw new HttpsError("failed-precondition", "This purchase was revoked.");
+  }
+  if (!saveSnapshot.exists) {
+    throw new HttpsError("failed-precondition", "Back up your progress before purchasing.");
+  }
+  const save = saveSnapshot.data();
+  const adjustmentTotal = clampInteger(accountSnapshot.data()?.coinAdjustmentTotal);
+  const version = clampInteger(save.progressVersion);
+  if (expectedProgressVersion !== version) {
+    throw new HttpsError("aborted", "Cloud progress changed. Reconnect before finishing your purchase.");
+  }
+  if (receipt.status === "delivered") {
+    return {fulfilled: true, alreadyDelivered: true, coinDelta: 0,
+      ...(input.productId === "remove_ads" ? {noAds: true} : {}),
+      ...cloudSaveResponse(null, save), billingAdjustmentTotal: adjustmentTotal,
+      billingAdjustmentOutstanding: Math.max(0, adjustmentTotal - clampInteger(save.billingAdjustmentApplied))};
+  }
+  if (receipt.deliveryProtocol !== 2 || receipt.status !== "verified") {
+    throw new HttpsError("failed-precondition",
+        "An older pending purchase needs a support check before it can be safely restored.");
+  }
+  if (isConsumed(playPurchase, input.productId)) {
+    throw new HttpsError("failed-precondition", "An already-consumed purchase cannot be credited again.");
+  }
+  const amount = PRODUCTS[input.productId].amount || 0;
+  const account = JSON.parse(sanitizeCloudAccountJson(save.accountJson || "{}"));
+  const before = account.coins;
+  if (before + amount > MAX_COIN_BALANCE) {
+    throw new HttpsError("resource-exhausted", "Your wallet is full. Spend coins before finishing this purchase.");
+  }
+  account.coins += amount;
+  const reconciled = applyCoinAdjustment(JSON.stringify(account), adjustmentTotal,
+      save.billingAdjustmentApplied);
+  const tokenHash = hashToken(input.purchaseToken);
+  const coinDelta = reconciled.coinsAfter - before;
+  const next = {...save,
+    accountJson: reconciled.accountJson,
+    saveVersion: clampInteger(save.saveVersion) + 1,
+    progressVersion: version + 1,
+    billingAdjustmentApplied: reconciled.applied,
+    lastBillingTokenHash: tokenHash,
+    lastBillingCoinDelta: coinDelta,
+    lastBillingBaseProgressVersion: version,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  transaction.set(saveRef, next, {merge: false});
+  transaction.set(purchaseRef, {status: "delivered", deliveryProtocol: 2,
+    deliveredAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+    fulfilledProgressVersion: version + 1, coinDelta}, {merge: true});
+  transaction.set(accountRef, {uid, coinAdjustmentTotal: adjustmentTotal,
+    coinAdjustmentAppliedToCloud: reconciled.applied,
+    coinAdjustmentOutstanding: reconciled.outstanding,
+    updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+  return {fulfilled: true, alreadyDelivered: false, coinDelta,
+    ...(input.productId === "remove_ads" ? {noAds: true} : {}),
+    ...cloudSaveResponse(null, next), serverUpdatedAt: Date.now(),
+    billingAdjustmentTotal: adjustmentTotal,
+    billingAdjustmentOutstanding: reconciled.outstanding};
+}
+
+const fulfillPlayPurchase = onCall({region: REGION, enforceAppCheck: true}, async (request) => {
+  const uid = requireSignedIn(request);
+  const input = readPurchaseInput(request.data);
+  if (input.deliveryProtocol !== 2) {
+    throw new HttpsError("failed-precondition", "Update WILDCARD to finish this purchase.");
+  }
+  const playPurchase = await readFromPlay(input.packageName, input.purchaseToken);
+  return db.runTransaction((transaction) => applyFulfillment(transaction, {
+    uid, input, playPurchase,
+    expectedProgressVersion: clampInteger(request.data?.expectedProgressVersion),
+    purchaseRef: db.collection("billingPurchases").doc(hashToken(input.purchaseToken)),
+    saveRef: cloudSaveRef(uid), accountRef: billingAccountRef(uid),
+  }));
+});
+
+async function applyEntitlementRefresh(transaction, {
+  ref, uid, productId, playPurchase, notFound = false,
+}) {
+  const snapshot = await transaction.get(ref);
+  const record = snapshot.data();
+  // The query/Play lookup can overlap fulfillment, refunds or account deletion.
+  // Never write an old queried status back over the latest receipt state.
+  if (!record || record.uid !== uid || record.productId !== productId) return null;
+  if (record.status === "revoked") return record;
+  if (!notFound && playPurchaseState(playPurchase) === "PURCHASED") {
+    assertPlayOwner(playPurchase, uid, productId);
+  }
+  const status = notFound ? "revoked" :
+    ledgerStatusAfterPlay(record, productId, playPurchase);
+  const update = {
+    status,
+    revokedAt: status === "revoked" ? FieldValue.serverTimestamp() : FieldValue.delete(),
+    playState: notFound ? "NOT_FOUND" : playPurchaseState(playPurchase),
+    acknowledgementState: playPurchase?.acknowledgementState || "UNKNOWN",
+    consumed: notFound ? Boolean(record.consumed) : isConsumed(playPurchase, productId),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  transaction.set(ref, update, {merge: true});
+  return {...record, ...update};
+}
+
+/** Return authoritative paid entitlements and bounded receipt history. Currency
+ * is delivered only by the atomic fulfillment endpoint, never by this list.
+ * Raw purchase tokens are never returned.
  */
 const getPlayEntitlements = onCall({
   region: REGION,
   enforceAppCheck: true,
 }, async (request) => {
   const uid = requireSignedIn(request);
-  const snapshot = await db.collection("billingPurchases")
-      .where("uid", "==", uid)
-      .limit(400)
-      .get();
-  const records = await Promise.all(snapshot.docs.map(async (document) => {
+  const [snapshot, removeAdsSnapshot] = await Promise.all([
+    db.collection("billingPurchases").where("uid", "==", uid).limit(400).get(),
+    // A long consumable history must never hide the paid Remove Ads entitlement.
+    db.collection("billingPurchases").where("uid", "==", uid)
+        .where("productId", "==", "remove_ads").get(),
+  ]);
+  const documents = new Map([...snapshot.docs, ...removeAdsSnapshot.docs]
+      .map((document) => [document.id, document]));
+  const records = await Promise.all([...documents.values()].map(async (document) => {
     const record = document.data();
     if (record.productId !== "remove_ads" || record.status === "revoked") {
       return {id: document.id, ...record};
@@ -608,6 +764,7 @@ const getPlayEntitlements = onCall({
     // restores. RTDN remains the fast path, but this closes the gap when a
     // notification was delayed or Pub/Sub was temporarily unavailable.
     let playPurchase;
+    let notFound = false;
     try {
       playPurchase = await readFromPlay(
           record.packageName || PACKAGE_NAME,
@@ -615,31 +772,14 @@ const getPlayEntitlements = onCall({
       );
     } catch (error) {
       if (error?.code !== "not-found") throw error;
-      await document.ref.set({
-        status: "revoked",
-        revokedAt: FieldValue.serverTimestamp(),
-        playState: "NOT_FOUND",
-        updatedAt: FieldValue.serverTimestamp(),
-      }, {merge: true});
-      return {...record, id: document.id, status: "revoked"};
+      notFound = true;
     }
 
-    const status = ledgerStatusAfterPlay(
-        record,
-        record.productId,
-        playPurchase,
-    );
-    await document.ref.set({
-      status,
-      revokedAt: status === "revoked" ?
-        FieldValue.serverTimestamp() : FieldValue.delete(),
-      playState: playPurchaseState(playPurchase),
-      acknowledgementState:
-        playPurchase.acknowledgementState || "UNKNOWN",
-      consumed: isConsumed(playPurchase, record.productId),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, {merge: true});
-    return {...record, id: document.id, status};
+    const refreshed = await db.runTransaction((transaction) =>
+      applyEntitlementRefresh(transaction, {
+        ref: document.ref, uid, productId: record.productId, playPurchase, notFound,
+      }));
+    return refreshed ? {...refreshed, id: document.id} : null;
   }));
 
   const [billingAccountSnapshot, cloudSaveSnapshot] = await Promise.all([
@@ -652,7 +792,9 @@ const getPlayEntitlements = onCall({
   const purchases = [];
   const unresolved = [];
   records.forEach((record) => {
-    if (record.status === "revoked") return;
+    if (!record || record.status === "revoked") return;
+    // Older clients must not locally grant protocol2 reservations.
+    if (record.deliveryProtocol === 2 && record.status !== "delivered") return;
     purchases.push({
       productId: record.productId,
       tokenHash: record.id,
@@ -700,7 +842,7 @@ function shouldCreateCoinAdjustment(record) {
       // short recovery window prevents a refund racing delivery and leaving
       // authorised coins behind. Pending/cancelled Play purchases never reach
       // verified state.
-      (record.status === "verified" ||
+      ((record.status === "verified" && record.deliveryProtocol !== 2) ||
        record.status === "delivered" ||
        record.deliveredAt),
   );
@@ -774,7 +916,7 @@ async function reconcileRevokedPurchase({
       transaction.set(saveRef, {
         accountJson: reconciled.accountJson,
         billingAdjustmentApplied: applied,
-        saveVersion: clampInteger(save.saveVersion) + 1,
+        ...nextCloudRevision(save),
         updatedAt: FieldValue.serverTimestamp(),
         billingAdjustedAt: FieldValue.serverTimestamp(),
       }, {merge: true});
@@ -873,15 +1015,9 @@ const playBillingNotification = onMessagePublished({
       messageId,
     });
   } else {
-    await purchaseRef.set({
-      status: current.status,
-      revokedAt: FieldValue.delete(),
-      playState: state,
-      acknowledgementState:
-        playPurchase?.acknowledgementState || "UNKNOWN",
-      consumed: isConsumed(playPurchase, current.productId),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, {merge: true});
+    await db.runTransaction((transaction) => applyEntitlementRefresh(transaction, {
+      ref: purchaseRef, uid: current.uid, productId: current.productId, playPurchase,
+    }));
   }
   await eventRef.set({
     tokenHash,
@@ -943,6 +1079,7 @@ async function deleteBillingData(uid) {
 }
 
 module.exports = {
+  fulfillPlayPurchase,
   verifyPlayPurchase,
   markPlayPurchaseDelivered,
   getPlayEntitlements,
@@ -964,5 +1101,10 @@ module.exports = {
     shouldCreateCoinAdjustment,
     sanitizeClientAppVersion,
     PROTECTED_CLOUD_ACCOUNT_FIELDS,
+    applyFulfillment,
+    assertDeliveryProtocol,
+    assertPlayOwner,
+    applyEntitlementRefresh,
+    nextCloudRevision,
   },
 };

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 
 import '../core/app_constants.dart';
 import '../domain/astra_progression.dart';
@@ -56,6 +57,11 @@ class BillingService extends ChangeNotifier {
   Object? _lastError;
   PersistVerifiedGrant? persistVerifiedGrant;
 
+  /// The app must reconcile the signed-in save before a real purchase can
+  /// start. A Firebase session alone is not proof that this device owns the
+  /// currently loaded local progress.
+  Future<bool> Function()? preparePurchase;
+
   BillingState get state => _state;
   Map<String, ProductDetails> get products => Map.unmodifiable(_products);
   Set<String> get notFoundProductIds => Set.unmodifiable(_notFoundProductIds);
@@ -98,7 +104,8 @@ class BillingService extends ChangeNotifier {
       _lastError = response.error;
       _state = BillingState.ready;
       notifyListeners();
-      if (_firebase.signedIn) unawaited(recoverUnfinishedPurchases());
+      // Recovery is started by AppController after cloud-owner reconciliation.
+      // Racing that read can otherwise grant into a previous account's save.
       return true;
     } catch (error) {
       _lastError = error;
@@ -113,6 +120,12 @@ class BillingService extends ChangeNotifier {
     if (!ready) throw StateError('Google Play Billing is unavailable.');
     if (!_firebase.signedIn) {
       throw StateError('Sign in with Google before purchasing.');
+    }
+    final purchaseOwner = _firebase.user?.uid;
+    if (preparePurchase == null ||
+        !await preparePurchase!() ||
+        _firebase.user?.uid != purchaseOwner) {
+      throw StateError('Reconnect your cloud backup before purchasing.');
     }
     final product = _products[productId];
     if (product == null || !AppConstants.playProductIds.contains(productId)) {
@@ -209,7 +222,6 @@ class BillingService extends ChangeNotifier {
           result['productId'] != purchase.productID) {
         throw StateError('Firebase rejected the Play purchase.');
       }
-      final delivered = result['delivered'] == true;
       final grantValue = result['grant'];
       final verified = VerifiedPlayPurchase(
         productId: purchase.productID,
@@ -223,11 +235,9 @@ class BillingService extends ChangeNotifier {
         purchaseDetails: purchase,
         recovered: recovered,
       );
-      if (delivered) {
-        await _finishWithPlay(verified);
-      } else {
-        await _persistThenFinish(verified);
-      }
+      // Even an already-delivered receipt must reconcile its durable balance
+      // before Play consumption after a process restart or lost response.
+      await _persistThenFinish(verified);
     } catch (error) {
       _lastError = error;
       notifyListeners();
@@ -265,7 +275,12 @@ class BillingService extends ChangeNotifier {
     if (purchase.productId != 'remove_ads') {
       final addition = _billing
           .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-      await addition.consumePurchase(purchase.purchaseDetails);
+      final result = await addition.consumePurchase(purchase.purchaseDetails);
+      if (result.responseCode != BillingResponse.ok) {
+        throw StateError(
+          'Google Play has not finished this purchase. Your verified grant is safe; restore purchases to retry.',
+        );
+      }
     }
     if (purchase.purchaseDetails.pendingCompletePurchase) {
       await _billing.completePurchase(purchase.purchaseDetails);

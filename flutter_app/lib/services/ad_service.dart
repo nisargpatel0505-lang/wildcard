@@ -36,6 +36,7 @@ class AdService extends ChangeNotifier {
   Object? _lastError;
   bool _privacyOptionsRequired = false;
   bool _forcedAdsRemoved = false;
+  bool _disposed = false;
   @visibleForTesting
   final Future<RewardItem?> Function()? rewardedPresenter;
 
@@ -45,7 +46,7 @@ class AdService extends ChangeNotifier {
   final bool ownerNoAds;
 
   /// This build switch is independent from the purchased forced-ad removal.
-  bool get adsEnabled => !astraEnabled && !ownerNoAds;
+  bool get adsEnabled => !astraEnabled && !ownerNoAds && !_disposed;
 
   AdServiceState get state => _state;
   Object? get lastError => _lastError;
@@ -69,6 +70,7 @@ class AdService extends ChangeNotifier {
       : AppConstants.productionInterstitialAdId;
 
   void setForcedAdsRemoved(bool value) {
+    if (_disposed) return;
     if (_forcedAdsRemoved == value) return;
     _forcedAdsRemoved = value;
     if (value) {
@@ -113,6 +115,7 @@ class AdService extends ChangeNotifier {
         consentError ??= error;
       }
       final canRequestAds = await ConsentInformation.instance.canRequestAds();
+      if (!adsEnabled) return false;
       _lastError = consentError;
       if (!canRequestAds) {
         _state = AdServiceState.unavailable;
@@ -123,14 +126,17 @@ class AdService extends ChangeNotifier {
       _state = AdServiceState.initializing;
       notifyListeners();
       await MobileAds.instance.initialize();
+      if (!adsEnabled) return false;
       _state = AdServiceState.ready;
       await Future.wait<void>([
         _loadRewarded(),
         if (!_forcedAdsRemoved) _loadInterstitial(),
       ]);
+      if (!adsEnabled) return false;
       notifyListeners();
       return true;
     } catch (error) {
+      if (_disposed) return false;
       _lastError = error;
       _state = AdServiceState.unavailable;
       notifyListeners();
@@ -188,13 +194,19 @@ class AdService extends ChangeNotifier {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          _rewarded = ad;
-          notifyListeners();
+          if (!adsEnabled) {
+            ad.dispose();
+          } else {
+            _rewarded = ad;
+            notifyListeners();
+          }
           completer.complete();
         },
         onAdFailedToLoad: (error) {
-          _lastError = error;
-          notifyListeners();
+          if (!_disposed) {
+            _lastError = error;
+            notifyListeners();
+          }
           completer.complete();
         },
       ),
@@ -208,6 +220,7 @@ class AdService extends ChangeNotifier {
     if (testPresenter != null) return testPresenter();
     if (!ready) return null;
     if (_rewarded == null) await _loadRewarded();
+    if (!adsEnabled || !ready) return null;
     final ad = _rewarded;
     if (ad == null) return null;
     _rewarded = null;
@@ -242,13 +255,21 @@ class AdService extends ChangeNotifier {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          _interstitial = ad;
-          notifyListeners();
+          // A restored or pending purchase can finish while this load is in
+          // flight. Never cache a forced ad after that entitlement arrives.
+          if (!adsEnabled || _forcedAdsRemoved) {
+            ad.dispose();
+          } else {
+            _interstitial = ad;
+            notifyListeners();
+          }
           completer.complete();
         },
         onAdFailedToLoad: (error) {
-          _lastError = error;
-          notifyListeners();
+          if (!_disposed) {
+            _lastError = error;
+            notifyListeners();
+          }
           completer.complete();
         },
       ),
@@ -262,6 +283,8 @@ class AdService extends ChangeNotifier {
     if (testPresenter != null) return testPresenter();
     if (!ready) return false;
     if (_interstitial == null) await _loadInterstitial();
+    // Recheck immediately before display, not just before the async load.
+    if (!adsEnabled || !ready || _forcedAdsRemoved) return false;
     final ad = _interstitial;
     if (ad == null) return false;
     _interstitial = null;
@@ -306,8 +329,11 @@ class AdService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _rewarded?.dispose();
     _interstitial?.dispose();
+    _rewarded = null;
+    _interstitial = null;
     super.dispose();
   }
 }

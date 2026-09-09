@@ -239,6 +239,36 @@ class LocalSaveRepository {
 
   Future<void> remove(String key) => _preferences.remove(key);
 
+  Future<void> writeCriticalString(String key, String? value) async {
+    if (value != null) {
+      await _writeStringChecked(
+        key,
+        value,
+        'Purchase recovery could not be saved.',
+      );
+    } else {
+      try {
+        if (!await _preferences.remove(key)) {
+          throw StateError('Purchase recovery could not be cleared.');
+        }
+      } catch (_) {
+        await _preferences.reload();
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> writeCriticalInt(String key, int value) async {
+    try {
+      if (!await _preferences.setInt(key, value)) {
+        throw StateError('The cloud recovery checkpoint could not be saved.');
+      }
+    } catch (_) {
+      await _preferences.reload();
+      rethrow;
+    }
+  }
+
   Map<String, dynamic>? decodeAccount() => _decodeObject(accountJson);
 
   Map<String, dynamic>? decodeRun() => _decodeObject(runJson);
@@ -310,6 +340,13 @@ class LocalSaveRepository {
   Future<void> clearRun() => _preferences.remove(AppConstants.legacyRunKey);
 
   Future<void> clearPlayerData({bool retainPrivacyAcceptance = true}) async {
+    for (final key
+        in _preferences
+            .getKeys()
+            .where((key) => key.startsWith('flutter_billing_recovery_v2:'))
+            .toList()) {
+      await _preferences.remove(key);
+    }
     await _preferences.remove(preAstraUpgradeBackupKey);
     await _preferences.remove(AppConstants.legacyAccountKey);
     await _preferences.remove(AppConstants.legacyRunKey);

@@ -79,6 +79,15 @@ class AppController extends ChangeNotifier {
     billing = BillingService(firebase);
     _dailyScoreOutbox = DailyScoreOutbox(_local);
     billing.persistVerifiedGrant = _persistVerifiedPlayGrant;
+    billing.preparePurchase = () async {
+      if (_billingAccountTransitioning ||
+          !cloudReady ||
+          !_ownsCurrentCloudAccount ||
+          !firebase.signedIn) {
+        return false;
+      }
+      return cloudSaveNow();
+    };
     ads.setNoAds(effectiveNoAds);
     audio.setEffectsEnabled(!account.muted);
     sfx.enabled = !account.muted;
@@ -115,6 +124,9 @@ class AppController extends ChangeNotifier {
   Timer? _cloudTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Future<bool>? _cloudWriteInFlight;
+  Future<bool>? _billingDeliveryInFlight;
+  bool _billingCloudWritesPaused = false;
+  bool _billingAccountTransitioning = false;
   Future<void>? _dailyRetryInFlight;
   Future<void>? _onlineServicesStartup;
   bool _cloudWritePending = false;
@@ -1360,20 +1372,31 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    if (cloudReady) await cloudSaveNow();
-    final uid = firebase.user?.uid;
-    if (uid != null) await _stashOwnedPhoneSave(uid);
-    await firebase.signOut();
-    cloudState = CloudLinkState.guest;
-    cloudStatus = 'Guest — phone save only';
-    cloudSaveVersion = 0;
-    cloudProgressVersion = 0;
-    billingAdjustmentApplied = 0;
-    billingAdjustmentTotal = 0;
-    notifyListeners();
+    _billingAccountTransitioning = true;
+    try {
+      try {
+        await _billingDeliveryInFlight;
+      } catch (_) {
+        // Keep the failed receipt journal; sign-out must still be possible.
+      }
+      if (cloudReady) await cloudSaveNow();
+      final uid = firebase.user?.uid;
+      if (uid != null) await _stashOwnedPhoneSave(uid);
+      await firebase.signOut();
+      cloudState = CloudLinkState.guest;
+      cloudStatus = 'Guest — phone save only';
+      cloudSaveVersion = 0;
+      cloudProgressVersion = 0;
+      billingAdjustmentApplied = 0;
+      billingAdjustmentTotal = 0;
+      notifyListeners();
+    } finally {
+      _billingAccountTransitioning = false;
+    }
   }
 
   Future<void> reconcileCloudAccount({required bool announce}) async {
+    await _billingDeliveryInFlight;
     final user = firebase.user;
     if (user == null) throw StateError('Sign in with Google first.');
     cloudBusy = true;
@@ -1400,6 +1423,17 @@ class AppController extends ChangeNotifier {
       var accountRaw = localAccount;
       var runRaw = localRun;
       var shouldUpload = !remoteExists;
+
+      final pendingBilling = _billingJournal(uid);
+      final recoveredBilling = pendingBilling != null && remoteExists
+          ? _recoverBillingOnlyRevision(pendingBilling, remote, localAccount)
+          : null;
+      if (pendingBilling != null &&
+          remoteExists &&
+          _asInt(remote['progressVersion']) ==
+              _asInt(pendingBilling['baseProgressVersion'])) {
+        await _local.writeCriticalString(_billingJournalKey(uid), null);
+      }
 
       _captureRemoteCursors(remote);
       final remoteServerAt = _asInt(remote['serverUpdatedAt']);
@@ -1434,16 +1468,26 @@ class AppController extends ChangeNotifier {
         accountRaw = remote['accountJson'] as String;
         runRaw = remote['runJson']?.toString() ?? '';
         shouldUpload = false;
+      } else if (owner == uid && remoteExists && recoveredBilling != null) {
+        accountRaw = recoveredBilling;
+        runRaw = localRun;
+        shouldUpload = true;
       } else if (owner == uid && remoteExists) {
         final dirtyStamp = _dirtyStamp(uid);
         final lastServerAt = _local.readInt(_serverSlot(uid));
+        final lastProgressVersion = int.tryParse(
+          _local.readString(_progressVersionSlot(uid)) ?? '',
+        );
         if (dirtyStamp > 0 && _asInt(remote['clientSavedAt']) >= dirtyStamp) {
           accountRaw = remote['accountJson'] as String;
           runRaw = remote['runJson']?.toString() ?? '';
           await _clearCloudDirty(uid);
         } else if (dirtyStamp > 0 &&
-            lastServerAt > 0 &&
-            remoteServerAt == lastServerAt) {
+            ((lastProgressVersion != null &&
+                    lastProgressVersion == _asInt(remote['progressVersion'])) ||
+                (lastProgressVersion == null &&
+                    lastServerAt > 0 &&
+                    remoteServerAt == lastServerAt))) {
           shouldUpload = true;
         } else if (dirtyStamp > 0) {
           await _local.writeString(
@@ -1470,13 +1514,17 @@ class AppController extends ChangeNotifier {
       await _installReconciledSave(
         accountRaw,
         runRaw,
-        retainLocalPaidState: retainPaidState,
+        retainLocalPaidState: recoveredBilling == null && retainPaidState,
       );
       await _local.writeCloudOwner(uid);
       await _stashOwnedPhoneSave(uid);
       if (remoteServerAt > 0) {
         await _local.writeInt(_serverSlot(uid), remoteServerAt);
       }
+      await _local.writeCriticalString(
+        _progressVersionSlot(uid),
+        cloudProgressVersion.toString(),
+      );
       cloudState = CloudLinkState.ready;
       if (!cloudStatus.startsWith('Cloud conflict')) {
         cloudStatus = announce
@@ -1485,6 +1533,9 @@ class AppController extends ChangeNotifier {
       }
       if (shouldUpload) {
         await _markCloudDirty(_latestLocalStamp());
+        if (recoveredBilling != null) {
+          await _local.writeCriticalString(_billingJournalKey(uid), null);
+        }
         await cloudSaveNow();
       }
     } catch (error) {
@@ -1500,6 +1551,15 @@ class AppController extends ChangeNotifier {
   }
 
   Future<bool> cloudSaveNow() async {
+    if (_billingCloudWritesPaused) {
+      _cloudWritePending = true;
+      return false;
+    }
+    final billingUid = firebase.user?.uid;
+    final pending = billingUid == null ? null : _billingJournal(billingUid);
+    if (pending != null) {
+      return false; // An uncertain paid response must be reconciled, never overwritten.
+    }
     if (developerToolsUnlocked(account)) return false;
     if (!cloudReady || !_ownsCurrentCloudAccount || !firebase.signedIn) {
       return false;
@@ -1540,6 +1600,10 @@ class AppController extends ChangeNotifier {
         throw const FormatException('Cloud server returned an invalid save');
       }
       _captureRemoteCursors(response);
+      await _local.writeCriticalString(
+        _progressVersionSlot(uid),
+        cloudProgressVersion.toString(),
+      );
       final serverAt = _asInt(response['serverUpdatedAt']);
       if (serverAt > 0) await _local.writeInt(_serverSlot(uid), serverAt);
 
@@ -1569,13 +1633,18 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> restorePlayEntitlements() async {
-    if (!firebase.signedIn) return;
+    if (!firebase.signedIn || !cloudReady || !_ownsCurrentCloudAccount) return;
+    final ownerUid = firebase.user?.uid;
+    String? before;
     try {
       final result = await billing.restoreServerEntitlements();
+      if (firebase.user?.uid != ownerUid || !_ownsCurrentCloudAccount) return;
       if (result['authoritative'] != true) return;
+      before = account.encode();
       var changed = false;
-      if (result['noAds'] == true && !account.noAds) {
-        account.noAds = true;
+      final verifiedNoAds = result['noAds'] == true;
+      if (account.noAds != verifiedNoAds) {
+        account.noAds = verifiedNoAds;
         changed = true;
       }
       final purchases = result['purchases'];
@@ -1589,6 +1658,7 @@ class AppController extends ChangeNotifier {
             continue;
           }
           if (productId == 'remove_ads') {
+            changed = changed || !account.purchaseClaims.containsKey(tokenHash);
             account.purchaseClaims.putIfAbsent(
               tokenHash,
               () => PurchaseClaim(
@@ -1598,31 +1668,26 @@ class AppController extends ChangeNotifier {
             );
             continue;
           }
-          // Delivered consumables were already included in the private cloud
-          // balance. Only a verified-but-undelivered receipt is recoverable.
-          if (purchase['delivered'] != true &&
-              !account.purchaseClaims.containsKey(tokenHash)) {
-            account.coins += AppConstants.playCoinGrants[productId] ?? 0;
-            account.purchaseClaims[tokenHash] = PurchaseClaim(
-              productId: productId,
-              claimedAt: DateTime.now().millisecondsSinceEpoch,
-            );
-            changed = true;
-          }
+          // Consumable recovery is server-atomic via the unconsumed Play
+          // receipt. Entitlement lists must never add currency locally.
         }
       }
       final billingInfo = result['billing'];
       if (billingInfo is Map) {
-        billingAdjustmentApplied = _asInt(
-          billingInfo['billingAdjustmentApplied'],
-        );
         billingAdjustmentTotal = _asInt(billingInfo['coinAdjustmentTotal']);
-        cloudProgressVersion = _asInt(billingInfo['progressVersion']);
+        // Applied-refund/progress cursors belong to the account snapshot we
+        // actually installed, not a separate entitlement response. Advancing
+        // them here could permit a stale device to overwrite a newer balance.
       }
       if (changed) await persistAccount();
       ads.setNoAds(effectiveNoAds);
       notifyListeners();
     } catch (error) {
+      if (before != null &&
+          firebase.user?.uid == ownerUid &&
+          _ownsCurrentCloudAccount) {
+        account = AccountState.decode(before);
+      }
       cloudError = error;
       notifyListeners();
     }
@@ -1684,21 +1749,31 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> deleteFirebaseAccountAndData() async {
-    if (!firebase.signedIn) throw StateError('Sign in first.');
-    await firebase.deleteMyAccount();
-    _cloudTimer?.cancel();
-    await _local.clearPlayerData(retainPrivacyAcceptance: true);
-    account = AccountState();
-    activeRunJson = null;
-    cloudState = CloudLinkState.guest;
-    cloudStatus = 'Account deleted';
+    _billingAccountTransitioning = true;
     try {
-      await firebase.signOut();
-    } catch (_) {
-      // The callable deletes Firebase Authentication, so a local sign-out can
-      // legitimately see an already-invalid credential.
+      try {
+        await _billingDeliveryInFlight;
+      } catch (_) {
+        /* Journal is deleted with the account. */
+      }
+      if (!firebase.signedIn) throw StateError('Sign in first.');
+      await firebase.deleteMyAccount();
+      _cloudTimer?.cancel();
+      await _local.clearPlayerData(retainPrivacyAcceptance: true);
+      account = AccountState();
+      activeRunJson = null;
+      cloudState = CloudLinkState.guest;
+      cloudStatus = 'Account deleted';
+      try {
+        await firebase.signOut();
+      } catch (_) {
+        // The callable deletes Firebase Authentication, so a local sign-out can
+        // legitimately see an already-invalid credential.
+      }
+      notifyListeners();
+    } finally {
+      _billingAccountTransitioning = false;
     }
-    notifyListeners();
   }
 
   Future<void> resetLocalProgress() async {
@@ -1710,27 +1785,143 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> _persistVerifiedPlayGrant(VerifiedPlayPurchase purchase) async {
-    final alreadyClaimed = account.purchaseClaims.containsKey(
-      purchase.tokenHash,
-    );
-    if (!alreadyClaimed) {
-      if (purchase.removesAds) {
-        account.noAds = true;
-      } else {
-        account.coins += purchase.coinAmount;
+  Future<bool> _persistVerifiedPlayGrant(VerifiedPlayPurchase purchase) {
+    final previous = _billingDeliveryInFlight;
+    late final Future<bool> operation;
+    operation = (() async {
+      try {
+        try {
+          await previous;
+        } catch (_) {
+          /* Next receipt still gets a retry. */
+        }
+        return await _fulfillVerifiedPlayGrant(purchase);
+      } finally {
+        if (identical(_billingDeliveryInFlight, operation)) {
+          _billingDeliveryInFlight = null;
+        }
       }
+    })();
+    _billingDeliveryInFlight = operation;
+    return operation;
+  }
+
+  Future<bool> _fulfillVerifiedPlayGrant(VerifiedPlayPurchase purchase) async {
+    // Do not modify a guest/previous-account save while startup reconciliation
+    // is still in flight. The unconsumed Play receipt remains recoverable.
+    if (_billingAccountTransitioning ||
+        !cloudReady ||
+        !_ownsCurrentCloudAccount ||
+        !firebase.signedIn) {
+      return false;
+    }
+    final uid = firebase.user!.uid;
+    final pending = _billingJournal(uid);
+    if (pending != null &&
+        !account.purchaseClaims.containsKey(pending['tokenHash'])) {
+      return false; // Reconcile the pending server response before another write.
+    }
+    if (!await cloudSaveNow()) return false;
+    _billingCloudWritesPaused = true;
+    try {
+      final version = cloudProgressVersion;
+      await _local.writeCriticalString(
+        _billingJournalKey(uid),
+        jsonEncode({
+          'uid': uid,
+          'tokenHash': purchase.tokenHash,
+          'productId': purchase.productId,
+          'baseProgressVersion': version,
+        }),
+      );
+      final result = await firebase.fulfillPlayPurchase(
+        productId: purchase.productId,
+        purchaseToken: purchase.purchaseToken,
+        expectedProgressVersion: version,
+      );
+      if (firebase.user?.uid != uid || !_ownsCurrentCloudAccount) return false;
+      if (result['fulfilled'] != true) {
+        throw StateError('Purchase fulfillment was not confirmed.');
+      }
+      final delta = (result['coinDelta'] as num?)?.toInt() ?? 0;
+      if (delta < -9999999 || delta > purchase.coinAmount) {
+        throw StateError('Invalid verified purchase adjustment.');
+      }
+      final before = account.encode();
+      if (purchase.removesAds && result['noAds'] == true) {
+        account.noAds = true;
+      }
+      account.coins = (account.coins + delta).clamp(0, 9999999);
       account.purchaseClaims[purchase.tokenHash] = PurchaseClaim(
         productId: purchase.productId,
         claimedAt: DateTime.now().millisecondsSinceEpoch,
       );
-      await persistAccount(syncCloud: false);
+      try {
+        await persistAccount(syncCloud: false);
+      } catch (_) {
+        account = AccountState.decode(before);
+        notifyListeners();
+        rethrow;
+      }
+      _captureRemoteCursors(result);
+      await _local.writeCriticalString(
+        _progressVersionSlot(uid),
+        cloudProgressVersion.toString(),
+      );
+      await _local.writeInt(
+        _serverSlot(uid),
+        _asInt(result['serverUpdatedAt']),
+      );
+      await _markCloudDirty(_latestLocalStamp());
+      await _local.writeCriticalString(_billingJournalKey(uid), null);
+      ads.setNoAds(effectiveNoAds);
+      return true;
+    } finally {
+      _billingCloudWritesPaused = false;
+      _scheduleCloudWrite(delay: const Duration(milliseconds: 80));
     }
-    if (!cloudReady || !_ownsCurrentCloudAccount) return false;
-    await _markCloudDirty(_latestLocalStamp());
-    final saved = await cloudSaveNow();
-    if (saved) ads.setNoAds(effectiveNoAds);
-    return saved;
+  }
+
+  static String _billingJournalKey(String uid) =>
+      'flutter_billing_recovery_v2:$uid';
+
+  static String _progressVersionSlot(String uid) =>
+      '$_cloudPrefix$uid:progressVersion';
+
+  Map<String, dynamic>? _billingJournal(String uid) {
+    final raw = _local.readString(_billingJournalKey(uid));
+    return raw == null
+        ? null
+        : Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  String _recoverBillingOnlyRevision(
+    Map<String, dynamic> journal,
+    Map<String, dynamic> remote,
+    String localRaw,
+  ) {
+    final base = _asInt(journal['baseProgressVersion']);
+    final version = _asInt(remote['progressVersion']);
+    final token = journal['tokenHash'] as String;
+    final local = AccountState.decode(localRaw);
+    if (version == base) return localRaw; // Request never committed.
+    if (version != base + 1 ||
+        remote['lastBillingTokenHash'] != token ||
+        _asInt(remote['lastBillingBaseProgressVersion']) != base) {
+      throw StateError(
+        'A pending purchase and another device changed this save. Phone progress is safe; reconnect or contact support before replacing it.',
+      );
+    }
+    if (!local.purchaseClaims.containsKey(token)) {
+      final delta = (remote['lastBillingCoinDelta'] as num?)?.toInt() ?? 0;
+      local.coins = (local.coins + delta).clamp(0, 9999999);
+      local.purchaseClaims[token] = PurchaseClaim(
+        productId: journal['productId'] as String,
+        claimedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+    }
+    if (journal['productId'] == 'remove_ads') local.noAds = true;
+    return local.encode();
   }
 
   Future<void> _installReconciledSave(
@@ -1985,7 +2176,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _markCloudDirty(int stamp) =>
-      _local.writeInt(_dirtySlot(firebase.user?.uid ?? ''), stamp);
+      _local.writeCriticalInt(_dirtySlot(firebase.user?.uid ?? ''), stamp);
 
   int _dirtyStamp(String uid) => _local.readInt(_dirtySlot(uid));
 

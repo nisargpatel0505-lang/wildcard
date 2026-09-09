@@ -401,6 +401,7 @@ exports.deleteMyAccount = onCall({
 });
 
 exports.verifyPlayPurchase = billing.verifyPlayPurchase;
+exports.fulfillPlayPurchase = billing.fulfillPlayPurchase;
 exports.markPlayPurchaseDelivered = billing.markPlayPurchaseDelivered;
 exports.getPlayEntitlements = billing.getPlayEntitlements;
 exports.playBillingNotification = billing.playBillingNotification;
